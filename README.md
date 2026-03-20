@@ -1,53 +1,39 @@
-# direc
+# @spectotal/direc-monorepo
 
-`direc` is a small CLI scaffold for spec-driven development workflows. The package is set up so you can publish it to npm and invoke it with `npx direc`.
+This repository is an npm workspace monorepo for `direc`.
 
-## What is included
+- `packages/direc`: the publishable CLI package that users can run with `npx direc` or install globally with `npm install -g direc`
 
-- TypeScript CLI source with a `bin` entrypoint
-- `init`, `run`, and `doctor` starter commands
-- Build scripts for local development and npm publishing
-- A generated `direc.config.json` and example spec template
-
-## Getting started
+## Workspace commands
 
 ```bash
 npm install
+npm run lint
+npm run typecheck
+npm run test
 npm run build
-npm start -- --help
 ```
 
-## Local development
+## Local CLI development
 
 ```bash
-npm run dev -- --help
-npm run dev -- init
-npm run dev -- run specs/example.spec.md --dry-run
+npm run dev:direc -- --help
+npm run dev:direc -- init
+npm run dev:direc -- run specs/example.spec.md --dry-run
 ```
 
-## Publish checklist
+## Pre-commit flow
 
-1. Confirm the npm package name you want is available.
-2. Update `author`, `license`, repository metadata, and description in `package.json`.
-3. Log in with `npm login`.
-4. Publish with `npm publish --access public`.
+The repo uses Husky plus lint-staged.
 
-## Command examples
+- staged JavaScript and TypeScript files run through ESLint and Prettier
+- staged JSON, Markdown, and YAML files run through Prettier
+- affected workspace packages run `typecheck`
+- affected workspace packages run `test` when the package exposes a test script
+
+## Publish the CLI
 
 ```bash
-npx direc init
-npx direc doctor
-npx direc run specs/example.spec.md --dry-run
-```
-
-## Project structure
-
-```text
-bin/
-  direc.js
-src/
-  commands/
-  lib/
-  cli.ts
-  main.ts
+npm run build
+npm publish --workspace=direc --access public
 ```

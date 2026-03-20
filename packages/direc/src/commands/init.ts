@@ -1,9 +1,6 @@
 import { resolve } from "node:path";
 import { ensureDirectory, writeFileSafe } from "../lib/fs.js";
-import {
-  DIREC_CONFIG_TEMPLATE,
-  EXAMPLE_SPEC_TEMPLATE,
-} from "../lib/templates.js";
+import { DIREC_CONFIG_TEMPLATE, EXAMPLE_SPEC_TEMPLATE } from "../lib/templates.js";
 
 type InitOptions = {
   force?: boolean;

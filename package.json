@@ -1,49 +1,43 @@
 {
-  "name": "direc",
+  "name": "@spectotal/direc-monorepo",
   "version": "0.1.0",
-  "description": "Spec-driven development tooling for turning specifications into executable workflows.",
-  "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "bin": {
-    "direc": "./bin/direc.js"
-  },
-  "files": [
-    "bin",
-    "dist",
-    "README.md"
+  "private": true,
+  "description": "Monorepo for the direc CLI and related Spectotal tooling.",
+  "workspaces": [
+    "packages/*"
   ],
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    }
-  },
   "engines": {
     "node": ">=18.18"
   },
   "scripts": {
-    "build": "rimraf dist && tsc -p tsconfig.json",
-    "check": "tsc --noEmit -p tsconfig.json",
-    "dev": "tsx src/cli.ts",
-    "prepare": "npm run build",
-    "start": "node ./bin/direc.js"
+    "build": "npm run build --workspaces",
+    "check": "npm run lint && npm run format:check && npm run typecheck && npm run test && npm run build",
+    "clean": "npm run clean --workspaces --if-present",
+    "dev:direc": "npm run dev --workspace=direc --",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint . --max-warnings=0",
+    "pack:direc": "npm pack --workspace=direc --dry-run",
+    "precommit": "lint-staged && node ./scripts/run-staged-workspaces.mjs typecheck test",
+    "prepare": "husky",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces"
   },
-  "keywords": [
-    "cli",
-    "spec-driven",
-    "developer-tools",
-    "tooling"
-  ],
-  "author": "",
-  "license": "MIT",
-  "dependencies": {
-    "commander": "^13.1.0"
+  "lint-staged": {
+    "*.{js,mjs,cjs,ts,mts,cts}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yaml,yml}": "prettier --write"
   },
   "devDependencies": {
-    "@types/node": "^24.0.0",
-    "rimraf": "^6.0.1",
-    "tsx": "^4.19.4",
-    "typescript": "^5.8.3"
+    "@eslint/js": "^9.23.0",
+    "eslint": "^9.23.0",
+    "eslint-config-prettier": "^10.1.1",
+    "globals": "^16.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.0.0",
+    "prettier": "^3.5.3",
+    "typescript-eslint": "^8.28.0"
   }
 }

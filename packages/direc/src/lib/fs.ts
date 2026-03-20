@@ -8,11 +8,7 @@ export async function writeFileSafe(
   try {
     await writeFile(filePath, content, { flag: force ? "w" : "wx" });
   } catch (error) {
-    if (
-      error instanceof Error &&
-      "code" in error &&
-      error.code === "EEXIST"
-    ) {
+    if (error instanceof Error && "code" in error && error.code === "EEXIST") {
       throw new Error(`Refusing to overwrite existing file: ${filePath}`);
     }
 

@@ -5,10 +5,7 @@ type RunOptions = {
   dryRun?: boolean;
 };
 
-export async function runCommand(
-  specPath: string,
-  options: RunOptions,
-): Promise<void> {
+export async function runCommand(specPath: string, options: RunOptions): Promise<void> {
   const absolutePath = resolve(process.cwd(), specPath);
   await access(absolutePath);
 
