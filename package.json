@@ -12,6 +12,8 @@
   "scripts": {
     "build": "npm run build --workspaces",
     "check": "npm run lint && npm run format:check && npm run typecheck && npm run test && npm run build",
+    "changeset": "changeset",
+    "changeset:status": "changeset status --verbose",
     "clean": "npm run clean --workspaces --if-present",
     "dev:direc": "npm run dev --workspace=direc --",
     "format": "prettier --write .",
@@ -20,6 +22,8 @@
     "pack:direc": "npm pack --workspace=direc --dry-run",
     "precommit": "lint-staged && node ./scripts/run-staged-workspaces.mjs typecheck test",
     "prepare": "husky",
+    "release:publish": "node ./scripts/ensure-clean-worktree.mjs && npm run check && changeset publish",
+    "release:version": "node ./scripts/ensure-clean-worktree.mjs && changeset version && npm install --package-lock-only --ignore-scripts",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces"
   },
@@ -31,6 +35,7 @@
     "*.{json,md,yaml,yml}": "prettier --write"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.29.7",
     "@eslint/js": "^9.23.0",
     "eslint": "^9.23.0",
     "eslint-config-prettier": "^10.1.1",

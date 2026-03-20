@@ -37,3 +37,27 @@ The repo uses Husky plus lint-staged.
 npm run build
 npm publish --workspace=direc --access public
 ```
+
+## Release Workflow
+
+The repo uses Changesets to track package-level changes and produce version bumps plus changelogs.
+
+```bash
+# 1. Record a user-facing package change in your feature branch
+npm run changeset
+
+# 2. Inspect pending release state
+npm run changeset:status
+
+# 3. When main is ready to cut a release, version packages and changelogs
+npm run release:version
+
+# 4. Commit the generated version updates, then publish
+npm run release:publish
+```
+
+Notes:
+
+- Changeset files live in `.changeset/` and should be committed with the change they describe.
+- `release:version` and `release:publish` require a clean git worktree.
+- `release:publish` runs the repo checks before publishing to npm.
