@@ -57,9 +57,9 @@ test("collectRoleBoundaryViolations reports forbidden role-to-role dependencies"
 
   const findings = collectRoleBoundaryViolations(process.cwd(), graph, assignments, [
     {
-      fromRoles: ["workflow-event-shaper"],
-      disallowRoles: ["workflow-change-loader"],
-      message: "Event shapers must not load workflow changes.",
+      sourceRole: "workflow-event-shaper",
+      onlyDependOnRoles: ["workflow-event-shaper", "workflow-shared-types"],
+      message: "Event shapers must only depend on shared workflow helpers.",
     },
   ]);
 
@@ -68,8 +68,93 @@ test("collectRoleBoundaryViolations reports forbidden role-to-role dependencies"
   assert.equal(findings[0]?.scope.dependency?.from, "packages/adapters/direc/src/events.ts");
   assert.equal(findings[0]?.scope.dependency?.to, "packages/adapters/direc/src/git.ts");
   assert.deepEqual(findings[0]?.details, {
-    fromRoles: ["workflow-event-shaper"],
+    sourceRoles: ["workflow-event-shaper"],
     dependencyRoles: ["workflow-change-loader"],
+    allowedRoles: ["workflow-event-shaper", "workflow-shared-types"],
+    forbiddenRoles: [],
+    matchedForbiddenRoles: [],
+    violationKinds: ["onlyDependOnRoles"],
+  });
+});
+
+test("collectRoleBoundaryViolations combines matching constraints with AND semantics", () => {
+  const graph = {
+    "src/feature.ts": ["src/shared.ts"],
+    "src/shared.ts": [],
+  };
+  const assignments = collectModuleRoleAssignments(graph, [
+    {
+      role: "ui",
+      match: ["src/feature.ts"],
+    },
+    {
+      role: "feature",
+      match: ["src/feature.ts"],
+    },
+    {
+      role: "shared",
+      match: ["src/shared.ts"],
+    },
+  ]);
+
+  const findings = collectRoleBoundaryViolations(process.cwd(), graph, assignments, [
+    {
+      sourceRole: "ui",
+      onlyDependOnRoles: ["shared"],
+    },
+    {
+      sourceRole: "feature",
+      onlyDependOnRoles: ["domain"],
+    },
+  ]);
+
+  assert.equal(findings.length, 1);
+  assert.deepEqual(findings[0]?.details, {
+    sourceRoles: ["feature"],
+    dependencyRoles: ["shared"],
+    allowedRoles: ["domain"],
+    forbiddenRoles: [],
+    matchedForbiddenRoles: [],
+    violationKinds: ["onlyDependOnRoles"],
+  });
+});
+
+test("collectRoleBoundaryViolations supports allSourceRoles and deny constraints", () => {
+  const graph = {
+    "src/feature.ts": ["src/shared.ts"],
+    "src/shared.ts": [],
+  };
+  const assignments = collectModuleRoleAssignments(graph, [
+    {
+      role: "ui",
+      match: ["src/feature.ts"],
+    },
+    {
+      role: "feature",
+      match: ["src/feature.ts"],
+    },
+    {
+      role: "shared",
+      match: ["src/shared.ts"],
+    },
+  ]);
+
+  const findings = collectRoleBoundaryViolations(process.cwd(), graph, assignments, [
+    {
+      allSourceRoles: ["ui", "feature"],
+      notDependOnRoles: ["shared"],
+      message: "UI feature modules must not depend on shared modules here.",
+    },
+  ]);
+
+  assert.equal(findings.length, 1);
+  assert.deepEqual(findings[0]?.details, {
+    sourceRoles: ["ui", "feature"],
+    dependencyRoles: ["shared"],
+    allowedRoles: [],
+    forbiddenRoles: ["shared"],
+    matchedForbiddenRoles: ["shared"],
+    violationKinds: ["notDependOnRoles"],
   });
 });
 

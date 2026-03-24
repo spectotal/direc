@@ -9,17 +9,6 @@ const configPath = resolve(repositoryRoot, ".direc", "config.json");
 const cliRoot = "packages/cli/direc/src";
 const engineRoot = "packages/core/direc-engine/src";
 
-const cliRoles = ["cli-command-surface", "cli-output-formatting", "cli-public-api"] as const;
-const engineInternalRoles = [
-  "engine-config-bootstrap",
-  "engine-extension-loading",
-  "engine-analyzer-registry",
-  "engine-quality-routines",
-  "engine-runtime-assembly",
-  "engine-analysis-execution",
-  "engine-automation-execution",
-] as const;
-
 void main().catch((error: unknown) => {
   process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
   process.exitCode = 1;
@@ -99,9 +88,6 @@ async function createDirecOwnModuleRoles(): Promise<ModuleRoleDefinition[]> {
     defineRole("workflow-contract", "Workflow contracts shared by runtimes and adapters.", [
       "packages/core/workflow-runtime/src",
     ]),
-    defineRole("workflow-adapter-module", "Concrete workflow adapter modules.", [
-      "packages/adapters",
-    ]),
     defineRole("workflow-public-entry", "Public adapter entrypoints that should stay thin.", [
       "packages/adapters/direc/src/index.ts",
       "packages/adapters/openspec/src/index.ts",
@@ -120,6 +106,14 @@ async function createDirecOwnModuleRoles(): Promise<ModuleRoleDefinition[]> {
     defineRole("workflow-change-loader", "Leaf modules that load change state.", [
       "packages/adapters/direc/src/git.ts",
       "packages/adapters/openspec/src/status.ts",
+    ]),
+    defineRole("workflow-support", "Internal adapter helpers that support loaders or watchers.", [
+      "packages/adapters/direc/src/analysis-events.ts",
+      "packages/adapters/direc/src/watch-events.ts",
+      "packages/adapters/openspec/src/status-io.ts",
+      "packages/adapters/openspec/src/status-json.ts",
+      "packages/adapters/openspec/src/status-snapshot.ts",
+      "packages/adapters/openspec/src/status-tasks.ts",
     ]),
     defineRole("workflow-shared-types", "Adapter-local shared type modules.", [
       "packages/adapters/direc/src/types.ts",
@@ -142,102 +136,139 @@ async function createDirecOwnModuleRoles(): Promise<ModuleRoleDefinition[]> {
 }
 
 function createDirecOwnRoleBoundaryRules(moduleRoles: ModuleRoleDefinition[]): RoleBoundaryRule[] {
-  const activeRoles = new Set(moduleRoles.map((role) => role.role));
+  const activeRoleSet = new Set(moduleRoles.map((role) => role.role));
   const templates = [
-    defineRule(
+    defineAllowRule(
+      "cli-output-formatting",
       ["cli-output-formatting"],
-      ["cli-command-surface", "engine-public-api", ...engineInternalRoles],
-      "CLI output helpers must stay presentation-only and must not depend on commands or engine internals.",
+      "CLI output helpers must stay presentation-only.",
     ),
-    defineRule(
+    defineAllowRule(
+      "cli-command-surface",
+      ["cli-command-surface", "cli-output-formatting"],
+      "CLI commands may depend only on command handlers and CLI presentation helpers.",
+    ),
+    defineAllowRule(
+      "cli-public-api",
       ["cli-command-surface"],
-      [...engineInternalRoles, "workflow-adapter-module"],
-      "CLI commands must stay above engine internals and workflow adapters.",
+      "CLI public entrypoints must stay thin and delegate into command handlers.",
     ),
-    defineRule(
-      ["cli-public-api"],
-      [...engineInternalRoles, "workflow-adapter-module"],
-      "CLI public entrypoints must stay thin and must not reach into engine internals or adapters.",
-    ),
-    defineRule(
-      ["engine-public-api"],
-      [...cliRoles],
-      "The engine public API must not depend on CLI modules.",
-    ),
-    defineRule(
-      [...engineInternalRoles],
-      [...cliRoles, "engine-public-api"],
-      "Engine internals must not depend on CLI modules or on the engine barrel.",
-    ),
-    defineRule(
+    defineAllowRule(
+      "engine-public-api",
       [
         "engine-config-bootstrap",
         "engine-extension-loading",
         "engine-analyzer-registry",
         "engine-quality-routines",
+        "engine-runtime-assembly",
+        "engine-analysis-execution",
+        "engine-automation-execution",
       ],
-      ["engine-runtime-assembly", "engine-analysis-execution", "engine-automation-execution"],
-      "Lower-level engine modules must not depend on orchestration entrypoints.",
+      "The engine public API may compose engine internals, but must not reach into CLI or adapter layers.",
     ),
-    defineRule(
+    defineAllowRule(
+      "engine-config-bootstrap",
+      ["engine-config-bootstrap"],
+      "Engine bootstrap helpers must stay self-contained.",
+    ),
+    defineAllowRule(
+      "engine-extension-loading",
+      ["engine-extension-loading", "engine-quality-routines"],
+      "Extension loading may depend only on extension-loading helpers and quality-routine contracts.",
+    ),
+    defineAllowRule(
+      "engine-analyzer-registry",
+      ["engine-quality-routines"],
+      "Analyzer registry modules may depend only on quality-routine composition.",
+    ),
+    defineAllowRule(
+      "engine-quality-routines",
+      ["engine-quality-routines"],
+      "Quality-routine modules may depend only on quality-routine helpers.",
+    ),
+    defineAllowRule(
+      "engine-runtime-assembly",
+      [
+        "engine-analyzer-registry",
+        "engine-extension-loading",
+        "engine-quality-routines",
+        "engine-runtime-assembly",
+      ],
+      "Runtime assembly may depend only on registry, extension-loading, and quality-routine layers.",
+    ),
+    defineAllowRule(
+      "engine-analysis-execution",
+      ["engine-analysis-execution"],
+      "Analysis execution must stay isolated from runtime assembly details.",
+    ),
+    defineAllowRule(
+      "engine-automation-execution",
       ["engine-analysis-execution", "engine-automation-execution"],
-      ["engine-runtime-assembly"],
-      "Execution runners must consume prepared inputs and must not assemble runtime environments.",
+      "Automation execution may build on analysis execution, but not on broader engine orchestration.",
     ),
-    defineRule(
+    defineAllowRule(
+      "core-runtime",
       ["core-runtime"],
-      [...cliRoles, "engine-public-api", ...engineInternalRoles, "workflow-adapter-module"],
-      "Core runtimes must stay independent from CLI composition, engine orchestration, and concrete adapters.",
+      "Core runtime modules must remain self-contained.",
     ),
-    defineRule(
+    defineAllowRule(
+      "workflow-contract",
       ["workflow-contract"],
-      [...cliRoles, "engine-public-api", ...engineInternalRoles, "workflow-adapter-module"],
-      "Workflow contracts must remain independent from CLI, engine orchestration, and adapters.",
+      "Workflow contracts must remain independent from adapters and higher orchestration layers.",
     ),
-    defineRule(
-      ["workflow-adapter-module"],
-      [...cliRoles, "engine-public-api", ...engineInternalRoles],
-      "Workflow adapters must not depend on CLI modules or engine internals.",
-    ),
-    defineRule(
-      ["workflow-public-entry"],
-      ["workflow-event-shaper", "workflow-change-loader"],
+    defineAllowRule(
+      "workflow-public-entry",
+      ["workflow-orchestrator", "workflow-shared-types"],
       "Workflow public entrypoints must stay thin and delegate through orchestrators or shared types.",
     ),
-    defineRule(
-      ["workflow-event-shaper"],
-      ["workflow-public-entry", "workflow-orchestrator", "workflow-change-loader"],
-      "Workflow event shapers must stay leaf-level and must not orchestrate workflow loading.",
-    ),
-    defineRule(
-      ["workflow-change-loader"],
-      ["workflow-public-entry", "workflow-orchestrator", "workflow-event-shaper"],
-      "Workflow change loaders must stay leaf-level and must not normalize events or orchestrate adapters.",
-    ),
-    defineRule(
-      ["workflow-shared-types"],
+    defineAllowRule(
+      "workflow-orchestrator",
       [
-        "workflow-public-entry",
         "workflow-orchestrator",
+        "workflow-support",
         "workflow-event-shaper",
         "workflow-change-loader",
+        "workflow-shared-types",
       ],
-      "Workflow shared type modules must stay dependency-light.",
+      "Workflow orchestrators may depend only on local helpers, event shaping, loaders, and shared types.",
+    ),
+    defineAllowRule(
+      "workflow-event-shaper",
+      ["workflow-event-shaper", "workflow-shared-types"],
+      "Workflow event shapers may depend only on shared types or peer event-shaping helpers.",
+    ),
+    defineAllowRule(
+      "workflow-change-loader",
+      ["workflow-change-loader", "workflow-support", "workflow-shared-types"],
+      "Workflow change loaders may depend only on loader helpers and shared types.",
+    ),
+    defineAllowRule(
+      "workflow-support",
+      ["workflow-support", "workflow-event-shaper", "workflow-shared-types"],
+      "Workflow support helpers may depend only on other support helpers, event shaping, and shared types.",
+    ),
+    defineAllowRule(
+      "workflow-shared-types",
+      ["workflow-contract"],
+      "Workflow shared type modules may only depend on workflow contract types.",
     ),
   ];
 
   return templates.flatMap((rule) => {
-    const fromRoles = rule.fromRoles.filter((role) => activeRoles.has(role));
-    const disallowRoles = rule.disallowRoles.filter((role) => activeRoles.has(role));
+    if (!activeRoleSet.has(rule.sourceRole)) {
+      return [];
+    }
 
-    if (fromRoles.length === 0 || disallowRoles.length === 0) {
+    const onlyDependOnRoles = rule.onlyDependOnRoles.filter((role) => activeRoleSet.has(role));
+
+    if (onlyDependOnRoles.length === 0) {
       return [];
     }
 
     return [
       {
-        fromRoles,
-        disallowRoles,
+        sourceRole: rule.sourceRole,
+        onlyDependOnRoles,
         message: rule.message,
       },
     ];
@@ -252,10 +283,10 @@ function defineRole(role: string, description: string, match: string[]) {
   };
 }
 
-function defineRule(fromRoles: string[], disallowRoles: string[], message: string) {
+function defineAllowRule(sourceRole: string, onlyDependOnRoles: string[], message: string) {
   return {
-    fromRoles,
-    disallowRoles,
+    sourceRole,
+    onlyDependOnRoles,
     message,
   };
 }

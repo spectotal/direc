@@ -1,5 +1,5 @@
 import type { AnalyzerFinding } from "direc-analysis-runtime";
-import { buildRoleBoundaryFinding } from "./role-findings.js";
+import { buildRoleBoundaryFinding, type RoleBoundaryViolationKind } from "./role-findings.js";
 import type { ModuleRoleAssignments } from "./role-assignment.js";
 import type { MadgeGraph, RoleBoundaryRule } from "./types.js";
 
@@ -50,12 +50,26 @@ function collectDependencyViolations(
   }
 
   for (const rule of rules) {
-    const matchedFromRoles = fromRoles.filter((role) => rule.fromRoles.includes(role));
-    const matchedDisallowedRoles = dependencyRoles.filter((role) =>
-      rule.disallowRoles.includes(role),
-    );
+    const matchedSourceRoles = resolveMatchedSourceRoles(fromRoles, rule);
 
-    if (matchedFromRoles.length === 0 || matchedDisallowedRoles.length === 0) {
+    if (matchedSourceRoles.length === 0) {
+      continue;
+    }
+
+    const allowedRoles = rule.onlyDependOnRoles ?? [];
+    const forbiddenRoles = rule.notDependOnRoles ?? [];
+    const matchedForbiddenRoles = dependencyRoles.filter((role) => forbiddenRoles.includes(role));
+    const violationKinds: RoleBoundaryViolationKind[] = [];
+
+    if (allowedRoles.length > 0 && !dependencyRoles.some((role) => allowedRoles.includes(role))) {
+      violationKinds.push("onlyDependOnRoles");
+    }
+
+    if (matchedForbiddenRoles.length > 0) {
+      violationKinds.push("notDependOnRoles");
+    }
+
+    if (violationKinds.length === 0) {
       continue;
     }
 
@@ -64,12 +78,32 @@ function collectDependencyViolations(
         repositoryRoot,
         fromModule,
         dependency,
-        matchedFromRoles,
-        matchedDisallowedRoles,
+        sourceRoles: matchedSourceRoles,
+        dependencyRoles,
+        allowedRoles,
+        forbiddenRoles,
+        matchedForbiddenRoles,
+        violationKinds,
         message: rule.message,
       }),
     );
   }
 
   return findings;
+}
+
+function resolveMatchedSourceRoles(fromRoles: string[], rule: RoleBoundaryRule): string[] {
+  if (typeof rule.sourceRole === "string" && fromRoles.includes(rule.sourceRole)) {
+    return [rule.sourceRole];
+  }
+
+  if (
+    Array.isArray(rule.allSourceRoles) &&
+    rule.allSourceRoles.length > 0 &&
+    rule.allSourceRoles.every((role) => fromRoles.includes(role))
+  ) {
+    return [...rule.allSourceRoles];
+  }
+
+  return [];
 }

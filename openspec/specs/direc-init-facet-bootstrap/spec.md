@@ -16,7 +16,7 @@ Define how `direc init` detects repository facets, resolves supported analyzers,
 #### Scenario: Generated config includes analyzer tuning
 
 - **WHEN** `direc init` resolves the JavaScript and TypeScript analyzer set for a repository
-- **THEN** `.direc/config.json` includes default complexity thresholds and exclude patterns plus default architecture exclude patterns and boundary rule slots
+- **THEN** `.direc/config.json` includes default complexity thresholds and exclude patterns plus default architecture exclude patterns and positive boundary rule slots
 
 #### Scenario: Generated config includes quality routines
 
@@ -26,7 +26,7 @@ Define how `direc init` detects repository facets, resolves supported analyzers,
 #### Scenario: Generated config uses taxonomy-aware boundary rules
 
 - **WHEN** `direc init` writes `.direc/config.json`
-- **THEN** the architecture drift configuration contains boundary rules for `packages/cli/direc/src/lib`, `packages/adapters/openspec/src/status.ts`, and `packages/adapters/openspec/src/events.ts`
+- **THEN** the architecture drift configuration contains positive role-boundary rules for `packages/cli/direc/src/lib`, `packages/adapters/openspec/src/status.ts`, and `packages/adapters/openspec/src/events.ts`
 
 ### Requirement: Init fails clearly when no supported analyzer set can be resolved
 

@@ -5,8 +5,10 @@ export type ModuleRoleDefinition = {
 };
 
 export type RoleBoundaryRule = {
-  fromRoles: string[];
-  disallowRoles: string[];
+  sourceRole?: string;
+  allSourceRoles?: string[];
+  onlyDependOnRoles?: string[];
+  notDependOnRoles?: string[];
   message?: string;
 };
 

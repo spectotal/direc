@@ -7,17 +7,25 @@ test("buildRoleBoundaryFinding preserves dependency-edge details", () => {
     repositoryRoot: "/tmp/repository",
     fromModule: "src/a.ts",
     dependency: "src/b.ts",
-    matchedFromRoles: ["ui"],
-    matchedDisallowedRoles: ["data"],
-    message: "ui must not depend on data",
+    sourceRoles: ["ui"],
+    dependencyRoles: ["data"],
+    allowedRoles: ["shared"],
+    forbiddenRoles: ["data"],
+    matchedForbiddenRoles: ["data"],
+    violationKinds: ["onlyDependOnRoles", "notDependOnRoles"],
+    message: "ui must only depend on shared and must not depend on data",
   });
 
   assert.equal(finding.category, "forbidden-role-dependency");
   assert.equal(finding.scope.dependency?.from, "src/a.ts");
   assert.equal(finding.scope.dependency?.to, "src/b.ts");
   assert.deepEqual(finding.details, {
-    fromRoles: ["ui"],
+    sourceRoles: ["ui"],
     dependencyRoles: ["data"],
+    allowedRoles: ["shared"],
+    forbiddenRoles: ["data"],
+    matchedForbiddenRoles: ["data"],
+    violationKinds: ["onlyDependOnRoles", "notDependOnRoles"],
   });
 });
 

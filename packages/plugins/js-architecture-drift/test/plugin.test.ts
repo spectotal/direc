@@ -44,9 +44,9 @@ test("architecture drift plugin reports cycles and forbidden dependencies", asyn
       ],
       roleBoundaryRules: [
         {
-          fromRoles: ["core-layer"],
-          disallowRoles: ["ui-layer"],
-          message: "Core code must not depend on UI code.",
+          sourceRole: "core-layer",
+          onlyDependOnRoles: ["core-layer"],
+          message: "Core code must stay within core-layer modules.",
         },
       ],
     },
@@ -101,12 +101,16 @@ test("architecture drift plugin reports forbidden role dependencies", async () =
           role: "workflow-change-loader",
           match: ["src/git.ts"],
         },
+        {
+          role: "workflow-shared-types",
+          match: ["src/types.ts"],
+        },
       ],
       roleBoundaryRules: [
         {
-          fromRoles: ["workflow-event-shaper"],
-          disallowRoles: ["workflow-change-loader"],
-          message: "Event shaping modules must not load workflow state.",
+          sourceRole: "workflow-event-shaper",
+          onlyDependOnRoles: ["workflow-event-shaper", "workflow-shared-types"],
+          message: "Event shaping modules must only depend on workflow-shared-types or peers.",
         },
       ],
     },
@@ -118,6 +122,14 @@ test("architecture drift plugin reports forbidden role dependencies", async () =
     ["forbidden-role-dependency"],
   );
   assert.equal(snapshot.metrics?.boundaryViolationCount, 1);
+  assert.deepEqual(snapshot.findings[0]?.details, {
+    sourceRoles: ["workflow-event-shaper"],
+    dependencyRoles: ["workflow-change-loader"],
+    allowedRoles: ["workflow-event-shaper", "workflow-shared-types"],
+    forbiddenRoles: [],
+    matchedForbiddenRoles: [],
+    violationKinds: ["onlyDependOnRoles"],
+  });
   assert.deepEqual(snapshot.metadata?.moduleRoles, {
     "src/events.ts": ["workflow-event-shaper"],
     "src/git.ts": ["workflow-change-loader"],

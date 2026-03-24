@@ -51,7 +51,7 @@ The generated config now includes default analyzer tuning:
 
 - non-production path exclusions for fixtures, tests, declaration files, `dist`, and `scripts/`
 - warning and error complexity thresholds
-- initial architecture boundary rules that keep `packages/cli/direc/src/lib` isolated from command handlers and keep OpenSpec status or event logic isolated from watch orchestration
+- initial positive architecture boundary rules that keep `packages/cli/direc/src/lib` isolated from command handlers and keep OpenSpec status or event logic isolated from watch orchestration
 - an automation profile with advisory mode, hybrid invocation, command transport, DIREC snapshot triggers, and OpenSpec task-diff plus change-complete triggers
 
 Typical workflow:

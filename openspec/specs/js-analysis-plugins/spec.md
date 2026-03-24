@@ -29,17 +29,17 @@ The JavaScript and TypeScript complexity plugin SHALL normalize threshold violat
 
 ### Requirement: Architecture drift analysis normalizes configured structural violations
 
-The JavaScript and TypeScript architecture drift plugin SHALL invoke a third-party dependency graph tool, SHALL read repository-specific dependency boundary rules and exclusions from Direc configuration before execution, and SHALL normalize cycles, forbidden dependencies, and layer drift into the shared Direc result schema.
+The JavaScript and TypeScript architecture drift plugin SHALL invoke a third-party dependency graph tool, SHALL read repository-specific dependency boundary rules and exclusions from Direc configuration before execution, and SHALL normalize cycles, role-boundary violations, and layer drift into the shared Direc result schema.
 
 #### Scenario: Dependency cycle becomes a normalized finding
 
 - **WHEN** the dependency analysis tool reports a cycle between workspace packages or source modules
 - **THEN** the plugin emits a normalized architecture drift finding that identifies the offending dependency path
 
-#### Scenario: Configured forbidden dependency is enforced
+#### Scenario: Configured dependency constraint is enforced
 
-- **WHEN** `.direc/config.json` declares a forbidden dependency boundary between two package scopes
-- **THEN** the plugin reports a normalized violation when the external analysis tool detects that dependency edge
+- **WHEN** `.direc/config.json` declares an allowed-dependency role constraint between two package scopes
+- **THEN** the plugin reports a normalized violation when the external analysis tool detects a dependency edge outside the allowed target roles or inside the forbidden target roles
 
 #### Scenario: Fixture-only cycles are ignored by default
 

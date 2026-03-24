@@ -42,7 +42,7 @@ If `.direc/config.json` already exists, rerun with `--force` to overwrite.
 
 The generated analyzer config includes default path exclusions for fixtures, tests, `dist`, declaration files, and `scripts/`, plus default warning and error complexity thresholds that you can tune in `.direc/config.json`.
 
-It also seeds a small set of architecture boundary rules for the built-in Direc CLI and OpenSpec adapter layers, plus an automation profile that runs in advisory mode via a bundled command backend.
+It also seeds a small set of positive architecture boundary rules for the built-in Direc CLI and OpenSpec adapter layers, plus an automation profile that runs in advisory mode via a bundled command backend.
 
 The generated config can now also include:
 

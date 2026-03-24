@@ -1,8 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import type { RoleBoundaryRule } from "../src/types.js";
 import { validateRoleConfiguration } from "../src/validation.js";
 
 test("validateRoleConfiguration reports broken role and rule definitions", () => {
+  const legacyRule = {
+    fromRoles: ["workflow-orchestrator"],
+    disallowRoles: ["workflow-change-loader"],
+  } as unknown as RoleBoundaryRule;
   const findings = validateRoleConfiguration(
     process.cwd(),
     [
@@ -21,13 +26,21 @@ test("validateRoleConfiguration reports broken role and rule definitions", () =>
     ],
     [
       {
-        fromRoles: ["workflow-orchestrator", "missing-role"],
-        disallowRoles: [],
+        sourceRole: "workflow-orchestrator",
+        allSourceRoles: ["missing-source-role"],
+        onlyDependOnRoles: [],
+        notDependOnRoles: ["missing-role"],
       },
       {
-        fromRoles: [],
-        disallowRoles: ["missing-role"],
+        sourceRole: "",
+        onlyDependOnRoles: ["missing-role"],
       },
+      {
+        allSourceRoles: [""],
+        onlyDependOnRoles: [""],
+        notDependOnRoles: [""],
+      },
+      legacyRule,
     ],
   );
 
@@ -40,13 +53,22 @@ test("validateRoleConfiguration reports broken role and rule definitions", () =>
   assert.ok(findings.some((finding) => finding.message.includes("missing a non-empty role name")));
   assert.ok(findings.some((finding) => finding.message.includes("empty match pattern")));
   assert.ok(
-    findings.some((finding) => finding.message.includes("must define at least one source role")),
+    findings.some((finding) =>
+      finding.message.includes('must define exactly one of "sourceRole" or "allSourceRoles"'),
+    ),
   );
   assert.ok(
     findings.some((finding) =>
-      finding.message.includes("must define at least one disallowed role"),
+      finding.message.includes(
+        'must define at least one of "onlyDependOnRoles" or "notDependOnRoles"',
+      ),
     ),
   );
   assert.ok(findings.some((finding) => finding.message.includes("unknown source roles")));
-  assert.ok(findings.some((finding) => finding.message.includes("unknown disallowed roles")));
+  assert.ok(findings.some((finding) => finding.message.includes("unknown onlyDependOnRoles")));
+  assert.ok(findings.some((finding) => finding.message.includes("unknown notDependOnRoles")));
+  assert.ok(findings.some((finding) => finding.message.includes('uses removed field "fromRoles"')));
+  assert.ok(
+    findings.some((finding) => finding.message.includes('uses removed field "disallowRoles"')),
+  );
 });

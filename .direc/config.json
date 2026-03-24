@@ -182,11 +182,6 @@
             "match": ["packages/core/workflow-runtime/src"]
           },
           {
-            "role": "workflow-adapter-module",
-            "description": "Concrete workflow adapter modules.",
-            "match": ["packages/adapters"]
-          },
-          {
             "role": "workflow-public-entry",
             "description": "Public adapter entrypoints that should stay thin.",
             "match": [
@@ -222,6 +217,18 @@
             ]
           },
           {
+            "role": "workflow-support",
+            "description": "Internal adapter helpers that support loaders or watchers.",
+            "match": [
+              "packages/adapters/direc/src/analysis-events.ts",
+              "packages/adapters/direc/src/watch-events.ts",
+              "packages/adapters/openspec/src/status-io.ts",
+              "packages/adapters/openspec/src/status-json.ts",
+              "packages/adapters/openspec/src/status-snapshot.ts",
+              "packages/adapters/openspec/src/status-tasks.ts"
+            ]
+          },
+          {
             "role": "workflow-shared-types",
             "description": "Adapter-local shared type modules.",
             "match": [
@@ -232,10 +239,23 @@
         ],
         "roleBoundaryRules": [
           {
-            "fromRoles": ["cli-output-formatting"],
-            "disallowRoles": [
-              "cli-command-surface",
-              "engine-public-api",
+            "sourceRole": "cli-output-formatting",
+            "onlyDependOnRoles": ["cli-output-formatting"],
+            "message": "CLI output helpers must stay presentation-only."
+          },
+          {
+            "sourceRole": "cli-command-surface",
+            "onlyDependOnRoles": ["cli-command-surface", "cli-output-formatting"],
+            "message": "CLI commands may depend only on command handlers and CLI presentation helpers."
+          },
+          {
+            "sourceRole": "cli-public-api",
+            "onlyDependOnRoles": ["cli-command-surface"],
+            "message": "CLI public entrypoints must stay thin and delegate into command handlers."
+          },
+          {
+            "sourceRole": "engine-public-api",
+            "onlyDependOnRoles": [
               "engine-config-bootstrap",
               "engine-extension-loading",
               "engine-analyzer-registry",
@@ -244,163 +264,101 @@
               "engine-analysis-execution",
               "engine-automation-execution"
             ],
-            "message": "CLI output helpers must stay presentation-only and must not depend on commands or engine internals."
+            "message": "The engine public API may compose engine internals, but must not reach into CLI or adapter layers."
           },
           {
-            "fromRoles": ["cli-command-surface"],
-            "disallowRoles": [
-              "engine-config-bootstrap",
-              "engine-extension-loading",
+            "sourceRole": "engine-config-bootstrap",
+            "onlyDependOnRoles": ["engine-config-bootstrap"],
+            "message": "Engine bootstrap helpers must stay self-contained."
+          },
+          {
+            "sourceRole": "engine-extension-loading",
+            "onlyDependOnRoles": ["engine-extension-loading", "engine-quality-routines"],
+            "message": "Extension loading may depend only on extension-loading helpers and quality-routine contracts."
+          },
+          {
+            "sourceRole": "engine-analyzer-registry",
+            "onlyDependOnRoles": ["engine-quality-routines"],
+            "message": "Analyzer registry modules may depend only on quality-routine composition."
+          },
+          {
+            "sourceRole": "engine-quality-routines",
+            "onlyDependOnRoles": ["engine-quality-routines"],
+            "message": "Quality-routine modules may depend only on quality-routine helpers."
+          },
+          {
+            "sourceRole": "engine-runtime-assembly",
+            "onlyDependOnRoles": [
               "engine-analyzer-registry",
+              "engine-extension-loading",
               "engine-quality-routines",
-              "engine-runtime-assembly",
-              "engine-analysis-execution",
-              "engine-automation-execution",
-              "workflow-adapter-module"
+              "engine-runtime-assembly"
             ],
-            "message": "CLI commands must stay above engine internals and workflow adapters."
+            "message": "Runtime assembly may depend only on registry, extension-loading, and quality-routine layers."
           },
           {
-            "fromRoles": ["cli-public-api"],
-            "disallowRoles": [
-              "engine-config-bootstrap",
-              "engine-extension-loading",
-              "engine-analyzer-registry",
-              "engine-quality-routines",
-              "engine-runtime-assembly",
-              "engine-analysis-execution",
-              "engine-automation-execution",
-              "workflow-adapter-module"
-            ],
-            "message": "CLI public entrypoints must stay thin and must not reach into engine internals or adapters."
+            "sourceRole": "engine-analysis-execution",
+            "onlyDependOnRoles": ["engine-analysis-execution"],
+            "message": "Analysis execution must stay isolated from runtime assembly details."
           },
           {
-            "fromRoles": ["engine-public-api"],
-            "disallowRoles": ["cli-command-surface", "cli-output-formatting", "cli-public-api"],
-            "message": "The engine public API must not depend on CLI modules."
+            "sourceRole": "engine-automation-execution",
+            "onlyDependOnRoles": ["engine-analysis-execution", "engine-automation-execution"],
+            "message": "Automation execution may build on analysis execution, but not on broader engine orchestration."
           },
           {
-            "fromRoles": [
-              "engine-config-bootstrap",
-              "engine-extension-loading",
-              "engine-analyzer-registry",
-              "engine-quality-routines",
-              "engine-runtime-assembly",
-              "engine-analysis-execution",
-              "engine-automation-execution"
-            ],
-            "disallowRoles": [
-              "cli-command-surface",
-              "cli-output-formatting",
-              "cli-public-api",
-              "engine-public-api"
-            ],
-            "message": "Engine internals must not depend on CLI modules or on the engine barrel."
+            "sourceRole": "core-runtime",
+            "onlyDependOnRoles": ["core-runtime"],
+            "message": "Core runtime modules must remain self-contained."
           },
           {
-            "fromRoles": [
-              "engine-config-bootstrap",
-              "engine-extension-loading",
-              "engine-analyzer-registry",
-              "engine-quality-routines"
-            ],
-            "disallowRoles": [
-              "engine-runtime-assembly",
-              "engine-analysis-execution",
-              "engine-automation-execution"
-            ],
-            "message": "Lower-level engine modules must not depend on orchestration entrypoints."
+            "sourceRole": "workflow-contract",
+            "onlyDependOnRoles": ["workflow-contract"],
+            "message": "Workflow contracts must remain independent from adapters and higher orchestration layers."
           },
           {
-            "fromRoles": ["engine-analysis-execution", "engine-automation-execution"],
-            "disallowRoles": ["engine-runtime-assembly"],
-            "message": "Execution runners must consume prepared inputs and must not assemble runtime environments."
-          },
-          {
-            "fromRoles": ["core-runtime"],
-            "disallowRoles": [
-              "cli-command-surface",
-              "cli-output-formatting",
-              "cli-public-api",
-              "engine-public-api",
-              "engine-config-bootstrap",
-              "engine-extension-loading",
-              "engine-analyzer-registry",
-              "engine-quality-routines",
-              "engine-runtime-assembly",
-              "engine-analysis-execution",
-              "engine-automation-execution",
-              "workflow-adapter-module"
-            ],
-            "message": "Core runtimes must stay independent from CLI composition, engine orchestration, and concrete adapters."
-          },
-          {
-            "fromRoles": ["workflow-contract"],
-            "disallowRoles": [
-              "cli-command-surface",
-              "cli-output-formatting",
-              "cli-public-api",
-              "engine-public-api",
-              "engine-config-bootstrap",
-              "engine-extension-loading",
-              "engine-analyzer-registry",
-              "engine-quality-routines",
-              "engine-runtime-assembly",
-              "engine-analysis-execution",
-              "engine-automation-execution",
-              "workflow-adapter-module"
-            ],
-            "message": "Workflow contracts must remain independent from CLI, engine orchestration, and adapters."
-          },
-          {
-            "fromRoles": ["workflow-adapter-module"],
-            "disallowRoles": [
-              "cli-command-surface",
-              "cli-output-formatting",
-              "cli-public-api",
-              "engine-public-api",
-              "engine-config-bootstrap",
-              "engine-extension-loading",
-              "engine-analyzer-registry",
-              "engine-quality-routines",
-              "engine-runtime-assembly",
-              "engine-analysis-execution",
-              "engine-automation-execution"
-            ],
-            "message": "Workflow adapters must not depend on CLI modules or engine internals."
-          },
-          {
-            "fromRoles": ["workflow-public-entry"],
-            "disallowRoles": ["workflow-event-shaper", "workflow-change-loader"],
+            "sourceRole": "workflow-public-entry",
+            "onlyDependOnRoles": ["workflow-orchestrator", "workflow-shared-types"],
             "message": "Workflow public entrypoints must stay thin and delegate through orchestrators or shared types."
           },
           {
-            "fromRoles": ["workflow-event-shaper"],
-            "disallowRoles": [
-              "workflow-public-entry",
+            "sourceRole": "workflow-orchestrator",
+            "onlyDependOnRoles": [
               "workflow-orchestrator",
-              "workflow-change-loader"
-            ],
-            "message": "Workflow event shapers must stay leaf-level and must not orchestrate workflow loading."
-          },
-          {
-            "fromRoles": ["workflow-change-loader"],
-            "disallowRoles": [
-              "workflow-public-entry",
-              "workflow-orchestrator",
-              "workflow-event-shaper"
-            ],
-            "message": "Workflow change loaders must stay leaf-level and must not normalize events or orchestrate adapters."
-          },
-          {
-            "fromRoles": ["workflow-shared-types"],
-            "disallowRoles": [
-              "workflow-public-entry",
-              "workflow-orchestrator",
+              "workflow-support",
               "workflow-event-shaper",
-              "workflow-change-loader"
+              "workflow-change-loader",
+              "workflow-shared-types"
             ],
-            "message": "Workflow shared type modules must stay dependency-light."
+            "message": "Workflow orchestrators may depend only on local helpers, event shaping, loaders, and shared types."
+          },
+          {
+            "sourceRole": "workflow-event-shaper",
+            "onlyDependOnRoles": ["workflow-event-shaper", "workflow-shared-types"],
+            "message": "Workflow event shapers may depend only on shared types or peer event-shaping helpers."
+          },
+          {
+            "sourceRole": "workflow-change-loader",
+            "onlyDependOnRoles": [
+              "workflow-change-loader",
+              "workflow-support",
+              "workflow-shared-types"
+            ],
+            "message": "Workflow change loaders may depend only on loader helpers and shared types."
+          },
+          {
+            "sourceRole": "workflow-support",
+            "onlyDependOnRoles": [
+              "workflow-support",
+              "workflow-event-shaper",
+              "workflow-shared-types"
+            ],
+            "message": "Workflow support helpers may depend only on other support helpers, event shaping, and shared types."
+          },
+          {
+            "sourceRole": "workflow-shared-types",
+            "onlyDependOnRoles": ["workflow-contract"],
+            "message": "Workflow shared type modules may only depend on workflow contract types."
           }
         ]
       }

@@ -1,25 +1,33 @@
 import { resolve } from "node:path";
 import type { AnalyzerFinding } from "direc-analysis-runtime";
 
+export type RoleBoundaryViolationKind = "onlyDependOnRoles" | "notDependOnRoles";
+
 export function buildRoleBoundaryFinding(options: {
   repositoryRoot: string;
   fromModule: string;
   dependency: string;
-  matchedFromRoles: string[];
-  matchedDisallowedRoles: string[];
+  sourceRoles: string[];
+  dependencyRoles: string[];
+  allowedRoles?: string[];
+  forbiddenRoles?: string[];
+  matchedForbiddenRoles?: string[];
+  violationKinds: RoleBoundaryViolationKind[];
   message?: string;
 }): AnalyzerFinding {
   return {
     fingerprint:
       `${options.fromModule}->${options.dependency}:role-boundary:` +
-      `${options.matchedFromRoles.join(",")}=>${options.matchedDisallowedRoles.join(",")}`,
+      `${options.sourceRoles.join(",")}:` +
+      `${options.violationKinds.join(",")}:` +
+      `${(options.allowedRoles ?? []).join(",")}=>${(options.matchedForbiddenRoles ?? []).join(",")}`,
     analyzerId: "js-architecture-drift",
     facetId: "js",
     severity: "error" as const,
     category: "forbidden-role-dependency",
     message:
       options.message ??
-      `${options.fromModule} depends on ${options.dependency}, which violates configured role boundaries.`,
+      `${options.fromModule} depends on ${options.dependency}, which violates configured role dependency constraints.`,
     scope: {
       kind: "dependency-edge" as const,
       path: resolve(options.repositoryRoot, options.fromModule),
@@ -29,8 +37,12 @@ export function buildRoleBoundaryFinding(options: {
       },
     },
     details: {
-      fromRoles: options.matchedFromRoles,
-      dependencyRoles: options.matchedDisallowedRoles,
+      sourceRoles: options.sourceRoles,
+      dependencyRoles: options.dependencyRoles,
+      allowedRoles: options.allowedRoles ?? [],
+      forbiddenRoles: options.forbiddenRoles ?? [],
+      matchedForbiddenRoles: options.matchedForbiddenRoles ?? [],
+      violationKinds: options.violationKinds,
     },
   };
 }
