@@ -1,5 +1,8 @@
 import { extname } from "node:path";
-import { DEFAULT_ANALYZER_EXCLUDE_PATTERNS, filterPathsWithPatterns } from "direc-analysis-runtime";
+import {
+  DEFAULT_ANALYZER_EXCLUDE_PATTERNS,
+  filterPathsWithPatterns,
+} from "@spectotal/direc-analysis-runtime";
 import { NODE_SOURCE_EXTENSIONS } from "./constants.js";
 import type { PackageManifest } from "./types.js";
 

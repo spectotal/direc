@@ -1,5 +1,5 @@
 {
-  "name": "direc-automation-runtime",
+  "name": "@spectotal/direc-automation-runtime",
   "version": "0.1.0",
   "description": "Workflow-driven automation runtime for Direc.",
   "type": "module",
@@ -24,8 +24,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "direc-analysis-runtime": "0.1.0",
-    "direc-workflow-runtime": "0.1.0"
+    "@spectotal/direc-analysis-runtime": "workspace:*",
+    "@spectotal/direc-workflow-runtime": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

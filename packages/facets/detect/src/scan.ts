@@ -1,5 +1,8 @@
 import { basename, extname, join, resolve } from "node:path";
-import { DEFAULT_ANALYZER_EXCLUDE_PATTERNS, filterPathsWithPatterns } from "direc-analysis-runtime";
+import {
+  DEFAULT_ANALYZER_EXCLUDE_PATTERNS,
+  filterPathsWithPatterns,
+} from "@spectotal/direc-analysis-runtime";
 import {
   CSS_EXTENSIONS,
   NODE_SOURCE_EXTENSIONS,

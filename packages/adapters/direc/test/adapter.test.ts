@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { resolve } from "node:path";
 import { setImmediate as waitForImmediate } from "node:timers/promises";
 import test from "node:test";
-import { WORKFLOW_EVENT_TYPES, WORKFLOW_IDS } from "direc-workflow-runtime";
+import { WORKFLOW_EVENT_TYPES, WORKFLOW_IDS } from "@spectotal/direc-workflow-runtime";
 import { createDirecWorkflowAdapter } from "../src/index.js";
 
 test("DIREC adapter emits a repository snapshot by default", async () => {

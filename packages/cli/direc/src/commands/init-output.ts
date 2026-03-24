@@ -1,4 +1,8 @@
-import { bootstrapAnalysisEnvironment, buildDirecConfig, resolveAnalyzers } from "direc-engine";
+import {
+  bootstrapAnalysisEnvironment,
+  buildDirecConfig,
+  resolveAnalyzers,
+} from "@spectotal/direc-engine";
 
 type InitEnvironment = Awaited<ReturnType<typeof bootstrapAnalysisEnvironment>>;
 type InitConfig = Awaited<ReturnType<typeof buildDirecConfig>>["config"];

@@ -5,8 +5,8 @@ import {
   type DetectedFacet,
   type DirecConfig,
   type QualityRoutineConfig,
-} from "direc-analysis-runtime";
-import { WORKFLOW_IDS } from "direc-workflow-runtime";
+} from "@spectotal/direc-analysis-runtime";
+import { WORKFLOW_IDS } from "@spectotal/direc-workflow-runtime";
 
 type BuildDirecConfigOptions = {
   repositoryRoot: string;

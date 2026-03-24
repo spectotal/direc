@@ -2,8 +2,11 @@ import type {
   AnalyzerPrerequisiteResult,
   AnalyzerSnapshot,
   AnalyzerPlugin,
-} from "direc-analysis-runtime";
-import { DEFAULT_ANALYZER_EXCLUDE_PATTERNS, filterPathsWithPatterns } from "direc-analysis-runtime";
+} from "@spectotal/direc-analysis-runtime";
+import {
+  DEFAULT_ANALYZER_EXCLUDE_PATTERNS,
+  filterPathsWithPatterns,
+} from "@spectotal/direc-analysis-runtime";
 import {
   defaultPrerequisiteCheck,
   runComplexityTool,

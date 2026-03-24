@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { WORKFLOW_EVENT_TYPES } from "direc-workflow-runtime";
+import { WORKFLOW_EVENT_TYPES } from "@spectotal/direc-workflow-runtime";
 import { watchOpenSpecChanges } from "../src/watch.js";
 
 test("watchOpenSpecChanges emits snapshot and transition events via injected watcher hooks", async () => {

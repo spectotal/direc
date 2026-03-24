@@ -3,9 +3,9 @@ import type {
   DetectedFacet,
   DirecConfig,
   RuntimeExecutionResult,
-} from "direc-analysis-runtime";
-import { processWorkflowEvent } from "direc-analysis-runtime";
-import type { WorkflowAdapter } from "direc-workflow-runtime";
+} from "@spectotal/direc-analysis-runtime";
+import { processWorkflowEvent } from "@spectotal/direc-analysis-runtime";
+import type { WorkflowAdapter } from "@spectotal/direc-workflow-runtime";
 
 type AnalysisOptions = {
   repositoryRoot: string;

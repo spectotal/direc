@@ -1,4 +1,4 @@
-import { WORKFLOW_IDS, type WorkflowAdapter } from "direc-workflow-runtime";
+import { WORKFLOW_IDS, type WorkflowAdapter } from "@spectotal/direc-workflow-runtime";
 import { normalizeOpenSpecSnapshot } from "./events.js";
 import { takeOpenSpecSnapshot } from "./status.js";
 import { watchOpenSpecChanges } from "./watch.js";

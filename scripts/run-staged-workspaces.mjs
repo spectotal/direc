@@ -48,7 +48,7 @@ for (const workspace of impactedWorkspaces) {
     }
 
     process.stdout.write(`Running ${scriptName} in ${workspace.packageJson.name}\n`);
-    execFileSync(npmCommand(), ["run", scriptName, "--workspace", workspace.packageJson.name], {
+    execFileSync(pnpmCommand(), ["run", scriptName, "--filter", workspace.packageJson.name], {
       cwd: rootDir,
       stdio: "inherit",
     });
@@ -129,8 +129,8 @@ function isSharedWorkspaceChange(filePath) {
   ].includes(filePath);
 }
 
-function npmCommand() {
-  return process.platform === "win32" ? "npm.cmd" : "npm";
+function pnpmCommand() {
+  return process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 }
 
 function toPosix(filePath) {

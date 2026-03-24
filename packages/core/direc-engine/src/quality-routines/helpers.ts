@@ -1,5 +1,5 @@
 import { isAbsolute, resolve } from "node:path";
-import type { AnalyzerFinding } from "direc-analysis-runtime";
+import type { AnalyzerFinding } from "@spectotal/direc-analysis-runtime";
 
 export function createRepositoryFinding(options: {
   analyzerId: string;

@@ -1,5 +1,5 @@
-import type { AnalyzerPrerequisiteResult } from "direc-analysis-runtime";
-import { DEFAULT_ANALYZER_EXCLUDE_PATTERNS } from "direc-analysis-runtime";
+import type { AnalyzerPrerequisiteResult } from "@spectotal/direc-analysis-runtime";
+import { DEFAULT_ANALYZER_EXCLUDE_PATTERNS } from "@spectotal/direc-analysis-runtime";
 import type { ArchitectureDriftPluginOptions } from "./types.js";
 
 export function createDefaultOptions(): ArchitectureDriftPluginOptions {

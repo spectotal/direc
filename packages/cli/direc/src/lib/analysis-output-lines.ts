@@ -1,4 +1,4 @@
-import type { RuntimeExecutionResult } from "direc-analysis-runtime";
+import type { RuntimeExecutionResult } from "@spectotal/direc-analysis-runtime";
 
 export function buildReportLines(result: RuntimeExecutionResult): string[] {
   return result.runs

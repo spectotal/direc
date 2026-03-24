@@ -1,4 +1,4 @@
-import type { QualityRoutineCommandConfig } from "direc-analysis-runtime";
+import type { QualityRoutineCommandConfig } from "@spectotal/direc-analysis-runtime";
 import { createRepositoryFinding } from "./helpers.js";
 import type { QualityRoutineExecutionResult, QualityRoutineParseResult } from "./types.js";
 

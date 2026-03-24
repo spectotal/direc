@@ -1,6 +1,6 @@
 import type { TSESTree } from "@typescript-eslint/typescript-estree";
 import { parse } from "@typescript-eslint/typescript-estree";
-import type { AnalyzerPrerequisiteResult } from "direc-analysis-runtime";
+import type { AnalyzerPrerequisiteResult } from "@spectotal/direc-analysis-runtime";
 import { extname } from "node:path";
 
 type ParsedProgram = TSESTree.Program & {

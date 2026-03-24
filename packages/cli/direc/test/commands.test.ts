@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { WORKFLOW_IDS } from "direc-analysis-runtime";
+import { WORKFLOW_IDS } from "@spectotal/direc-analysis-runtime";
 import { doctorCommand } from "../src/commands/doctor.js";
 import { initCommand } from "../src/commands/init.js";
 

@@ -2,14 +2,14 @@ import type {
   AutomationConfig,
   DetectedFacet,
   RuntimeExecutionResult,
-} from "direc-analysis-runtime";
+} from "@spectotal/direc-analysis-runtime";
 import type {
   NormalizedWorkflowEvent,
   WorkflowArtifactRef,
   WorkflowChangeRef,
   WorkflowId,
   WorkflowWorkItemRef,
-} from "direc-workflow-runtime";
+} from "@spectotal/direc-workflow-runtime";
 
 export type SubagentVerdict = "inform" | "proceed" | "block" | "handoff";
 

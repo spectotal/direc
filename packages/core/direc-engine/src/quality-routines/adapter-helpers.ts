@@ -1,4 +1,4 @@
-import type { QualityRoutineConfig } from "direc-analysis-runtime";
+import type { QualityRoutineConfig } from "@spectotal/direc-analysis-runtime";
 import { fallbackRoutineFailure } from "./generic-parsers.js";
 import { parseJsonTestResults } from "./test-runner-json.js";
 import { parseTextTestFailures } from "./test-runner-text.js";

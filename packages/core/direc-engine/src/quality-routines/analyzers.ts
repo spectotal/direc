@@ -2,7 +2,7 @@ import type {
   AnalyzerPlugin,
   AnalyzerSnapshot,
   QualityRoutineConfig,
-} from "direc-analysis-runtime";
+} from "@spectotal/direc-analysis-runtime";
 import { checkQualityRoutinePrerequisite } from "./prerequisites.js";
 import {
   parseQualityRoutineReport,

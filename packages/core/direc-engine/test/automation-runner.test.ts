@@ -10,7 +10,7 @@ import {
   type DetectedFacet,
   type DirecConfig,
   type NormalizedWorkflowEvent,
-} from "direc-analysis-runtime";
+} from "@spectotal/direc-analysis-runtime";
 import { watchAutomation } from "../src/automation-runner.js";
 
 test("watchAutomation processes a work item event and dispatches the configured backend", async () => {

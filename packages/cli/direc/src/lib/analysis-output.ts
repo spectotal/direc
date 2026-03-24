@@ -1,4 +1,4 @@
-import type { DetectedFacet, RuntimeExecutionResult } from "direc-analysis-runtime";
+import type { DetectedFacet, RuntimeExecutionResult } from "@spectotal/direc-analysis-runtime";
 import { buildFailureLines, buildFindingLines, buildReportLines } from "./analysis-output-lines.js";
 
 export function formatAnalysisResult(result: RuntimeExecutionResult): string {

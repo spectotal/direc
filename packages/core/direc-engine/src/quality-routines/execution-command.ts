@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { resolve } from "node:path";
-import type { QualityRoutineCommandConfig } from "direc-analysis-runtime";
+import type { QualityRoutineCommandConfig } from "@spectotal/direc-analysis-runtime";
 import type { QualityRoutineExecutionResult } from "./types.js";
 
 export async function executeQualityRoutineCommand(options: {

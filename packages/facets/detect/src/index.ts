@@ -1,4 +1,4 @@
-import type { DetectedFacet } from "direc-analysis-runtime";
+import type { DetectedFacet } from "@spectotal/direc-analysis-runtime";
 import { detectCssFacet } from "./facets/css.js";
 import { detectFrontendFacet } from "./facets/frontend.js";
 import { detectJsFacet } from "./facets/js.js";

@@ -22,8 +22,8 @@ export {
   isWorkflowEventType,
   isWorkflowId,
   normalizeWorkflowId,
-} from "direc-workflow-runtime";
-export type { WorkflowId } from "direc-workflow-runtime";
+} from "@spectotal/direc-workflow-runtime";
+export type { WorkflowId } from "@spectotal/direc-workflow-runtime";
 export type {
   AnalyzerConfigContext,
   AnalyzerConfigEntry,
@@ -76,4 +76,4 @@ export type {
   WorkflowWatchEventsOptions,
   WorkflowWorkItemRef,
   WorkItemTransitionWorkflowEvent,
-} from "direc-workflow-runtime";
+} from "@spectotal/direc-workflow-runtime";

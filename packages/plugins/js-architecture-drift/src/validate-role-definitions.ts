@@ -1,4 +1,4 @@
-import type { AnalyzerFinding } from "direc-analysis-runtime";
+import type { AnalyzerFinding } from "@spectotal/direc-analysis-runtime";
 import { createConfigFinding } from "./config-findings.js";
 import type { ModuleRoleDefinition } from "./types.js";
 

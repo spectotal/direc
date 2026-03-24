@@ -1,5 +1,5 @@
-import type { WorkflowAdapter } from "direc-workflow-runtime";
-import { WORKFLOW_IDS } from "direc-workflow-runtime";
+import type { WorkflowAdapter } from "@spectotal/direc-workflow-runtime";
+import { WORKFLOW_IDS } from "@spectotal/direc-workflow-runtime";
 import { createLoadAnalysisEvents } from "./analysis-events.js";
 import { getGitDiffPaths } from "./git.js";
 import type { DirecWorkflowFactoryOptions } from "./types.js";

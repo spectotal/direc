@@ -1,5 +1,5 @@
 {
-  "name": "direc-adapter-openspec",
+  "name": "@spectotal/direc-adapter-openspec",
   "version": "0.1.0",
   "description": "OpenSpec event adapter for Direc.",
   "type": "module",
@@ -24,7 +24,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "direc-workflow-runtime": "0.1.0"
+    "@spectotal/direc-workflow-runtime": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

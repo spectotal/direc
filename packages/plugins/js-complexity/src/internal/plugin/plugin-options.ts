@@ -1,5 +1,5 @@
 import { extname, relative } from "node:path";
-import { DEFAULT_ANALYZER_EXCLUDE_PATTERNS } from "direc-analysis-runtime";
+import { DEFAULT_ANALYZER_EXCLUDE_PATTERNS } from "@spectotal/direc-analysis-runtime";
 
 const SOURCE_EXTENSIONS = new Set([".cjs", ".cts", ".js", ".jsx", ".mjs", ".mts", ".ts", ".tsx"]);
 

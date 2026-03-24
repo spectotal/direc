@@ -1,7 +1,7 @@
 import { isAbsolute, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import type { AnalyzerPlugin } from "direc-analysis-runtime";
-import type { FacetDetector } from "direc-facet-detect";
+import type { AnalyzerPlugin } from "@spectotal/direc-analysis-runtime";
+import type { FacetDetector } from "@spectotal/direc-facet-detect";
 import type { DirecExtensionModule } from "./extension-types.js";
 import type { QualityRoutineAdapter } from "./quality-routines.js";
 

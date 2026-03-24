@@ -1,6 +1,6 @@
-import type { AnalyzerPlugin } from "direc-analysis-runtime";
-import { createJsArchitectureDriftPlugin } from "direc-plugin-js-architecture-drift";
-import { createJsComplexityPlugin } from "direc-plugin-js-complexity";
+import type { AnalyzerPlugin } from "@spectotal/direc-analysis-runtime";
+import { createJsArchitectureDriftPlugin } from "@spectotal/direc-plugin-js-architecture-drift";
+import { createJsComplexityPlugin } from "@spectotal/direc-plugin-js-complexity";
 import { createQualityRoutineAnalyzers, type QualityRoutineAdapter } from "./quality-routines.js";
 
 export function getBuiltinAnalyzers(): AnalyzerPlugin[] {
@@ -12,7 +12,10 @@ export function getBuiltinAnalyzers(): AnalyzerPlugin[] {
 
 export function getRegisteredAnalyzers(options: {
   repositoryRoot: string;
-  qualityRoutines?: Record<string, import("direc-analysis-runtime").QualityRoutineConfig>;
+  qualityRoutines?: Record<
+    string,
+    import("@spectotal/direc-analysis-runtime").QualityRoutineConfig
+  >;
   qualityAdapters?: QualityRoutineAdapter[];
   extensionAnalyzers?: AnalyzerPlugin[];
 }): AnalyzerPlugin[] {

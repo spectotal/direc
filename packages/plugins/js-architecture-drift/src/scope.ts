@@ -1,5 +1,5 @@
 import { extname, relative } from "node:path";
-import type { DetectedFacet } from "direc-analysis-runtime";
+import type { DetectedFacet } from "@spectotal/direc-analysis-runtime";
 
 export function resolveTargetPaths(
   repositoryRoot: string,

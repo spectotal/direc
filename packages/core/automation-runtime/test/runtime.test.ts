@@ -9,7 +9,7 @@ import {
   WORKFLOW_IDS,
   type AutomationConfig,
   type RuntimeExecutionResult,
-} from "direc-analysis-runtime";
+} from "@spectotal/direc-analysis-runtime";
 import {
   buildSubagentRequest,
   createSubagentBackend,

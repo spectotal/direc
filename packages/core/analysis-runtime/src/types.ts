@@ -1,5 +1,5 @@
-import type { NormalizedWorkflowEvent, WorkflowId } from "direc-workflow-runtime";
-export type { NormalizedWorkflowEvent } from "direc-workflow-runtime";
+import type { NormalizedWorkflowEvent, WorkflowId } from "@spectotal/direc-workflow-runtime";
+export type { NormalizedWorkflowEvent } from "@spectotal/direc-workflow-runtime";
 
 export type DetectedFacetConfidence = "low" | "medium" | "high";
 

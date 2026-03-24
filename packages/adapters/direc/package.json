@@ -1,5 +1,5 @@
 {
-  "name": "direc-adapter-direc",
+  "name": "@spectotal/direc-adapter-direc",
   "version": "0.1.0",
   "description": "Built-in DIREC workflow adapter.",
   "type": "module",
@@ -24,7 +24,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "direc-workflow-runtime": "0.1.0"
+    "@spectotal/direc-workflow-runtime": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

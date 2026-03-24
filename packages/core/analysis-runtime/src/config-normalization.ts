@@ -1,4 +1,4 @@
-import { isWorkflowId, normalizeWorkflowId } from "direc-workflow-runtime";
+import { isWorkflowId, normalizeWorkflowId } from "@spectotal/direc-workflow-runtime";
 import { normalizeAutomationConfig } from "./automation-config-normalization.js";
 import { normalizeQualityRoutines } from "./quality-routine-config-normalization.js";
 import type { DirecConfig } from "./types.js";

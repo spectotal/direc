@@ -1,4 +1,4 @@
-import { WORKFLOW_EVENT_TYPES } from "direc-workflow-runtime";
+import { WORKFLOW_EVENT_TYPES } from "@spectotal/direc-workflow-runtime";
 import type { DispatchAutomationEventOptions } from "../types.js";
 
 export function shouldDispatchAutomationEvent(

@@ -3,9 +3,9 @@ import {
   isWorkflowId,
   type WorkflowAdapter,
   type WorkflowId,
-} from "direc-workflow-runtime";
-import { direcWorkflowAdapter } from "direc-adapter-direc";
-import { openSpecWorkflowAdapter } from "direc-adapter-openspec";
+} from "@spectotal/direc-workflow-runtime";
+import { direcWorkflowAdapter } from "@spectotal/direc-adapter-direc";
+import { openSpecWorkflowAdapter } from "@spectotal/direc-adapter-openspec";
 
 const registry = new Map<WorkflowId, WorkflowAdapter>([
   [WORKFLOW_IDS.DIREC, direcWorkflowAdapter],

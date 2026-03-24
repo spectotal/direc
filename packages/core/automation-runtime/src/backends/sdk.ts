@@ -1,6 +1,6 @@
 import { isAbsolute, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import type { AutomationTransportConfig } from "direc-analysis-runtime";
+import type { AutomationTransportConfig } from "@spectotal/direc-analysis-runtime";
 import type { SubagentBackendResponse, SubagentRequest } from "../types.js";
 
 export async function runSdkTransport(

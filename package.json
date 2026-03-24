@@ -3,37 +3,29 @@
   "version": "0.1.0",
   "private": true,
   "description": "Monorepo for the direc CLI and related Spectotal tooling.",
-  "workspaces": [
-    "packages/cli/*",
-    "packages/core/*",
-    "packages/adapters/*",
-    "packages/facets/*",
-    "packages/plugins/*"
-  ],
   "engines": {
     "node": ">=18.18"
   },
   "scripts": {
-    "build": "npm run build:workspaces",
-    "build:workspaces": "npm run build --workspace=direc-workflow-runtime && npm run build --workspace=direc-analysis-runtime && npm run build --workspace=direc-automation-runtime && npm run build --workspace=direc-facet-detect && npm run build --workspace=direc-adapter-direc && npm run build --workspace=direc-adapter-openspec && npm run build --workspace=direc-plugin-js-complexity && npm run build --workspace=direc-plugin-js-architecture-drift && npm run build --workspace=direc-telemetry && npm run build --workspace=direc-engine && npm run build --workspace=direc",
-    "check": "npm run lint && npm run format:check && npm run typecheck && npm run test && npm run build",
+    "build": "pnpm -r --if-present run build",
+    "check": "pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm run test && pnpm run build",
     "changeset": "changeset",
     "changeset:status": "changeset status --verbose",
-    "clean": "npm run clean --workspaces --if-present",
-    "dev:direc": "npm run dev --workspace=direc --",
+    "clean": "pnpm -r --if-present run clean",
+    "dev:direc": "pnpm --filter direc run dev",
     "direc:own-config:init": "npx --no-install tsx scripts/direcOwnConfigInit.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . --max-warnings=0",
-    "pack:direc": "npm pack --workspace=direc --dry-run",
+    "pack:direc": "pnpm --filter direc pack --dry-run",
     "precommit": "lint-staged && node ./scripts/run-staged-workspaces.mjs typecheck test",
     "prepare": "husky",
-    "release:publish": "node ./scripts/ensure-clean-worktree.mjs && npm run check && changeset publish",
-    "release:version": "node ./scripts/ensure-clean-worktree.mjs && changeset version && npm install --package-lock-only --ignore-scripts",
-    "test": "npm run build:workspaces && npm run test:workspaces",
-    "test:workspaces": "npm run test --workspaces --if-present",
-    "typecheck": "npm run build:workspaces && npm run typecheck:workspaces",
-    "typecheck:workspaces": "npm run typecheck --workspaces"
+    "release:publish": "node ./scripts/ensure-clean-worktree.mjs && pnpm run check && changeset publish",
+    "release:version": "node ./scripts/ensure-clean-worktree.mjs && changeset version && pnpm install --lockfile-only",
+    "test": "pnpm run build && pnpm -r --if-present run test",
+    "test:workspaces": "pnpm -r --if-present run test",
+    "typecheck": "pnpm run build && pnpm -r run typecheck",
+    "typecheck:workspaces": "pnpm -r run typecheck"
   },
   "lint-staged": {
     "*.{js,mjs,cjs,ts,mts,cts}": [

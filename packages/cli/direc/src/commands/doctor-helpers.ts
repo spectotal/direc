@@ -1,6 +1,10 @@
 import { access } from "node:fs/promises";
 import { resolve } from "node:path";
-import { loadConfiguredAnalysisEnvironment, readDirecConfig, resolveAnalyzers } from "direc-engine";
+import {
+  loadConfiguredAnalysisEnvironment,
+  readDirecConfig,
+  resolveAnalyzers,
+} from "@spectotal/direc-engine";
 
 export type WorkspaceCheck = {
   ok: boolean;

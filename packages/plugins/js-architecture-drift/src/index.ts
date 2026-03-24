@@ -2,8 +2,11 @@ import type {
   AnalyzerPlugin,
   AnalyzerPrerequisiteResult,
   AnalyzerSnapshot,
-} from "direc-analysis-runtime";
-import { DEFAULT_ANALYZER_EXCLUDE_PATTERNS, filterPathsWithPatterns } from "direc-analysis-runtime";
+} from "@spectotal/direc-analysis-runtime";
+import {
+  DEFAULT_ANALYZER_EXCLUDE_PATTERNS,
+  filterPathsWithPatterns,
+} from "@spectotal/direc-analysis-runtime";
 import { createDefaultOptions, defaultPrerequisiteCheck } from "./defaults.js";
 import { buildEmptySnapshot, createCycleFindings, filterResult } from "./findings.js";
 import {

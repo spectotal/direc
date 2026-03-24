@@ -1,4 +1,4 @@
-import type { AnalyzerFinding, QualityRoutineConfig } from "direc-analysis-runtime";
+import type { AnalyzerFinding, QualityRoutineConfig } from "@spectotal/direc-analysis-runtime";
 import type {
   QualityRoutineDetectionContext,
   QualityRoutineExecutionResult,

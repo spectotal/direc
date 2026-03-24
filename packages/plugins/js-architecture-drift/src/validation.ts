@@ -1,4 +1,4 @@
-import type { AnalyzerFinding } from "direc-analysis-runtime";
+import type { AnalyzerFinding } from "@spectotal/direc-analysis-runtime";
 import { validateRoleDefinitions } from "./validate-role-definitions.js";
 import { validateRoleRules } from "./validate-role-rules.js";
 import type { ModuleRoleDefinition, RoleBoundaryRule } from "./types.js";

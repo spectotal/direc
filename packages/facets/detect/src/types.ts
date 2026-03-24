@@ -1,4 +1,4 @@
-import type { DetectedFacet } from "direc-analysis-runtime";
+import type { DetectedFacet } from "@spectotal/direc-analysis-runtime";
 
 export type PackageManifest = {
   name?: string;

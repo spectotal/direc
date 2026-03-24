@@ -1,4 +1,4 @@
-import type { WorkflowPathScopeMode } from "direc-workflow-runtime";
+import type { WorkflowPathScopeMode } from "@spectotal/direc-workflow-runtime";
 
 export type GitDiffMode = "diff_spec" | "working_tree";
 

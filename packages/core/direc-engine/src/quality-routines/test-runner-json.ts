@@ -1,4 +1,4 @@
-import type { AnalyzerFinding } from "direc-analysis-runtime";
+import type { AnalyzerFinding } from "@spectotal/direc-analysis-runtime";
 import { isRecord, normalizeFindingPath, safeJsonParse } from "./helpers.js";
 
 export function parseJsonTestResults(options: {

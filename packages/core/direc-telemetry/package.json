@@ -1,5 +1,5 @@
 {
-  "name": "direc-telemetry",
+  "name": "@spectotal/direc-telemetry",
   "version": "0.1.0",
   "description": "Non-invasive telemetry preloader for the Direc runtime.",
   "type": "module",
@@ -28,7 +28,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
-    "direc-analysis-runtime": "0.1.0",
+    "@spectotal/direc-analysis-runtime": "workspace:*",
     "rimraf": "^6.0.1",
     "typescript": "^5.8.3"
   }

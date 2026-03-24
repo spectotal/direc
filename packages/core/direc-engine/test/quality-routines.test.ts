@@ -10,7 +10,7 @@ import {
   type DetectedFacet,
   type NormalizedWorkflowEvent,
   type QualityRoutineConfig,
-} from "direc-analysis-runtime";
+} from "@spectotal/direc-analysis-runtime";
 import {
   createQualityRoutineAnalyzers,
   type QualityRoutineAdapter,

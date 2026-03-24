@@ -1,5 +1,5 @@
 {
-  "name": "direc-plugin-js-complexity",
+  "name": "@spectotal/direc-plugin-js-complexity",
   "version": "0.1.0",
   "description": "JavaScript and TypeScript complexity analyzer plugin for Direc.",
   "type": "module",
@@ -26,7 +26,7 @@
   "dependencies": {
     "@typescript-eslint/typescript-estree": "^8.57.2",
     "@typescript-eslint/visitor-keys": "^8.57.2",
-    "direc-analysis-runtime": "0.1.0"
+    "@spectotal/direc-analysis-runtime": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

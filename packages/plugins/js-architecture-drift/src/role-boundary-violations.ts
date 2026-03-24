@@ -1,4 +1,4 @@
-import type { AnalyzerFinding } from "direc-analysis-runtime";
+import type { AnalyzerFinding } from "@spectotal/direc-analysis-runtime";
 import { buildRoleBoundaryFinding, type RoleBoundaryViolationKind } from "./role-findings.js";
 import type { ModuleRoleAssignments } from "./role-assignment.js";
 import type { MadgeGraph, RoleBoundaryRule } from "./types.js";

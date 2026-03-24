@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { WORKFLOW_EVENT_TYPES, WORKFLOW_IDS } from "direc-analysis-runtime";
+import { WORKFLOW_EVENT_TYPES, WORKFLOW_IDS } from "@spectotal/direc-analysis-runtime";
 import { formatAnalysisResult } from "../src/lib/analysis-output.js";
 
 test("formatAnalysisResult includes report paths and findings summary", () => {

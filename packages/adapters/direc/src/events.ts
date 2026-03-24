@@ -3,7 +3,7 @@ import {
   WORKFLOW_EVENT_TYPES,
   WORKFLOW_IDS,
   type NormalizedWorkflowEvent,
-} from "direc-workflow-runtime";
+} from "@spectotal/direc-workflow-runtime";
 import type { DirecSnapshotEventOptions } from "./types.js";
 
 export function createDirecSnapshotEvent(

@@ -1,4 +1,4 @@
-import type { NormalizedWorkflowEvent } from "direc-workflow-runtime";
+import type { NormalizedWorkflowEvent } from "@spectotal/direc-workflow-runtime";
 
 export interface OpenSpecArtifactStatus {
   id: string;

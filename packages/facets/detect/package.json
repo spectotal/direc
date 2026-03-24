@@ -1,5 +1,5 @@
 {
-  "name": "direc-facet-detect",
+  "name": "@spectotal/direc-facet-detect",
   "version": "0.1.0",
   "description": "Facet detection for Direc repositories.",
   "type": "module",
@@ -24,7 +24,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "direc-analysis-runtime": "0.1.0"
+    "@spectotal/direc-analysis-runtime": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

@@ -1,4 +1,4 @@
-import type { WorkflowAdapter } from "direc-workflow-runtime";
+import type { WorkflowAdapter } from "@spectotal/direc-workflow-runtime";
 import { createDirecSnapshotEvent } from "./events.js";
 import type { GitDiffPathOptions } from "./types.js";
 

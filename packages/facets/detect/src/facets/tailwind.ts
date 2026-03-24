@@ -1,4 +1,4 @@
-import type { DetectedFacet } from "direc-analysis-runtime";
+import type { DetectedFacet } from "@spectotal/direc-analysis-runtime";
 import type { RepositoryScan } from "../types.js";
 import { compactEvidence } from "../utils.js";
 

@@ -1,4 +1,7 @@
-import { DEFAULT_ANALYZER_EXCLUDE_PATTERNS, type DetectedFacet } from "direc-analysis-runtime";
+import {
+  DEFAULT_ANALYZER_EXCLUDE_PATTERNS,
+  type DetectedFacet,
+} from "@spectotal/direc-analysis-runtime";
 import type { RepositoryScan } from "../types.js";
 import { compactEvidence, describeRoots } from "../utils.js";
 

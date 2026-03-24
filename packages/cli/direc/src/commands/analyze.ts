@@ -1,4 +1,4 @@
-import { WORKFLOW_IDS } from "direc-engine";
+import { WORKFLOW_IDS } from "@spectotal/direc-engine";
 import {
   loadConfiguredAnalysisEnvironment,
   readDirecConfig,
@@ -6,7 +6,7 @@ import {
   resolveWorkflowAdapter,
   runAnalysis,
   watchAnalysis,
-} from "direc-engine";
+} from "@spectotal/direc-engine";
 import { formatAnalysisResult, formatFacetList } from "../lib/analysis-output.js";
 
 type AnalyzeOptions = {

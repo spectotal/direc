@@ -1,4 +1,4 @@
-import type { QualityRoutineConfig } from "direc-analysis-runtime";
+import type { QualityRoutineConfig } from "@spectotal/direc-analysis-runtime";
 import { hasNodeTool } from "./node-detection.js";
 import { hasPythonTool } from "./python-detection.js";
 import type {

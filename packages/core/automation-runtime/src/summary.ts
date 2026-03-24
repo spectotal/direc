@@ -1,4 +1,4 @@
-import type { RuntimeExecutionResult } from "direc-analysis-runtime";
+import type { RuntimeExecutionResult } from "@spectotal/direc-analysis-runtime";
 import type { SubagentAnalyzerSummary } from "./types.js";
 
 export function buildAnalyzerSummary(result: RuntimeExecutionResult): SubagentAnalyzerSummary {

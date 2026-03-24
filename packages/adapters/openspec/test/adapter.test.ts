@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { join } from "node:path";
 import test from "node:test";
-import { WORKFLOW_EVENT_TYPES } from "direc-workflow-runtime";
+import { WORKFLOW_EVENT_TYPES } from "@spectotal/direc-workflow-runtime";
 import { diffOpenSpecSnapshots, getStatusRevision } from "../src/events.js";
 import { parseOpenSpecTasks, takeOpenSpecSnapshot } from "../src/status.js";
 

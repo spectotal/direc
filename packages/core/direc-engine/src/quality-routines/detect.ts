@@ -1,5 +1,5 @@
-import type { DetectedFacet, QualityRoutineConfig } from "direc-analysis-runtime";
-import type { RepositoryScan } from "direc-facet-detect";
+import type { DetectedFacet, QualityRoutineConfig } from "@spectotal/direc-analysis-runtime";
+import type { RepositoryScan } from "@spectotal/direc-facet-detect";
 import type { QualityRoutineAdapter } from "./types.js";
 
 export async function detectQualityRoutines(options: {

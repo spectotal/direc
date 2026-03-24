@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { dirname, resolve } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { WORKFLOW_IDS } from "direc-analysis-runtime";
+import { WORKFLOW_IDS } from "@spectotal/direc-analysis-runtime";
 import { createJsArchitectureDriftPlugin } from "../src/index.js";
 
 const fixturesRoot = resolve(dirname(fileURLToPath(import.meta.url)), "fixtures");

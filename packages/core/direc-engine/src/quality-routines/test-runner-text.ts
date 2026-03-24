@@ -1,4 +1,4 @@
-import type { AnalyzerFinding } from "direc-analysis-runtime";
+import type { AnalyzerFinding } from "@spectotal/direc-analysis-runtime";
 import { normalizeFindingPath } from "./helpers.js";
 
 export function parseTextTestFailures(options: {

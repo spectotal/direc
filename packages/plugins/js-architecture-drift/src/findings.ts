@@ -3,8 +3,8 @@ import type {
   AnalyzerFinding,
   AnalyzerSnapshot,
   NormalizedWorkflowEvent,
-} from "direc-analysis-runtime";
-import { matchesAnyPathPattern } from "direc-analysis-runtime";
+} from "@spectotal/direc-analysis-runtime";
+import { matchesAnyPathPattern } from "@spectotal/direc-analysis-runtime";
 import type { ArchitectureToolResult, MadgeGraph } from "./types.js";
 
 export function buildEmptySnapshot(options: {

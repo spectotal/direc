@@ -1,4 +1,4 @@
-import type { AutomationTransportConfig } from "direc-analysis-runtime";
+import type { AutomationTransportConfig } from "@spectotal/direc-analysis-runtime";
 import { runCommandTransport } from "./backends/command.js";
 import { runHttpTransport } from "./backends/http.js";
 import { runSdkTransport } from "./backends/sdk.js";

@@ -1,4 +1,4 @@
-import type { AutomationDispatchResult } from "direc-automation-runtime";
+import type { AutomationDispatchResult } from "@spectotal/direc-automation-runtime";
 
 export function formatAutomationDispatch(result: AutomationDispatchResult): string {
   if (!result.triggered) {

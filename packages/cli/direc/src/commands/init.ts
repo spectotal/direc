@@ -3,7 +3,7 @@ import {
   buildDirecConfig,
   resolveAnalyzers,
   writeDirecConfig,
-} from "direc-engine";
+} from "@spectotal/direc-engine";
 import { guardExistingConfig, resolveInitPaths, writeInitArtifacts } from "./init-files.js";
 import { assertConfiguredAnalyzers, formatInitSummary } from "./init-output.js";
 

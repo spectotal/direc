@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { WORKFLOW_IDS } from "direc-analysis-runtime";
+import { WORKFLOW_IDS } from "@spectotal/direc-analysis-runtime";
 import { getBuiltinAnalyzers } from "../src/analyzers.js";
 import { buildDirecConfig } from "../src/config.js";
 

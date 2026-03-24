@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import type { QualityRoutineConfig } from "direc-analysis-runtime";
+import type { QualityRoutineConfig } from "@spectotal/direc-analysis-runtime";
 import { executeQualityRoutineCommand } from "./execution-command.js";
 import { assertQualityRoutineCommand, createFallbackRunResult } from "./execution-defaults.js";
 import type { QualityRoutineAdapter, QualityRoutineParseResult } from "./types.js";

@@ -1,5 +1,5 @@
 {
-  "name": "direc-analysis-runtime",
+  "name": "@spectotal/direc-analysis-runtime",
   "version": "0.1.0",
   "description": "Vendor-independent analysis runtime for Direc.",
   "type": "module",
@@ -24,7 +24,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "direc-workflow-runtime": "0.1.0"
+    "@spectotal/direc-workflow-runtime": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

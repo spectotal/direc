@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { WORKFLOW_IDS } from "direc-workflow-runtime";
+import { WORKFLOW_IDS } from "@spectotal/direc-workflow-runtime";
 import { resolveRequestedWorkflowId, resolveWorkflowAdapter } from "../src/registry/workflows.js";
 
 test("resolveRequestedWorkflowId defaults to DIREC and rejects unsupported workflows", () => {

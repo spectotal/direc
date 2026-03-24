@@ -3,7 +3,7 @@ import {
   WORKFLOW_EVENT_TYPES,
   WORKFLOW_IDS,
   type NormalizedWorkflowEvent,
-} from "direc-workflow-runtime";
+} from "@spectotal/direc-workflow-runtime";
 import type { OpenSpecChangeStatus } from "./types.js";
 import { getStatusRevision } from "./status-revision.js";
 

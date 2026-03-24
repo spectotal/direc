@@ -4,7 +4,7 @@ import {
   resolveRequestedWorkflowId,
   resolveWorkflowAdapter,
   watchAutomation,
-} from "direc-engine";
+} from "@spectotal/direc-engine";
 import { formatAnalysisResult, formatFacetList } from "../lib/analysis-output.js";
 import { formatAutomationDispatch } from "../lib/automation-output.js";
 

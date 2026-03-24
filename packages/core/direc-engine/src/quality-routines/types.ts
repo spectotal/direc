@@ -1,5 +1,9 @@
-import type { AnalyzerFinding, DetectedFacet, QualityRoutineConfig } from "direc-analysis-runtime";
-import type { RepositoryScan } from "direc-facet-detect";
+import type {
+  AnalyzerFinding,
+  DetectedFacet,
+  QualityRoutineConfig,
+} from "@spectotal/direc-analysis-runtime";
+import type { RepositoryScan } from "@spectotal/direc-facet-detect";
 
 export type RootPackageManifest = {
   scripts?: Record<string, string>;

@@ -1,6 +1,6 @@
 import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
-import { DIREC_DIRECTORY_NAME } from "direc-analysis-runtime";
+import { DIREC_DIRECTORY_NAME } from "@spectotal/direc-analysis-runtime";
 import type { SubagentLatestRecord, SubagentRequest, SubagentResult } from "./types.js";
 import { readJsonFile, writeJsonFile } from "./json-files.js";
 

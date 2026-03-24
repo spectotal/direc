@@ -1,0 +1,262 @@
+{
+  "version": 1,
+  "generatedAt": "2026-03-24T11:20:50.730Z",
+  "workflow": "direc",
+  "facets": [
+    "js",
+    "css",
+    "tailwind"
+  ],
+  "automation": {
+    "enabled": true,
+    "mode": "advisory",
+    "invocation": "hybrid",
+    "failurePolicy": "continue",
+    "transport": {
+      "kind": "command",
+      "command": "/Users/zavalit/.nvm/versions/node/v22.21.1/bin/node",
+      "args": [
+        "/Users/zavalit/Playgrounds/direc/packages/cli/direc/bin/direc-subagent.js"
+      ]
+    },
+    "triggers": {
+      "workItemTransitions": true,
+      "artifactTransitions": false,
+      "changeCompleted": true
+    }
+  },
+  "analyzers": {
+    "js-complexity": {
+      "enabled": true,
+      "options": {
+        "warningThreshold": 20,
+        "errorThreshold": 35,
+        "regressionDelta": 5,
+        "excludePaths": [
+          "**/dist/**",
+          "**/test/**",
+          "**/tests/**",
+          "**/__tests__/**",
+          "**/fixtures/**",
+          "**/*.test.*",
+          "**/*.spec.*",
+          "**/*.d.ts",
+          "**/*.d.ts.map",
+          "scripts/**"
+        ]
+      }
+    },
+    "js-architecture-drift": {
+      "enabled": true,
+      "options": {
+        "excludePaths": [
+          "**/dist/**",
+          "**/test/**",
+          "**/tests/**",
+          "**/__tests__/**",
+          "**/fixtures/**",
+          "**/*.test.*",
+          "**/*.spec.*",
+          "**/*.d.ts",
+          "**/*.d.ts.map",
+          "scripts/**"
+        ],
+        "moduleRoles": [
+          {
+            "role": "cli-command",
+            "match": [
+              "packages/cli/direc/src/commands"
+            ],
+            "description": "CLI command handlers."
+          },
+          {
+            "role": "cli-lib",
+            "match": [
+              "packages/cli/direc/src/lib"
+            ],
+            "description": "CLI support modules below the command layer."
+          },
+          {
+            "role": "workflow-registry",
+            "match": [
+              "packages/cli/direc/src/registry"
+            ],
+            "description": "CLI composition modules that bind workflow IDs to concrete adapters."
+          },
+          {
+            "role": "core-runtime",
+            "match": [
+              "packages/core/analysis-runtime/src",
+              "packages/core/automation-runtime/src"
+            ],
+            "description": "Core runtime modules that must stay adapter-agnostic."
+          },
+          {
+            "role": "workflow-contract",
+            "match": [
+              "packages/core/workflow-runtime/src"
+            ],
+            "description": "Workflow contract modules shared by runtimes and adapters."
+          },
+          {
+            "role": "workflow-adapter-module",
+            "match": [
+              "packages/adapters"
+            ],
+            "description": "Any concrete workflow adapter module."
+          },
+          {
+            "role": "workflow-public-entry",
+            "match": [
+              "packages/adapters/direc/src/index.ts",
+              "packages/adapters/openspec/src/index.ts"
+            ],
+            "description": "Public adapter entrypoints that should stay thin."
+          },
+          {
+            "role": "workflow-orchestrator",
+            "match": [
+              "packages/adapters/direc/src/adapter.ts",
+              "packages/adapters/openspec/src/adapter.ts",
+              "packages/adapters/openspec/src/watch.ts"
+            ],
+            "description": "Workflow modules allowed to coordinate multiple leaf responsibilities."
+          },
+          {
+            "role": "workflow-event-shaper",
+            "match": [
+              "packages/adapters/direc/src/events.ts",
+              "packages/adapters/openspec/src/events.ts"
+            ],
+            "description": "Leaf modules that normalize workflow events."
+          },
+          {
+            "role": "workflow-change-loader",
+            "match": [
+              "packages/adapters/direc/src/git.ts",
+              "packages/adapters/openspec/src/status.ts"
+            ],
+            "description": "Leaf modules that load workflow change state."
+          },
+          {
+            "role": "workflow-shared-types",
+            "match": [
+              "packages/adapters/direc/src/types.ts",
+              "packages/adapters/openspec/src/types.ts"
+            ],
+            "description": "Shared adapter-local types."
+          }
+        ],
+        "roleBoundaryRules": [
+          {
+            "fromRoles": [
+              "cli-lib"
+            ],
+            "disallowRoles": [
+              "cli-command"
+            ],
+            "message": "CLI utility modules must not depend on command handlers."
+          },
+          {
+            "fromRoles": [
+              "cli-lib"
+            ],
+            "disallowRoles": [
+              "workflow-adapter-module",
+              "workflow-registry"
+            ],
+            "message": "CLI library modules must stay below the workflow composition boundary."
+          },
+          {
+            "fromRoles": [
+              "cli-command"
+            ],
+            "disallowRoles": [
+              "workflow-adapter-module"
+            ],
+            "message": "CLI commands must resolve workflow adapters through the registry."
+          },
+          {
+            "fromRoles": [
+              "core-runtime"
+            ],
+            "disallowRoles": [
+              "workflow-adapter-module"
+            ],
+            "message": "Core packages must not depend on concrete workflow adapters."
+          },
+          {
+            "fromRoles": [
+              "workflow-contract"
+            ],
+            "disallowRoles": [
+              "cli-command",
+              "cli-lib",
+              "workflow-registry",
+              "workflow-adapter-module"
+            ],
+            "message": "Workflow runtime must stay independent from adapters and CLI composition."
+          },
+          {
+            "fromRoles": [
+              "workflow-adapter-module"
+            ],
+            "disallowRoles": [
+              "cli-command",
+              "cli-lib",
+              "workflow-registry"
+            ],
+            "message": "Workflow adapters must not depend on CLI composition or commands."
+          },
+          {
+            "fromRoles": [
+              "workflow-public-entry"
+            ],
+            "disallowRoles": [
+              "workflow-event-shaper",
+              "workflow-change-loader"
+            ],
+            "message": "Workflow public entrypoints must stay thin and delegate through orchestrators or shared types."
+          },
+          {
+            "fromRoles": [
+              "workflow-event-shaper"
+            ],
+            "disallowRoles": [
+              "workflow-public-entry",
+              "workflow-registry",
+              "workflow-orchestrator",
+              "workflow-change-loader"
+            ],
+            "message": "Workflow event shaping modules must stay leaf-level and must not load change state or orchestrate workflows."
+          },
+          {
+            "fromRoles": [
+              "workflow-change-loader"
+            ],
+            "disallowRoles": [
+              "workflow-public-entry",
+              "workflow-registry",
+              "workflow-orchestrator",
+              "workflow-event-shaper"
+            ],
+            "message": "Workflow change-loading modules must stay leaf-level and must not orchestrate workflows or normalize events."
+          },
+          {
+            "fromRoles": [
+              "workflow-shared-types"
+            ],
+            "disallowRoles": [
+              "workflow-public-entry",
+              "workflow-registry",
+              "workflow-orchestrator",
+              "workflow-event-shaper",
+              "workflow-change-loader"
+            ],
+            "message": "Workflow shared type modules must remain dependency-light and must not absorb runtime behavior."
+          }
+        ]
+      }
+    }
+  }
+}

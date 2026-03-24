@@ -5,7 +5,7 @@ import type {
   AnalyzerRunContext,
   AnalyzerSnapshot,
   RuntimeExecutionResult,
-} from "direc-analysis-runtime";
+} from "@spectotal/direc-analysis-runtime";
 
 type ProcessWorkflowEventOptions = {
   plugins: AnalyzerPlugin[];
@@ -49,7 +49,7 @@ function wrapPlugin(plugin: AnalyzerPlugin): AnalyzerPlugin {
 }
 
 export function registerHooks(): void {
-  new Hook(["direc-analysis-runtime"], (exports) => {
+  new Hook(["@spectotal/direc-analysis-runtime"], (exports) => {
     const runtimeExports = exports as unknown as RuntimeExports;
     const origProcessWorkflowEvent = runtimeExports["processWorkflowEvent"];
 

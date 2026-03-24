@@ -1,12 +1,15 @@
-import { dispatchAutomationEvent, type AutomationDispatchResult } from "direc-automation-runtime";
+import {
+  dispatchAutomationEvent,
+  type AutomationDispatchResult,
+} from "@spectotal/direc-automation-runtime";
 import type {
   AnalyzerPlugin,
   AutomationConfig,
   DetectedFacet,
   DirecConfig,
   RuntimeExecutionResult,
-} from "direc-analysis-runtime";
-import type { WorkflowAdapter } from "direc-workflow-runtime";
+} from "@spectotal/direc-analysis-runtime";
+import type { WorkflowAdapter } from "@spectotal/direc-workflow-runtime";
 import { processAnalysisEvent } from "./analysis-runner.js";
 
 export interface AutomationRunResult {

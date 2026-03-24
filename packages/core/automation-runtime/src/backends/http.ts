@@ -1,4 +1,4 @@
-import type { AutomationTransportConfig } from "direc-analysis-runtime";
+import type { AutomationTransportConfig } from "@spectotal/direc-analysis-runtime";
 import type { SubagentBackendResponse, SubagentRequest } from "../types.js";
 
 export async function runHttpTransport(

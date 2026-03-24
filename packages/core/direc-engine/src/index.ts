@@ -24,4 +24,4 @@ export {
   resolveAnalyzers,
   writeDirecConfig,
   WORKFLOW_IDS,
-} from "direc-analysis-runtime";
+} from "@spectotal/direc-analysis-runtime";

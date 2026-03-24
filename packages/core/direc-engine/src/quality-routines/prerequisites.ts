@@ -1,7 +1,10 @@
 import { access } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { resolve } from "node:path";
-import type { AnalyzerPrerequisiteResult, QualityRoutineConfig } from "direc-analysis-runtime";
+import type {
+  AnalyzerPrerequisiteResult,
+  QualityRoutineConfig,
+} from "@spectotal/direc-analysis-runtime";
 
 export async function checkQualityRoutinePrerequisite(
   repositoryRoot: string,

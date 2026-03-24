@@ -1,6 +1,6 @@
 import { access } from "node:fs/promises";
 import { resolve } from "node:path";
-import { ensureDirectory, EXAMPLE_SPEC_TEMPLATE, writeFileSafe } from "direc-engine";
+import { ensureDirectory, EXAMPLE_SPEC_TEMPLATE, writeFileSafe } from "@spectotal/direc-engine";
 
 export type InitPaths = {
   specsDir: string;

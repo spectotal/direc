@@ -3,8 +3,12 @@ import type {
   DetectedFacet,
   DirecConfig,
   QualityRoutineConfig,
-} from "direc-analysis-runtime";
-import { detectRepositoryFacets, scanRepository, type RepositoryScan } from "direc-facet-detect";
+} from "@spectotal/direc-analysis-runtime";
+import {
+  detectRepositoryFacets,
+  scanRepository,
+  type RepositoryScan,
+} from "@spectotal/direc-facet-detect";
 import { getRegisteredAnalyzers } from "./analyzers.js";
 import { loadDirecExtensions, type LoadedDirecExtensions } from "./extensions.js";
 import {
