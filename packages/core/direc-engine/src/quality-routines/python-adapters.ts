@@ -1,6 +1,5 @@
 import type { QualityRoutineAdapter } from "./types.js";
-import { createTestRunnerAdapter } from "./adapter-helpers.js";
-import { hasPythonTool } from "./python-detection.js";
+import { createPythonCommandAdapter, createPythonTestRunnerAdapter } from "./command-adapters.js";
 import {
   parseBlackOutput,
   parseMypyOutput,
@@ -8,144 +7,80 @@ import {
   parseRuffOutput,
 } from "./python-parsers.js";
 
-export function getPythonQualityAdapters(): QualityRoutineAdapter[] {
-  return [
-    createRuffAdapter(),
-    createRuffFormatAdapter(),
-    createBlackAdapter(),
-    createMypyAdapter(),
-    createPytestAdapter(),
-  ];
-}
-
-function createRuffAdapter(): QualityRoutineAdapter {
-  return {
+const pythonCommandAdapters = [
+  {
     id: "ruff",
     displayName: "Ruff",
     supportedFacets: ["python"],
-    supportsScopedPaths: true,
-    defaultTargetPath: ".",
-    async detect(context) {
-      if (!(await hasPythonTool(context, "ruff"))) {
-        return null;
-      }
-
-      return {
-        adapter: "ruff",
-        mode: "run",
-        enabled: true,
-        command: {
-          command: "python",
-          args: ["-m", "ruff", "check", "--output-format", "json"],
-        },
-      };
+    tool: "ruff",
+    command: {
+      command: "python",
+      args: ["-m", "ruff", "check", "--output-format", "json"],
     },
-    parseRunResult(options) {
-      return parseRuffOutput(options.repositoryRoot, options.execution);
+    runParser: {
+      kind: "result" as const,
+      parse: parseRuffOutput,
     },
-  };
-}
-
-function createRuffFormatAdapter(): QualityRoutineAdapter {
-  return {
+  },
+  {
     id: "ruff-format",
     displayName: "Ruff Format",
     supportedFacets: ["python"],
-    supportsScopedPaths: true,
-    defaultTargetPath: ".",
-    async detect(context) {
-      if (!(await hasPythonTool(context, "ruff-format"))) {
-        return null;
-      }
-
-      return {
-        adapter: "ruff-format",
-        mode: "run",
-        enabled: true,
-        command: {
-          command: "python",
-          args: ["-m", "ruff", "format", "--check"],
-        },
-      };
+    tool: "ruff-format",
+    command: {
+      command: "python",
+      args: ["-m", "ruff", "format", "--check"],
     },
-    parseRunResult(options) {
-      return parseRuffFormatOutput(options.repositoryRoot, options.execution);
+    runParser: {
+      kind: "result" as const,
+      parse: parseRuffFormatOutput,
     },
-  };
-}
-
-function createBlackAdapter(): QualityRoutineAdapter {
-  return {
+  },
+  {
     id: "black",
     displayName: "Black",
     supportedFacets: ["python"],
-    supportsScopedPaths: true,
-    defaultTargetPath: ".",
-    async detect(context) {
-      if (!(await hasPythonTool(context, "black"))) {
-        return null;
-      }
-
-      return {
-        adapter: "black",
-        mode: "run",
-        enabled: true,
-        command: {
-          command: "python",
-          args: ["-m", "black", "--check", "--diff"],
-        },
-      };
+    tool: "black",
+    command: {
+      command: "python",
+      args: ["-m", "black", "--check", "--diff"],
     },
-    parseRunResult(options) {
-      return parseBlackOutput(options.repositoryRoot, options.execution);
+    runParser: {
+      kind: "result" as const,
+      parse: parseBlackOutput,
     },
-  };
-}
-
-function createMypyAdapter(): QualityRoutineAdapter {
-  return {
+  },
+  {
     id: "mypy",
     displayName: "Mypy",
     supportedFacets: ["python"],
-    supportsScopedPaths: true,
-    defaultTargetPath: ".",
-    async detect(context) {
-      if (!(await hasPythonTool(context, "mypy"))) {
-        return null;
-      }
-
-      return {
-        adapter: "mypy",
-        mode: "run",
-        enabled: true,
-        command: {
-          command: "python",
-          args: ["-m", "mypy", "--show-error-codes"],
-        },
-      };
+    tool: "mypy",
+    command: {
+      command: "python",
+      args: ["-m", "mypy", "--show-error-codes"],
     },
-    parseRunResult(options) {
-      return parseMypyOutput(options.repositoryRoot, options.execution);
+    runParser: {
+      kind: "result" as const,
+      parse: parseMypyOutput,
     },
-  };
-}
+  },
+] as const;
 
-function createPytestAdapter(): QualityRoutineAdapter {
-  return createTestRunnerAdapter({
+const pythonTestRunnerAdapters = [
+  {
     id: "pytest",
     displayName: "Pytest",
     supportedFacets: ["python"],
-    detect: async (context) =>
-      (await hasPythonTool(context, "pytest"))
-        ? {
-            adapter: "pytest",
-            mode: "run",
-            enabled: true,
-            command: {
-              command: "python",
-              args: ["-m", "pytest", "-q"],
-            },
-          }
-        : null,
-  });
+    command: {
+      command: "python",
+      args: ["-m", "pytest", "-q"],
+    },
+  },
+] as const;
+
+export function getPythonQualityAdapters(): QualityRoutineAdapter[] {
+  return [
+    ...pythonCommandAdapters.map(createPythonCommandAdapter),
+    ...pythonTestRunnerAdapters.map(createPythonTestRunnerAdapter),
+  ];
 }

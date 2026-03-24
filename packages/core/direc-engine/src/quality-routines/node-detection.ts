@@ -3,7 +3,7 @@ import type { QualityRoutineDetectionContext } from "./types.js";
 export function hasNodeTool(
   context: QualityRoutineDetectionContext,
   dependency: string,
-  configFiles: string[],
+  configFiles: readonly string[],
 ): boolean {
   const scripts = context.rootManifest?.scripts ?? {};
   const dependencies = {
