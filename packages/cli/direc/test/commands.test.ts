@@ -117,8 +117,9 @@ test("doctorCommand reports configured js analyzers", { concurrency: false }, as
   assert.match(output, /Workflow: openspec/);
   assert.match(
     output,
-    /Enabled analyzers: js-complexity, js-architecture-drift|Enabled analyzers: js-architecture-drift, js-complexity/,
+    /Configured analyzers: js-complexity, js-architecture-drift|Configured analyzers: js-architecture-drift, js-complexity/,
   );
+  assert.match(output, /Runnable analyzers: /);
   assert.match(output, /Quality routines: none/);
   assert.match(output, /Automation: advisory, hybrid, command/);
   assert.deepEqual(config.facets, ["js"]);

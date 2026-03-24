@@ -174,7 +174,7 @@ test("complexity plugin surfaces missing prerequisites", async () => {
     async prerequisiteCheck() {
       return {
         ok: false,
-        summary: "typhonjs-escomplex is missing",
+        summary: "typescript-estree parser is missing",
       };
     },
   });
@@ -186,6 +186,6 @@ test("complexity plugin surfaces missing prerequisites", async () => {
 
   assert.deepEqual(result, {
     ok: false,
-    summary: "typhonjs-escomplex is missing",
+    summary: "typescript-estree parser is missing",
   });
 });

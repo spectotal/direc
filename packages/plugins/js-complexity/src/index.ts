@@ -1,19 +1,34 @@
-import { resolve } from "node:path";
+import { extname, relative, resolve } from "node:path";
 import type {
   AnalyzerFinding,
-  AnalyzerPlugin,
   AnalyzerPrerequisiteResult,
   AnalyzerSnapshot,
+  AnalyzerPlugin,
 } from "direc-analysis-runtime";
 import { DEFAULT_ANALYZER_EXCLUDE_PATTERNS, filterPathsWithPatterns } from "direc-analysis-runtime";
 import {
   defaultPrerequisiteCheck,
-  normalizeRunnerResult,
   runComplexityTool,
   type ComplexityMetric,
-  type ComplexityRunner,
-} from "./runner.js";
-import { resolveJsSourcePaths } from "./source-paths.js";
+  type ComplexityRunnerResult,
+} from "./engine.js";
+
+export {
+  analyzeSource,
+  defaultPrerequisiteCheck,
+  parseSource,
+  runComplexityTool,
+  type ComplexityAnalysisError,
+  type ComplexityMetric,
+  type ComplexityRunnerResult,
+} from "./engine.js";
+
+const SOURCE_EXTENSIONS = new Set([".cjs", ".cts", ".js", ".jsx", ".mjs", ".mts", ".ts", ".tsx"]);
+
+type ComplexityRunner = (options: {
+  repositoryRoot: string;
+  sourcePaths: string[];
+}) => Promise<ComplexityMetric[] | ComplexityRunnerResult>;
 
 export interface ComplexityPluginOptions {
   threshold?: number;
@@ -37,7 +52,7 @@ export function createJsComplexityPlugin(
     supportedFacets: ["js"],
     prerequisites: [
       {
-        id: "typhonjs-escomplex",
+        id: "typescript-estree",
         description: "JavaScript and TypeScript complexity analysis engine",
         check: factoryOptions.prerequisiteCheck ?? defaultPrerequisiteCheck,
       },
@@ -167,4 +182,46 @@ export function createJsComplexityPlugin(
       };
     },
   };
+}
+
+function normalizeRunnerResult(
+  result: ComplexityMetric[] | ComplexityRunnerResult,
+): ComplexityRunnerResult {
+  if (Array.isArray(result)) {
+    return {
+      metrics: result,
+      skippedFiles: [],
+    };
+  }
+
+  return {
+    metrics: result.metrics,
+    skippedFiles: result.skippedFiles,
+  };
+}
+
+function resolveJsSourcePaths(
+  repositoryRoot: string,
+  pathScopeMode: "fallback" | "strict" | undefined,
+  eventPaths: string[],
+  detectedFacets: Array<{ id: string; metadata: Record<string, unknown> }>,
+): string[] {
+  const scopedPaths = eventPaths
+    .map((path) => relative(repositoryRoot, path))
+    .filter((path) => SOURCE_EXTENSIONS.has(extname(path)));
+
+  if (scopedPaths.length > 0) {
+    return [...new Set(scopedPaths)].sort();
+  }
+
+  if (pathScopeMode === "strict") {
+    return [];
+  }
+
+  const jsFacet = detectedFacets.find((facet) => facet.id === "js");
+  const sourcePaths = Array.isArray(jsFacet?.metadata.sourcePaths)
+    ? (jsFacet.metadata.sourcePaths as string[])
+    : [];
+
+  return [...new Set(sourcePaths.filter((path) => SOURCE_EXTENSIONS.has(extname(path))))].sort();
 }

@@ -39,6 +39,14 @@ export async function doctorCommand(options: DoctorOptions = {}): Promise<void> 
   );
 
   process.stdout.write(`Workflow: ${config.workflow}\n`);
+  process.stdout.write(
+    `Configured analyzers: ${
+      Object.entries(config.analyzers)
+        .filter(([, entry]) => entry.enabled !== false)
+        .map(([analyzerId]) => analyzerId)
+        .join(", ") || "none"
+    }\n`,
+  );
   const resolution = await resolveAnalyzers({
     plugins: environment.analyzers,
     repositoryRoot: cwd,
@@ -47,7 +55,7 @@ export async function doctorCommand(options: DoctorOptions = {}): Promise<void> 
   });
 
   process.stdout.write(
-    `Enabled analyzers: ${resolution.enabled.map((entry) => entry.plugin.id).join(", ") || "none"}\n`,
+    `Runnable analyzers: ${resolution.enabled.map((entry) => entry.plugin.id).join(", ") || "none"}\n`,
   );
   process.stdout.write(
     `Quality routines: ${Object.keys(config.qualityRoutines ?? {}).join(", ") || "none"}\n`,
