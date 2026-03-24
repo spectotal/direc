@@ -1,4 +1,4 @@
-import type { NormalizedWorkflowEvent } from "direc-analysis-runtime";
+import type { NormalizedWorkflowEvent } from "direc-workflow-runtime";
 
 export interface OpenSpecArtifactStatus {
   id: string;
@@ -6,11 +6,19 @@ export interface OpenSpecArtifactStatus {
   status: string;
 }
 
+export interface OpenSpecTaskItem {
+  id: string;
+  title: string;
+  checked: boolean;
+  sourcePath: string;
+}
+
 export interface OpenSpecChangeStatus {
   changeName: string;
   schemaName: string;
   isComplete: boolean;
   artifacts: OpenSpecArtifactStatus[];
+  tasks?: OpenSpecTaskItem[];
 }
 
 export type OpenSpecSnapshot = Map<string, OpenSpecChangeStatus>;
@@ -18,8 +26,10 @@ export type OpenSpecSnapshot = Map<string, OpenSpecChangeStatus>;
 export type SnapshotOptions = {
   projectRoot: string;
   changeFilter?: string;
+  taskDiffs?: boolean;
   listChanges?: (projectRoot: string, changeFilter?: string) => Promise<string[]>;
   loadStatus?: (projectRoot: string, changeName: string) => Promise<OpenSpecChangeStatus | null>;
+  loadTasks?: (projectRoot: string, changeName: string) => Promise<OpenSpecTaskItem[]>;
 };
 
 export type WatchOptions = SnapshotOptions & {

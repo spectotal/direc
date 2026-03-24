@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { dirname, resolve } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+import { WORKFLOW_IDS } from "direc-analysis-runtime";
 import { createJsComplexityPlugin } from "../src/index.js";
 
 const fixturesRoot = resolve(dirname(fileURLToPath(import.meta.url)), "fixtures");
@@ -24,7 +25,7 @@ test("complexity plugin reports threshold and regression findings", async () => 
     repositoryRoot: resolve(fixturesRoot, "simple-project"),
     event: {
       type: "transition",
-      source: "openspec",
+      source: WORKFLOW_IDS.OPENSPEC,
       timestamp: new Date().toISOString(),
       repositoryRoot: resolve(fixturesRoot, "simple-project"),
       pathScopes: [resolve(fixturesRoot, "simple-project", "src/index.ts")],
@@ -50,7 +51,7 @@ test("complexity plugin reports threshold and regression findings", async () => 
       repositoryRoot: resolve(fixturesRoot, "simple-project"),
       event: {
         type: "snapshot",
-        source: "openspec",
+        source: WORKFLOW_IDS.OPENSPEC,
         timestamp: new Date().toISOString(),
         repositoryRoot: resolve(fixturesRoot, "simple-project"),
       },
@@ -88,7 +89,7 @@ test("complexity plugin excludes fixture-like paths by default", async () => {
     repositoryRoot: resolve(fixturesRoot, "simple-project"),
     event: {
       type: "snapshot",
-      source: "openspec",
+      source: WORKFLOW_IDS.OPENSPEC,
       timestamp: new Date().toISOString(),
       repositoryRoot: resolve(fixturesRoot, "simple-project"),
     },
@@ -113,6 +114,59 @@ test("complexity plugin excludes fixture-like paths by default", async () => {
 
   assert.deepEqual(receivedSourcePaths, ["src/index.ts"]);
   assert.equal(snapshot.metrics?.excludedPathCount, 3);
+});
+
+test("complexity plugin reports skipped files without failing the analyzer", async () => {
+  const plugin = createJsComplexityPlugin({
+    async runner() {
+      return {
+        metrics: [],
+        skippedFiles: [
+          {
+            path: "src/problematic.ts",
+            message: "Cannot read properties of undefined (reading 'pattern')",
+          },
+        ],
+      };
+    },
+  });
+
+  const snapshot = await plugin.run({
+    repositoryRoot: resolve(fixturesRoot, "simple-project"),
+    event: {
+      type: "snapshot",
+      source: WORKFLOW_IDS.DIREC,
+      timestamp: new Date().toISOString(),
+      repositoryRoot: resolve(fixturesRoot, "simple-project"),
+    },
+    detectedFacets: [
+      {
+        id: "js",
+        confidence: "high",
+        evidence: ["fixture"],
+        metadata: {
+          sourcePaths: ["src/problematic.ts"],
+        },
+      },
+    ],
+    options: {},
+    previousSnapshot: null,
+  });
+
+  assert.equal(snapshot.findings.length, 1);
+  assert.equal(snapshot.findings[0]?.category, "complexity-analysis-skipped");
+  assert.equal(snapshot.findings[0]?.severity, "warning");
+  assert.deepEqual(snapshot.findings[0]?.details, {
+    errorMessage: "Cannot read properties of undefined (reading 'pattern')",
+  });
+  assert.equal(snapshot.metrics?.filesAnalyzed, 0);
+  assert.equal(snapshot.metrics?.skippedFileCount, 1);
+  assert.deepEqual(snapshot.metadata?.skippedFiles, [
+    {
+      path: "src/problematic.ts",
+      message: "Cannot read properties of undefined (reading 'pattern')",
+    },
+  ]);
 });
 
 test("complexity plugin surfaces missing prerequisites", async () => {

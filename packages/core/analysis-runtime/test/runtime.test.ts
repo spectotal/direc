@@ -1,12 +1,15 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import {
+  WORKFLOW_EVENT_TYPES,
   processWorkflowEvent,
+  readDirecConfig,
   readLatestAnalyzerSnapshot,
   resolveAnalyzers,
+  WORKFLOW_IDS,
   writeDirecConfig,
 } from "../src/index.js";
 import type {
@@ -29,6 +32,7 @@ function createConfig(): DirecConfig {
   return {
     version: 1,
     generatedAt: new Date().toISOString(),
+    workflow: WORKFLOW_IDS.DIREC,
     facets: detectedFacets.map((facet) => facet.id),
     analyzers: {
       mock: {
@@ -43,8 +47,8 @@ function createConfig(): DirecConfig {
 
 function createEvent(repositoryRoot: string): NormalizedWorkflowEvent {
   return {
-    type: "transition",
-    source: "openspec",
+    type: WORKFLOW_EVENT_TYPES.TRANSITION,
+    source: WORKFLOW_IDS.OPENSPEC,
     timestamp: new Date().toISOString(),
     repositoryRoot,
     change: {
@@ -59,6 +63,26 @@ function createEvent(repositoryRoot: string): NormalizedWorkflowEvent {
       outputPath: "tasks.md",
     },
     pathScopes: [join(repositoryRoot, "tasks.md")],
+  };
+}
+
+function createRepositoryEvent(repositoryRoot: string): NormalizedWorkflowEvent {
+  return {
+    type: WORKFLOW_EVENT_TYPES.SNAPSHOT,
+    source: WORKFLOW_IDS.DIREC,
+    timestamp: new Date().toISOString(),
+    repositoryRoot,
+  };
+}
+
+function createChangeEvent(repositoryRoot: string, changeId: string): NormalizedWorkflowEvent {
+  return {
+    ...createEvent(repositoryRoot),
+    change: {
+      id: changeId,
+      schema: "spec-driven",
+      revision: "proposal:done|tasks:ready",
+    },
   };
 }
 
@@ -110,6 +134,50 @@ test("resolveAnalyzers enables matching analyzers and reports skip reasons", asy
     resolution.disabled.find((entry) => entry.pluginId === "wrong-facet")?.reasons[0].code,
     "facet_mismatch",
   );
+});
+
+test("readDirecConfig normalizes missing workflow and legacy automation triggers", async () => {
+  const repositoryRoot = await mkdtemp(join(tmpdir(), "direc-runtime-"));
+  await mkdir(join(repositoryRoot, ".direc"), { recursive: true });
+  await writeFile(
+    join(repositoryRoot, ".direc", "config.json"),
+    `${JSON.stringify(
+      {
+        version: 1,
+        generatedAt: new Date().toISOString(),
+        facets: ["js"],
+        analyzers: {},
+        automation: {
+          enabled: true,
+          mode: "advisory",
+          invocation: "hybrid",
+          failurePolicy: "continue",
+          transport: {
+            kind: "command",
+            command: process.execPath,
+          },
+          triggers: {
+            openspec: {
+              taskDiffs: true,
+              artifactTransitions: false,
+              changeCompleted: true,
+            },
+          },
+        },
+      },
+      null,
+      2,
+    )}\n`,
+  );
+
+  const config = await readDirecConfig(repositoryRoot);
+
+  assert.equal(config?.workflow, WORKFLOW_IDS.DIREC);
+  assert.deepEqual(config?.automation?.triggers, {
+    workItemTransitions: true,
+    artifactTransitions: false,
+    changeCompleted: true,
+  });
 });
 
 test("processWorkflowEvent persists analyzer snapshots", async () => {
@@ -176,6 +244,7 @@ test("readLatestAnalyzerSnapshot returns the current analyzer snapshot", async (
   const config: DirecConfig = {
     version: 1,
     generatedAt: new Date().toISOString(),
+    workflow: WORKFLOW_IDS.DIREC,
     facets: ["js"],
     analyzers: {
       "js-complexity": {
@@ -227,4 +296,73 @@ test("readLatestAnalyzerSnapshot returns the current analyzer snapshot", async (
   assert.equal(snapshot?.analyzerId, "js-complexity");
   assert.equal(snapshot?.findings[0]?.analyzerId, "js-complexity");
   assert.equal(snapshot?.findings[0]?.facetId, "js");
+});
+
+test("processWorkflowEvent keeps previous snapshots scoped to repository and change runs", async () => {
+  const repositoryRoot = await mkdtemp(join(tmpdir(), "direc-runtime-"));
+  const config = createConfig();
+  await writeDirecConfig(repositoryRoot, config);
+
+  const previousScopes: Array<string | null> = [];
+  const plugins: AnalyzerPlugin[] = [
+    {
+      id: "mock",
+      displayName: "Mock Analyzer",
+      supportedFacets: ["js"],
+      async run(context) {
+        previousScopes.push(
+          (context.previousSnapshot?.metadata?.scope as string | undefined) ?? null,
+        );
+
+        return {
+          analyzerId: "mock",
+          timestamp: new Date().toISOString(),
+          repositoryRoot: context.repositoryRoot,
+          event: context.event,
+          findings: [],
+          metadata: {
+            scope: context.event.change?.id ?? "repository",
+          },
+        };
+      },
+    },
+  ];
+
+  await processWorkflowEvent({
+    repositoryRoot,
+    event: createRepositoryEvent(repositoryRoot),
+    detectedFacets,
+    plugins,
+    config,
+  });
+  await processWorkflowEvent({
+    repositoryRoot,
+    event: createChangeEvent(repositoryRoot, "change-a"),
+    detectedFacets,
+    plugins,
+    config,
+  });
+  await processWorkflowEvent({
+    repositoryRoot,
+    event: createRepositoryEvent(repositoryRoot),
+    detectedFacets,
+    plugins,
+    config,
+  });
+  await processWorkflowEvent({
+    repositoryRoot,
+    event: createChangeEvent(repositoryRoot, "change-a"),
+    detectedFacets,
+    plugins,
+    config,
+  });
+  await processWorkflowEvent({
+    repositoryRoot,
+    event: createChangeEvent(repositoryRoot, "change-b"),
+    detectedFacets,
+    plugins,
+    config,
+  });
+
+  assert.deepEqual(previousScopes, [null, null, "repository", "change-a", null]);
 });

@@ -5,28 +5,22 @@ import type {
   RuntimeExecutionResult,
 } from "direc-analysis-runtime";
 import { processWorkflowEvent } from "direc-analysis-runtime";
-import {
-  normalizeOpenSpecSnapshot,
-  takeOpenSpecSnapshot,
-  watchOpenSpecChanges,
-} from "direc-adapter-openspec";
+import type { WorkflowAdapter } from "direc-workflow-runtime";
 
 type AnalysisOptions = {
   repositoryRoot: string;
+  workflowAdapter: WorkflowAdapter;
   changeFilter?: string;
   detectedFacets: DetectedFacet[];
   analyzers: AnalyzerPlugin[];
   config: DirecConfig;
 };
 
-export async function runSnapshotAnalysis(
-  options: AnalysisOptions,
-): Promise<RuntimeExecutionResult[]> {
-  const snapshot = await takeOpenSpecSnapshot({
-    projectRoot: options.repositoryRoot,
+export async function runAnalysis(options: AnalysisOptions): Promise<RuntimeExecutionResult[]> {
+  const events = await options.workflowAdapter.loadAnalysisEvents({
+    repositoryRoot: options.repositoryRoot,
     changeFilter: options.changeFilter,
   });
-  const events = normalizeOpenSpecSnapshot(snapshot, options.repositoryRoot);
 
   if (events.length === 0) {
     return [];
@@ -47,8 +41,8 @@ export async function watchAnalysis(
 ): Promise<{ close: () => void }> {
   let queue = Promise.resolve();
 
-  return watchOpenSpecChanges({
-    projectRoot: options.repositoryRoot,
+  return options.workflowAdapter.watchEvents({
+    repositoryRoot: options.repositoryRoot,
     changeFilter: options.changeFilter,
     onEvent: (event) => {
       queue = queue.then(async () => {
@@ -58,7 +52,7 @@ export async function watchAnalysis(
   });
 }
 
-async function processEvent(
+export async function processAnalysisEvent(
   options: AnalysisOptions,
   event: Parameters<typeof processWorkflowEvent>[0]["event"],
 ): Promise<RuntimeExecutionResult> {
@@ -69,4 +63,11 @@ async function processEvent(
     plugins: options.analyzers,
     config: options.config,
   });
+}
+
+async function processEvent(
+  options: AnalysisOptions,
+  event: Parameters<typeof processWorkflowEvent>[0]["event"],
+): Promise<RuntimeExecutionResult> {
+  return processAnalysisEvent(options, event);
 }

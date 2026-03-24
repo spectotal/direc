@@ -5,9 +5,9 @@
 ## What is included
 
 - TypeScript CLI source with a `bin` entrypoint
-- `init`, `run`, `analyze`, and `doctor` commands
+- `init`, `run`, `analyze`, `automate`, and `doctor` commands
 - Build scripts for local development and npm publishing
-- A generated `.direc/config.json` plus analyzer reports under `.direc/`
+- A generated `.direc/config.json` plus analyzer and automation artifacts under `.direc/`
 - An example spec template for bootstrap repositories
 
 ## Install
@@ -24,6 +24,7 @@ direc --help
 direc init
 direc analyze
 direc analyze --change my-change --watch
+direc automate --workflow openspec
 direc doctor
 direc run specs/example.spec.md --dry-run
 ```
@@ -41,9 +42,9 @@ If `.direc/config.json` already exists, rerun with `--force` to overwrite.
 
 The generated analyzer config includes default path exclusions for fixtures, tests, `dist`, declaration files, and `scripts/`, plus default warning and error complexity thresholds that you can tune in `.direc/config.json`.
 
-It also seeds a small set of architecture boundary rules for the built-in Direc CLI and OpenSpec adapter layers.
+It also seeds a small set of architecture boundary rules for the built-in Direc CLI and OpenSpec adapter layers, plus an automation profile that runs in advisory mode via a bundled command backend.
 
-`direc analyze` consumes OpenSpec change events and persists analyzer snapshots under `.direc/latest/` and `.direc/history/`.
+`direc analyze` persists analyzer snapshots under `.direc/latest/` and `.direc/history/`, running repository-wide by default or against a scoped OpenSpec change when `--change` is provided.
 
 ```bash
 direc analyze
@@ -51,7 +52,17 @@ direc analyze --change direc-facet-detection-and-tool-backed-analysis
 direc analyze --watch
 ```
 
+By default, `direc analyze` runs a repository-wide scan, so analyzers work even when there are no active OpenSpec changes. Add `--change` to scope analysis to a specific OpenSpec change event.
+
 `direc analyze` now prints the saved JSON report paths and a short findings summary in the terminal. For deeper inspection, open the files in `.direc/latest/`.
+
+`direc automate --workflow openspec` watches the same normalized OpenSpec events, runs analyzers first, then writes formalized subagent requests and results under `.direc/automation/`.
+
+```bash
+direc automate --workflow openspec
+```
+
+The default automation transport uses a bundled command backend so the event loop is runnable immediately after `direc init`. Replace the `automation.transport` section in `.direc/config.json` to point at a different command, HTTP endpoint, or in-process SDK adapter.
 
 ## Local development in the monorepo
 
@@ -60,6 +71,7 @@ npm install
 npm run dev:direc -- --help
 npm run dev:direc -- init
 npm run dev:direc -- analyze --watch
+npm run dev:direc -- automate --workflow openspec
 ```
 
 ## Publish checklist

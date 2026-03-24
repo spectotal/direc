@@ -1,5 +1,9 @@
 import { resolve } from "node:path";
-import type { NormalizedWorkflowEvent } from "direc-analysis-runtime";
+import {
+  WORKFLOW_EVENT_TYPES,
+  WORKFLOW_IDS,
+  type NormalizedWorkflowEvent,
+} from "direc-workflow-runtime";
 import type { OpenSpecChangeStatus, OpenSpecSnapshot } from "./types.js";
 
 export function normalizeOpenSpecSnapshot(
@@ -9,8 +13,8 @@ export function normalizeOpenSpecSnapshot(
   const timestamp = new Date().toISOString();
 
   return [...snapshot.entries()].map(([changeName, status]) => ({
-    type: "snapshot",
-    source: "openspec",
+    type: WORKFLOW_EVENT_TYPES.SNAPSHOT,
+    source: WORKFLOW_IDS.OPENSPEC,
     timestamp,
     repositoryRoot: resolve(projectRoot),
     change: {
@@ -57,10 +61,21 @@ export function diffOpenSpecSnapshots(
       ),
     );
 
+    events.push(
+      ...createTaskTransitionEvents(
+        changeName,
+        previousStatus,
+        status,
+        projectRoot,
+        repositoryRoot,
+        timestamp,
+      ),
+    );
+
     if (!previousStatus.isComplete && status.isComplete) {
       events.push({
-        type: "change_completed",
-        source: "openspec",
+        type: WORKFLOW_EVENT_TYPES.CHANGE_COMPLETED,
+        source: WORKFLOW_IDS.OPENSPEC,
         timestamp,
         repositoryRoot,
         change: {
@@ -81,14 +96,60 @@ export function diffOpenSpecSnapshots(
     }
 
     events.push({
-      type: "change_removed",
-      source: "openspec",
+      type: WORKFLOW_EVENT_TYPES.CHANGE_REMOVED,
+      source: WORKFLOW_IDS.OPENSPEC,
       timestamp,
       repositoryRoot,
       change: {
         id: changeName,
         schema: status.schemaName,
         revision: getStatusRevision(status),
+      },
+    });
+  }
+
+  return events;
+}
+
+function createTaskTransitionEvents(
+  changeName: string,
+  previousStatus: OpenSpecChangeStatus,
+  status: OpenSpecChangeStatus,
+  projectRoot: string,
+  repositoryRoot: string,
+  timestamp: string,
+): NormalizedWorkflowEvent[] {
+  const previousTasks = previousStatus.tasks ?? [];
+  const currentTasks = status.tasks ?? [];
+  const previousById = new Map(previousTasks.map((task) => [task.id, task]));
+  const events: NormalizedWorkflowEvent[] = [];
+
+  for (const task of currentTasks) {
+    const previousTask = previousById.get(task.id);
+    if (!previousTask || previousTask.checked === task.checked) {
+      continue;
+    }
+
+    events.push({
+      type: WORKFLOW_EVENT_TYPES.WORK_ITEM_TRANSITION,
+      source: WORKFLOW_IDS.OPENSPEC,
+      timestamp,
+      repositoryRoot,
+      change: {
+        id: changeName,
+        schema: status.schemaName,
+        revision: getStatusRevision(status),
+      },
+      workItem: {
+        id: task.id,
+        title: task.title,
+        sourcePath: task.sourcePath,
+        fromState: previousTask.checked ? "done" : "pending",
+        toState: task.checked ? "done" : "pending",
+      },
+      pathScopes: [task.sourcePath],
+      metadata: {
+        changeDir: resolve(projectRoot, "openspec", "changes", changeName),
       },
     });
   }
@@ -111,8 +172,8 @@ function createChangeCreatedEvent(
   timestamp: string,
 ): NormalizedWorkflowEvent {
   return {
-    type: "change_created",
-    source: "openspec",
+    type: WORKFLOW_EVENT_TYPES.CHANGE_CREATED,
+    source: WORKFLOW_IDS.OPENSPEC,
     timestamp,
     repositoryRoot,
     change: {
@@ -149,8 +210,8 @@ function createTransitionEvents(
     }
 
     events.push({
-      type: "transition",
-      source: "openspec",
+      type: WORKFLOW_EVENT_TYPES.TRANSITION,
+      source: WORKFLOW_IDS.OPENSPEC,
       timestamp,
       repositoryRoot,
       change: {

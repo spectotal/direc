@@ -29,6 +29,7 @@ export async function doctorCommand(): Promise<void> {
     return;
   }
 
+  process.stdout.write(`Workflow: ${config.workflow}\n`);
   const resolution = await resolveAnalyzers({
     plugins: getRegisteredAnalyzers(),
     repositoryRoot: cwd,
@@ -39,6 +40,15 @@ export async function doctorCommand(): Promise<void> {
   process.stdout.write(
     `Enabled analyzers: ${resolution.enabled.map((entry) => entry.plugin.id).join(", ") || "none"}\n`,
   );
+  if (config.automation) {
+    process.stdout.write(
+      `Automation: ${config.automation.mode}, ${config.automation.invocation}, ${config.automation.transport.kind}\n`,
+    );
+  } else {
+    process.stdout.write(
+      "MISS automation config: re-run `direc init --force` to seed automation defaults\n",
+    );
+  }
 
   if (resolution.disabled.length > 0) {
     for (const entry of resolution.disabled) {

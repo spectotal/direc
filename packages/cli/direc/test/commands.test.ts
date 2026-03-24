@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
+import { WORKFLOW_IDS } from "direc-analysis-runtime";
 import { doctorCommand } from "../src/commands/doctor.js";
 import { initCommand } from "../src/commands/init.js";
 
@@ -18,15 +19,29 @@ test("initCommand writes js analyzer identifiers", { concurrency: false }, async
     await readFile(join(repositoryRoot, ".direc", "config.json"), "utf8"),
   ) as {
     facets: string[];
+    workflow: string;
     analyzers: Record<string, { enabled: boolean }>;
+    automation: {
+      mode: string;
+      invocation: string;
+      transport: {
+        kind: string;
+      };
+    };
   };
 
   assert.match(output, /Detected facets: js/);
+  assert.match(output, /Workflow: direc/);
+  assert.match(output, /Automation: advisory, hybrid, command/);
   assert.deepEqual(config.facets, ["js"]);
+  assert.equal(config.workflow, WORKFLOW_IDS.DIREC);
   assert.deepEqual(Object.keys(config.analyzers).sort(), [
     "js-architecture-drift",
     "js-complexity",
   ]);
+  assert.equal(config.automation.mode, "advisory");
+  assert.equal(config.automation.invocation, "hybrid");
+  assert.equal(config.automation.transport.kind, "command");
   assert.equal(await readFile(legacyStatePath, "utf8"), '{"legacy":true}\n');
 });
 
@@ -42,12 +57,29 @@ test("doctorCommand reports configured js analyzers", { concurrency: false }, as
         version: 1,
         generatedAt: new Date().toISOString(),
         facets: ["js"],
+        workflow: WORKFLOW_IDS.OPENSPEC,
         analyzers: {
           "js-complexity": {
             enabled: true,
           },
           "js-architecture-drift": {
             enabled: true,
+          },
+        },
+        automation: {
+          enabled: true,
+          mode: "advisory",
+          invocation: "hybrid",
+          failurePolicy: "continue",
+          transport: {
+            kind: "command",
+            command: process.execPath,
+            args: ["./fake-subagent.js"],
+          },
+          triggers: {
+            workItemTransitions: true,
+            artifactTransitions: false,
+            changeCompleted: true,
           },
         },
       },
@@ -68,10 +100,12 @@ test("doctorCommand reports configured js analyzers", { concurrency: false }, as
   };
 
   assert.match(output, /Facets: js/);
+  assert.match(output, /Workflow: openspec/);
   assert.match(
     output,
     /Enabled analyzers: js-complexity, js-architecture-drift|Enabled analyzers: js-architecture-drift, js-complexity/,
   );
+  assert.match(output, /Automation: advisory, hybrid, command/);
   assert.deepEqual(config.facets, ["js"]);
   assert.deepEqual(Object.keys(config.analyzers).sort(), [
     "js-architecture-drift",

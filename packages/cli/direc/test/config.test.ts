@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+import { WORKFLOW_IDS } from "direc-analysis-runtime";
 import { getRegisteredAnalyzers } from "../src/lib/analyzers.js";
 import { buildDirecConfig } from "../src/lib/config.js";
 
@@ -24,7 +25,7 @@ test("root workspace uses nested role-based package globs", async () => {
   ]);
 });
 
-test("buildDirecConfig seeds repository boundary rules for architecture drift", async () => {
+test("buildDirecConfig keeps architecture drift generic by default", async () => {
   const { config } = await buildDirecConfig({
     repositoryRoot,
     detectedFacets: [
@@ -41,13 +42,19 @@ test("buildDirecConfig seeds repository boundary rules for architecture drift", 
   });
 
   const architectureConfig = config.analyzers["js-architecture-drift"];
-  const boundaryRules = architectureConfig?.options?.boundaryRules;
+  const moduleRoles = architectureConfig?.options?.moduleRoles;
+  const roleBoundaryRules = architectureConfig?.options?.roleBoundaryRules;
 
-  assert.ok(Array.isArray(boundaryRules));
-  assert.equal(boundaryRules.length, 3);
-  assert.deepEqual(boundaryRules.map((rule) => rule.from).sort(), [
-    "packages/adapters/openspec/src/events.ts",
-    "packages/adapters/openspec/src/status.ts",
-    "packages/cli/direc/src/lib",
-  ]);
+  assert.equal("boundaryRules" in (architectureConfig?.options ?? {}), false);
+  assert.ok(Array.isArray(moduleRoles));
+  assert.deepEqual(moduleRoles, []);
+  assert.ok(Array.isArray(roleBoundaryRules));
+  assert.deepEqual(roleBoundaryRules, []);
+  assert.equal(config.workflow, WORKFLOW_IDS.DIREC);
+  assert.equal(config.automation.mode, "advisory");
+  assert.equal(config.automation.invocation, "hybrid");
+  assert.equal(config.automation.transport.kind, "command");
+  assert.equal(config.automation.triggers.workItemTransitions, true);
+  assert.equal(config.automation.triggers.changeCompleted, true);
+  assert.equal(config.automation.triggers.artifactTransitions, false);
 });

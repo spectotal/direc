@@ -1,10 +1,12 @@
+import { fileURLToPath } from "node:url";
 import {
   resolveAnalyzers,
   type AnalyzerPlugin,
+  type AutomationConfig,
   type DetectedFacet,
   type DirecConfig,
 } from "direc-analysis-runtime";
-import { seedAnalyzerOptions } from "./config-boundary-rules.js";
+import { WORKFLOW_IDS } from "direc-workflow-runtime";
 
 type BuildDirecConfigOptions = {
   repositoryRoot: string;
@@ -21,14 +23,11 @@ export async function buildDirecConfig(options: BuildDirecConfigOptions): Promis
       plugin.id,
       {
         enabled: plugin.defaultEnabled ?? true,
-        options: await seedAnalyzerOptions(
-          options.repositoryRoot,
-          plugin.id,
+        options:
           plugin.createDefaultOptions?.({
             repositoryRoot: options.repositoryRoot,
             detectedFacets: options.detectedFacets,
           }) ?? {},
-        ),
       },
     ]),
   );
@@ -36,7 +35,9 @@ export async function buildDirecConfig(options: BuildDirecConfigOptions): Promis
   const initialConfig: DirecConfig = {
     version: 1,
     generatedAt: new Date().toISOString(),
+    workflow: WORKFLOW_IDS.DIREC,
     facets: options.detectedFacets.map((facet) => facet.id),
+    automation: buildAutomationConfig(),
     analyzers: Object.fromEntries(analyzerEntries),
   };
 
@@ -67,5 +68,26 @@ export async function buildDirecConfig(options: BuildDirecConfigOptions): Promis
       analyzers,
     },
     resolution,
+  };
+}
+
+function buildAutomationConfig(): AutomationConfig {
+  const bundledBackendPath = fileURLToPath(new URL("../../bin/direc-subagent.js", import.meta.url));
+
+  return {
+    enabled: true,
+    mode: "advisory",
+    invocation: "hybrid",
+    failurePolicy: "continue",
+    transport: {
+      kind: "command",
+      command: process.execPath,
+      args: [bundledBackendPath],
+    },
+    triggers: {
+      workItemTransitions: true,
+      artifactTransitions: false,
+      changeCompleted: true,
+    },
   };
 }
