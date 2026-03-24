@@ -95,19 +95,3 @@ export async function resolveAnalyzers(
     disabled,
   };
 }
-
-export function serializeAnalyzerResolution(resolution: AnalyzerResolution): {
-  enabled: string[];
-  disabled: Array<{
-    pluginId: string;
-    reasons: AnalyzerDisableReason[];
-  }>;
-} {
-  return {
-    enabled: resolution.enabled.map((entry) => entry.plugin.id),
-    disabled: resolution.disabled.map((entry) => ({
-      pluginId: entry.pluginId,
-      reasons: entry.reasons,
-    })),
-  };
-}

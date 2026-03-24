@@ -8,3 +8,7 @@ dist
 .direc/state.json
 .direc/latest/
 .direc/history/
+.agent
+.claude
+.codex
+openspec/changes/archive

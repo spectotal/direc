@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "generatedAt": "2026-03-24T08:17:10.638Z",
+  "facets": ["js", "css", "tailwind"],
+  "analyzers": {
+    "js-complexity": {
+      "enabled": true,
+      "options": {
+        "warningThreshold": 20,
+        "errorThreshold": 35,
+        "regressionDelta": 5,
+        "excludePaths": [
+          "**/dist/**",
+          "**/test/**",
+          "**/tests/**",
+          "**/__tests__/**",
+          "**/fixtures/**",
+          "**/*.test.*",
+          "**/*.spec.*",
+          "**/*.d.ts",
+          "**/*.d.ts.map",
+          "scripts/**"
+        ]
+      }
+    },
+    "js-architecture-drift": {
+      "enabled": true,
+      "options": {
+        "excludePaths": [
+          "**/dist/**",
+          "**/test/**",
+          "**/tests/**",
+          "**/__tests__/**",
+          "**/fixtures/**",
+          "**/*.test.*",
+          "**/*.spec.*",
+          "**/*.d.ts",
+          "**/*.d.ts.map",
+          "scripts/**"
+        ],
+        "boundaryRules": [
+          {
+            "from": "packages/cli/direc/src/lib",
+            "disallow": ["packages/cli/direc/src/commands"],
+            "message": "CLI utility modules must not depend on command handlers."
+          },
+          {
+            "from": "packages/adapters/openspec/src/status.ts",
+            "disallow": ["packages/adapters/openspec/src/watch.ts"],
+            "message": "OpenSpec status loading must not depend on watch orchestration."
+          },
+          {
+            "from": "packages/adapters/openspec/src/events.ts",
+            "disallow": ["packages/adapters/openspec/src/watch.ts"],
+            "message": "OpenSpec event normalization must not depend on watch orchestration."
+          }
+        ]
+      }
+    }
+  }
+}

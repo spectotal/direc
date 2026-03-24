@@ -33,7 +33,6 @@ npm run dev:direc -- analyze --watch
 Direc now stores repository-local analysis state under `.direc/`:
 
 - `.direc/config.json`: facet IDs and enabled analyzers
-- `.direc/state.json`: latest runtime state and analyzer resolution
 - `.direc/latest/`: latest analyzer snapshots
 - `.direc/history/`: event-linked analyzer history
 

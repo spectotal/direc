@@ -1,9 +1,5 @@
-import {
-  readLatestAnalyzerSnapshot,
-  writeAnalyzerSnapshot,
-  writeDirecState,
-} from "./persistence.js";
-import { resolveAnalyzers, serializeAnalyzerResolution } from "./resolve-analyzers.js";
+import { readLatestAnalyzerSnapshot, writeAnalyzerSnapshot } from "./persistence.js";
+import { resolveAnalyzers } from "./resolve-analyzers.js";
 import type {
   AnalyzerPlugin,
   DetectedFacet,
@@ -76,18 +72,9 @@ export async function processWorkflowEvent(
       });
     }
   }
-
-  const statePath = await writeDirecState(options.repositoryRoot, {
-    updatedAt: new Date().toISOString(),
-    detectedFacets: options.detectedFacets,
-    resolution: serializeAnalyzerResolution(resolution),
-    lastEvent: options.event,
-  });
-
   return {
     event: options.event,
     resolution,
     runs,
-    statePath,
   };
 }

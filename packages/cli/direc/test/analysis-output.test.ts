@@ -61,7 +61,6 @@ test("formatAnalysisResult includes report paths and findings summary", () => {
         },
       },
     ],
-    statePath: ".direc/state.json",
   });
 
   assert.match(output, /reports:/);

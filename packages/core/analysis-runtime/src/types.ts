@@ -157,19 +157,6 @@ export interface DirecConfig {
   analyzers: Record<string, AnalyzerConfigEntry>;
 }
 
-export interface DirecRuntimeState {
-  updatedAt: string;
-  detectedFacets: DetectedFacet[];
-  resolution: {
-    enabled: string[];
-    disabled: Array<{
-      pluginId: string;
-      reasons: AnalyzerDisableReason[];
-    }>;
-  };
-  lastEvent?: NormalizedWorkflowEvent;
-}
-
 export interface AnalyzerRunResult {
   analyzerId: string;
   status: "success" | "failed";
@@ -183,5 +170,4 @@ export interface RuntimeExecutionResult {
   event: NormalizedWorkflowEvent;
   resolution: AnalyzerResolution;
   runs: AnalyzerRunResult[];
-  statePath: string;
 }

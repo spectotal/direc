@@ -7,7 +7,7 @@
 - TypeScript CLI source with a `bin` entrypoint
 - `init`, `run`, `analyze`, and `doctor` commands
 - Build scripts for local development and npm publishing
-- A generated `.direc/config.json` plus runtime state under `.direc/`
+- A generated `.direc/config.json` plus analyzer reports under `.direc/`
 - An example spec template for bootstrap repositories
 
 ## Install

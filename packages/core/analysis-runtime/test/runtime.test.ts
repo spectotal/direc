@@ -1,11 +1,10 @@
 import assert from "node:assert/strict";
-import { mkdtemp } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import {
   processWorkflowEvent,
-  readDirecState,
   readLatestAnalyzerSnapshot,
   resolveAnalyzers,
   writeDirecConfig,
@@ -113,10 +112,12 @@ test("resolveAnalyzers enables matching analyzers and reports skip reasons", asy
   );
 });
 
-test("processWorkflowEvent persists analyzer snapshots and runtime state", async () => {
+test("processWorkflowEvent persists analyzer snapshots", async () => {
   const repositoryRoot = await mkdtemp(join(tmpdir(), "direc-runtime-"));
   const config = createConfig();
   await writeDirecConfig(repositoryRoot, config);
+  const legacyStatePath = join(repositoryRoot, ".direc", "state.json");
+  await writeFile(legacyStatePath, '{"legacy":true}\n');
 
   const plugins: AnalyzerPlugin[] = [
     {
@@ -167,11 +168,7 @@ test("processWorkflowEvent persists analyzer snapshots and runtime state", async
   const snapshot = await readLatestAnalyzerSnapshot(repositoryRoot, "mock");
   assert.ok(snapshot);
   assert.equal(snapshot?.findings[0]?.message, "A file exceeded the threshold.");
-
-  const state = await readDirecState(repositoryRoot);
-  assert.ok(state);
-  assert.deepEqual(state?.resolution.enabled, ["mock"]);
-  assert.equal(state?.lastEvent?.type, "transition");
+  assert.equal(await readFile(legacyStatePath, "utf8"), '{"legacy":true}\n');
 });
 
 test("readLatestAnalyzerSnapshot returns the current analyzer snapshot", async () => {

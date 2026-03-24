@@ -1,13 +1,12 @@
 import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
-import type { AnalyzerSnapshot, DirecConfig, DirecRuntimeState } from "./types.js";
+import type { AnalyzerSnapshot, DirecConfig } from "./types.js";
 import { readJsonFile, writeJsonFile } from "./json-files.js";
 
 export const DIREC_DIRECTORY_NAME = ".direc";
 
 export const DIREC_PATHS = {
   config: "config.json",
-  state: "state.json",
   latest: "latest",
   history: "history",
 } as const;
@@ -36,20 +35,6 @@ export async function writeDirecConfig(
 
 export async function readDirecConfig(repositoryRoot: string): Promise<DirecConfig | null> {
   return readJsonFile(getDirecPath(repositoryRoot, DIREC_PATHS.config));
-}
-
-export async function writeDirecState(
-  repositoryRoot: string,
-  state: DirecRuntimeState,
-): Promise<string> {
-  await ensureDirecLayout(repositoryRoot);
-  const path = getDirecPath(repositoryRoot, DIREC_PATHS.state);
-  await writeJsonFile(path, state);
-  return path;
-}
-
-export async function readDirecState(repositoryRoot: string): Promise<DirecRuntimeState | null> {
-  return readJsonFile(getDirecPath(repositoryRoot, DIREC_PATHS.state));
 }
 
 export async function readLatestAnalyzerSnapshot(

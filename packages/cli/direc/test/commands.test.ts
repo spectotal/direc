@@ -8,6 +8,9 @@ import { initCommand } from "../src/commands/init.js";
 
 test("initCommand writes js analyzer identifiers", { concurrency: false }, async () => {
   const repositoryRoot = await createFixtureRepository();
+  const legacyStatePath = join(repositoryRoot, ".direc", "state.json");
+  await mkdir(join(repositoryRoot, ".direc"), { recursive: true });
+  await writeFile(legacyStatePath, '{"legacy":true}\n');
   const { output } = await captureStdout(() =>
     withWorkingDirectory(repositoryRoot, () => initCommand({})),
   );
@@ -24,6 +27,7 @@ test("initCommand writes js analyzer identifiers", { concurrency: false }, async
     "js-architecture-drift",
     "js-complexity",
   ]);
+  assert.equal(await readFile(legacyStatePath, "utf8"), '{"legacy":true}\n');
 });
 
 test("doctorCommand reports configured js analyzers", { concurrency: false }, async () => {
@@ -51,28 +55,7 @@ test("doctorCommand reports configured js analyzers", { concurrency: false }, as
       2,
     )}\n`,
   );
-  await writeFile(
-    join(repositoryRoot, ".direc", "state.json"),
-    `${JSON.stringify(
-      {
-        updatedAt: new Date().toISOString(),
-        detectedFacets: [
-          {
-            id: "js",
-            confidence: "high",
-            evidence: ["fixture"],
-            metadata: {},
-          },
-        ],
-        resolution: {
-          enabled: ["js-complexity", "js-architecture-drift"],
-          disabled: [],
-        },
-      },
-      null,
-      2,
-    )}\n`,
-  );
+  await writeFile(join(repositoryRoot, "specs", "example.spec.md"), "# Example Spec\n");
 
   const { output } = await captureStdout(() =>
     withWorkingDirectory(repositoryRoot, () => doctorCommand()),
