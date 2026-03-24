@@ -1,6 +1,6 @@
-# direc
+# @spectotal/direc-automation-runtime
 
-## 0.3.0
+## 0.2.0
 
 ### Minor Changes
 
@@ -9,12 +9,5 @@
 ### Patch Changes
 
 - Updated dependencies [36359a9]
+  - @spectotal/direc-workflow-runtime@0.2.0
   - @spectotal/direc-analysis-runtime@0.2.0
-  - @spectotal/direc-automation-runtime@0.2.0
-  - @spectotal/direc-engine@0.2.0
-
-## 0.2.0
-
-### Minor Changes
-
-- 591fca2: move to monorepo

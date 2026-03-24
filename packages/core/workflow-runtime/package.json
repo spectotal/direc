@@ -1,6 +1,6 @@
 {
   "name": "@spectotal/direc-workflow-runtime",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Workflow contracts and event types for Direc.",
   "type": "module",
   "main": "./dist/index.js",

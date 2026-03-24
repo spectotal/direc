@@ -1,6 +1,6 @@
 {
   "name": "@spectotal/direc-adapter-openspec",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "OpenSpec event adapter for Direc.",
   "type": "module",
   "main": "./dist/index.js",
