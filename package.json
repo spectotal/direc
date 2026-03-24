@@ -4,13 +4,18 @@
   "private": true,
   "description": "Monorepo for the direc CLI and related Spectotal tooling.",
   "workspaces": [
-    "packages/*"
+    "packages/cli/*",
+    "packages/core/*",
+    "packages/adapters/*",
+    "packages/facets/*",
+    "packages/plugins/*"
   ],
   "engines": {
     "node": ">=18.18"
   },
   "scripts": {
-    "build": "npm run build --workspaces",
+    "build": "npm run build:workspaces",
+    "build:workspaces": "npm run build --workspace=direc-analysis-runtime && npm run build --workspace=direc-facet-detect && npm run build --workspace=direc-adapter-openspec && npm run build --workspace=direc-plugin-js-complexity && npm run build --workspace=direc-plugin-js-architecture-drift && npm run build --workspace=direc",
     "check": "npm run lint && npm run format:check && npm run typecheck && npm run test && npm run build",
     "changeset": "changeset",
     "changeset:status": "changeset status --verbose",
@@ -24,8 +29,10 @@
     "prepare": "husky",
     "release:publish": "node ./scripts/ensure-clean-worktree.mjs && npm run check && changeset publish",
     "release:version": "node ./scripts/ensure-clean-worktree.mjs && changeset version && npm install --package-lock-only --ignore-scripts",
-    "test": "npm run test --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces"
+    "test": "npm run build:workspaces && npm run test:workspaces",
+    "test:workspaces": "npm run test --workspaces --if-present",
+    "typecheck": "npm run build:workspaces && npm run typecheck:workspaces",
+    "typecheck:workspaces": "npm run typecheck --workspaces"
   },
   "lint-staged": {
     "*.{js,mjs,cjs,ts,mts,cts}": [

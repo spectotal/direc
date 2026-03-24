@@ -2,7 +2,12 @@
 
 This repository is an npm workspace monorepo for `direc`.
 
-- `packages/direc`: the publishable CLI package that users can run with `npx direc` or install globally with `npm install -g direc`
+- `packages/cli/direc`: the publishable CLI package that users can run with `npx direc` or install globally with `npm install -g direc`
+- `packages/core/analysis-runtime`: vendor-independent analyzer execution and persistence
+- `packages/facets/detect`: repository facet detection with evidence and scope metadata
+- `packages/adapters/openspec`: OpenSpec event normalization and watch support
+- `packages/plugins/js-complexity`: JavaScript and TypeScript complexity analyzer plugin
+- `packages/plugins/js-architecture-drift`: JavaScript and TypeScript dependency drift analyzer plugin
 
 ## Workspace commands
 
@@ -20,6 +25,31 @@ npm run build
 npm run dev:direc -- --help
 npm run dev:direc -- init
 npm run dev:direc -- run specs/example.spec.md --dry-run
+npm run dev:direc -- analyze --watch
+```
+
+## Direc Analysis Bootstrap
+
+Direc now stores repository-local analysis state under `.direc/`:
+
+- `.direc/config.json`: facet IDs and enabled analyzers
+- `.direc/state.json`: latest runtime state and analyzer resolution
+- `.direc/latest/`: latest analyzer snapshots
+- `.direc/history/`: event-linked analyzer history
+
+The generated config now includes default analyzer tuning:
+
+- non-production path exclusions for fixtures, tests, declaration files, `dist`, and `scripts/`
+- warning and error complexity thresholds
+- initial architecture boundary rules that keep `packages/cli/direc/src/lib` isolated from command handlers and keep OpenSpec status or event logic isolated from watch orchestration
+
+Typical workflow:
+
+```bash
+npm run dev:direc -- init
+npm run dev:direc -- doctor
+npm run dev:direc -- analyze
+npm run dev:direc -- analyze --change my-change --watch
 ```
 
 ## Pre-commit flow
