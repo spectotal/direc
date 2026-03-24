@@ -17,10 +17,20 @@ type ComplexityMetric = {
   maintainability: number;
 };
 
+type ComplexityAnalysisError = {
+  path: string;
+  message: string;
+};
+
+type ComplexityRunnerResult = {
+  metrics: ComplexityMetric[];
+  skippedFiles: ComplexityAnalysisError[];
+};
+
 type ComplexityRunner = (options: {
   repositoryRoot: string;
   sourcePaths: string[];
-}) => Promise<ComplexityMetric[]>;
+}) => Promise<ComplexityMetric[] | ComplexityRunnerResult>;
 
 export interface ComplexityPluginOptions {
   threshold?: number;
@@ -61,24 +71,26 @@ export function createJsComplexityPlugin(
       const excludePaths = context.options.excludePaths ?? [...DEFAULT_ANALYZER_EXCLUDE_PATTERNS];
       const candidateSourcePaths = resolveJsSourcePaths(
         context.repositoryRoot,
+        context.event.pathScopeMode,
         context.event.pathScopes ?? [],
         context.detectedFacets,
       );
       const sourcePaths = filterPathsWithPatterns(candidateSourcePaths, excludePaths);
 
       const runner = factoryOptions.runner ?? runComplexityTool;
-      const metrics = await runner({
-        repositoryRoot: context.repositoryRoot,
-        sourcePaths,
-      });
-
+      const runnerResult = normalizeRunnerResult(
+        await runner({
+          repositoryRoot: context.repositoryRoot,
+          sourcePaths,
+        }),
+      );
+      const { metrics, skippedFiles } = runnerResult;
       const previousMetrics = new Map<string, ComplexityMetric>(
         (
           ((context.previousSnapshot?.metadata?.files as ComplexityMetric[] | undefined) ??
             []) as ComplexityMetric[]
         ).map((metric) => [metric.path, metric]),
       );
-
       const findings = metrics.flatMap((metric) => {
         const fileFindings: AnalyzerFinding[] = [];
         const warningThreshold =
@@ -134,6 +146,24 @@ export function createJsComplexityPlugin(
         return fileFindings;
       });
 
+      findings.push(
+        ...skippedFiles.map((fileError) => ({
+          fingerprint: `${fileError.path}:complexity-analysis-skipped`,
+          analyzerId: "js-complexity",
+          facetId: "js",
+          severity: "warning" as const,
+          category: "complexity-analysis-skipped",
+          message: `${fileError.path} could not be analyzed for complexity.`,
+          scope: {
+            kind: "file" as const,
+            path: resolve(context.repositoryRoot, fileError.path),
+          },
+          details: {
+            errorMessage: fileError.message,
+          },
+        })),
+      );
+
       return {
         analyzerId: "js-complexity",
         timestamp: new Date().toISOString(),
@@ -142,15 +172,33 @@ export function createJsComplexityPlugin(
         findings,
         metrics: {
           filesAnalyzed: metrics.length,
+          skippedFileCount: skippedFiles.length,
           maxCyclomatic: metrics.reduce((max, metric) => Math.max(max, metric.cyclomatic), 0),
           excludedPathCount: candidateSourcePaths.length - sourcePaths.length,
         },
         metadata: {
           files: metrics,
           excludePaths,
+          skippedFiles,
         },
       };
     },
+  };
+}
+
+function normalizeRunnerResult(
+  result: ComplexityMetric[] | ComplexityRunnerResult,
+): ComplexityRunnerResult {
+  if (Array.isArray(result)) {
+    return {
+      metrics: result,
+      skippedFiles: [],
+    };
+  }
+
+  return {
+    metrics: result.metrics,
+    skippedFiles: result.skippedFiles,
   };
 }
 
@@ -173,7 +221,7 @@ async function defaultPrerequisiteCheck(): Promise<AnalyzerPrerequisiteResult> {
 async function runComplexityTool(options: {
   repositoryRoot: string;
   sourcePaths: string[];
-}): Promise<ComplexityMetric[]> {
+}): Promise<ComplexityRunnerResult> {
   const { default: escomplex } = (await import("typhonjs-escomplex")) as {
     default: {
       analyzeModule: (source: string) => {
@@ -189,25 +237,37 @@ async function runComplexityTool(options: {
   };
 
   const metrics: ComplexityMetric[] = [];
+  const skippedFiles: ComplexityAnalysisError[] = [];
 
   for (const sourcePath of options.sourcePaths) {
-    const absolutePath = resolve(options.repositoryRoot, sourcePath);
-    const source = await readFile(absolutePath, "utf8");
-    const report = escomplex.analyzeModule(source);
+    try {
+      const absolutePath = resolve(options.repositoryRoot, sourcePath);
+      const source = await readFile(absolutePath, "utf8");
+      const report = escomplex.analyzeModule(source);
 
-    metrics.push({
-      path: sourcePath,
-      cyclomatic: report.aggregate?.cyclomatic ?? 0,
-      logicalSloc: report.aggregate?.sloc?.logical ?? 0,
-      maintainability: report.maintainability ?? 0,
-    });
+      metrics.push({
+        path: sourcePath,
+        cyclomatic: report.aggregate?.cyclomatic ?? 0,
+        logicalSloc: report.aggregate?.sloc?.logical ?? 0,
+        maintainability: report.maintainability ?? 0,
+      });
+    } catch (error) {
+      skippedFiles.push({
+        path: sourcePath,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
-  return metrics;
+  return {
+    metrics,
+    skippedFiles,
+  };
 }
 
 function resolveJsSourcePaths(
   repositoryRoot: string,
+  pathScopeMode: "fallback" | "strict" | undefined,
   eventPaths: string[],
   detectedFacets: Array<{ id: string; metadata: Record<string, unknown> }>,
 ): string[] {
@@ -217,6 +277,10 @@ function resolveJsSourcePaths(
 
   if (scopedPaths.length > 0) {
     return [...new Set(scopedPaths)].sort();
+  }
+
+  if (pathScopeMode === "strict") {
+    return [];
   }
 
   const jsFacet = detectedFacets.find((facet) => facet.id === "js");

@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { WORKFLOW_EVENT_TYPES, WORKFLOW_IDS } from "direc-analysis-runtime";
 import { formatAnalysisResult } from "../src/lib/analysis-output.js";
 
 test("formatAnalysisResult includes report paths and findings summary", () => {
   const output = formatAnalysisResult({
     event: {
-      type: "snapshot",
-      source: "openspec",
+      type: WORKFLOW_EVENT_TYPES.SNAPSHOT,
+      source: WORKFLOW_IDS.OPENSPEC,
       timestamp: new Date().toISOString(),
       repositoryRoot: process.cwd(),
       change: {
@@ -40,8 +41,8 @@ test("formatAnalysisResult includes report paths and findings summary", () => {
           timestamp: new Date().toISOString(),
           repositoryRoot: process.cwd(),
           event: {
-            type: "snapshot",
-            source: "openspec",
+            type: WORKFLOW_EVENT_TYPES.SNAPSHOT,
+            source: WORKFLOW_IDS.OPENSPEC,
             timestamp: new Date().toISOString(),
             repositoryRoot: process.cwd(),
           },

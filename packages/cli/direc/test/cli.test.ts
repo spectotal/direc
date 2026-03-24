@@ -6,7 +6,7 @@ test("registers the starter commands", () => {
   const program = createCli();
   const commandNames = program.commands.map((command) => command.name());
 
-  assert.deepEqual(commandNames, ["init", "run", "analyze", "doctor"]);
+  assert.deepEqual(commandNames, ["init", "run", "analyze", "automate", "doctor"]);
 });
 
 test("registers analyze command options", () => {
@@ -16,6 +16,17 @@ test("registers analyze command options", () => {
   assert.ok(analyze);
   assert.deepEqual(
     analyze.options.map((option) => option.long),
-    ["--change", "--watch"],
+    ["--workflow", "--change", "--watch"],
+  );
+});
+
+test("registers automate command options", () => {
+  const program = createCli();
+  const automate = program.commands.find((command) => command.name() === "automate");
+
+  assert.ok(automate);
+  assert.deepEqual(
+    automate.options.map((option) => option.long),
+    ["--workflow", "--change"],
   );
 });

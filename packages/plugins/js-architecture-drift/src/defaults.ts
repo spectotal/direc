@@ -5,7 +5,8 @@ import type { ArchitectureDriftPluginOptions } from "./types.js";
 export function createDefaultOptions(): ArchitectureDriftPluginOptions {
   return {
     excludePaths: [...DEFAULT_ANALYZER_EXCLUDE_PATTERNS],
-    boundaryRules: [],
+    moduleRoles: [],
+    roleBoundaryRules: [],
   };
 }
 

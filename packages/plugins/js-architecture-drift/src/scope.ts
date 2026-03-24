@@ -3,6 +3,7 @@ import type { DetectedFacet } from "direc-analysis-runtime";
 
 export function resolveTargetPaths(
   repositoryRoot: string,
+  pathScopeMode: "fallback" | "strict" | undefined,
   eventPaths: string[],
   detectedFacets: DetectedFacet[],
 ): string[] {
@@ -12,6 +13,10 @@ export function resolveTargetPaths(
 
   if (scopedSourcePaths.length > 0) {
     return [...new Set(scopedSourcePaths)].sort();
+  }
+
+  if (pathScopeMode === "strict") {
+    return [];
   }
 
   const jsFacet = detectedFacets.find((facet) => facet.id === "js");

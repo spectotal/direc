@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { analyzeCommand } from "./commands/analyze.js";
+import { automateCommand } from "./commands/automate.js";
 import { initCommand } from "./commands/init.js";
 import { runCommand } from "./commands/run.js";
 import { doctorCommand } from "./commands/doctor.js";
@@ -29,10 +30,18 @@ export function createCli(): Command {
 
   program
     .command("analyze")
-    .description("Run Direc analysis against OpenSpec change events.")
-    .option("--change <name>", "limit analysis to a specific OpenSpec change")
-    .option("--watch", "watch OpenSpec changes continuously")
+    .description("Run Direc analysis for the repository or a scoped workflow change.")
+    .option("--workflow <name>", "workflow to analyze")
+    .option("--change <name>", "scope analysis using the selected workflow's change semantics")
+    .option("--watch", "watch the selected workflow continuously")
     .action(analyzeCommand);
+
+  program
+    .command("automate")
+    .description("Watch workflow events, run analyzers, and dispatch automation requests.")
+    .option("--workflow <name>", "workflow event source to watch")
+    .option("--change <name>", "limit automation to a workflow-specific change scope")
+    .action(automateCommand);
 
   program
     .command("doctor")

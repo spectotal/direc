@@ -1,6 +1,12 @@
-export type BoundaryRule = {
-  from: string;
-  disallow: string[];
+export type ModuleRoleDefinition = {
+  role: string;
+  match: string[];
+  description?: string;
+};
+
+export type RoleBoundaryRule = {
+  fromRoles: string[];
+  disallowRoles: string[];
   message?: string;
 };
 
@@ -18,7 +24,8 @@ export type ArchitectureRunner = (options: {
 }) => Promise<ArchitectureToolResult>;
 
 export interface ArchitectureDriftPluginOptions {
-  boundaryRules?: BoundaryRule[];
+  moduleRoles?: ModuleRoleDefinition[];
+  roleBoundaryRules?: RoleBoundaryRule[];
   excludePaths?: string[];
   tsConfigPath?: string;
 }

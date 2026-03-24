@@ -1,11 +1,14 @@
 import { readDirecConfig } from "direc-analysis-runtime";
+import { WORKFLOW_IDS } from "direc-workflow-runtime";
 import { detectRepositoryFacets } from "direc-facet-detect";
 import { getRegisteredAnalyzers } from "../lib/analyzers.js";
 import { formatAnalysisResult, formatFacetList } from "../lib/analysis-output.js";
-import { runSnapshotAnalysis, watchAnalysis } from "../lib/analysis-runner.js";
+import { runAnalysis, watchAnalysis } from "../lib/analysis-runner.js";
+import { resolveRequestedWorkflowId, resolveWorkflowAdapter } from "../registry/workflows.js";
 
 type AnalyzeOptions = {
   change?: string;
+  workflow?: string;
   watch?: boolean;
 };
 
@@ -19,6 +22,8 @@ export async function analyzeCommand(options: AnalyzeOptions): Promise<void> {
 
   const detectedFacets = await detectRepositoryFacets(repositoryRoot);
   const analyzers = getRegisteredAnalyzers();
+  const workflowId = resolveRequestedWorkflowId(options.workflow, config.workflow);
+  const workflowAdapter = resolveWorkflowAdapter(workflowId);
 
   process.stdout.write(
     `Analyzing ${repositoryRoot} with facets: ${formatFacetList(detectedFacets)}\n`,
@@ -27,6 +32,7 @@ export async function analyzeCommand(options: AnalyzeOptions): Promise<void> {
   if (options.watch) {
     await runWatchAnalysis({
       repositoryRoot,
+      workflowAdapter,
       changeFilter: options.change,
       detectedFacets,
       analyzers,
@@ -35,8 +41,9 @@ export async function analyzeCommand(options: AnalyzeOptions): Promise<void> {
     return;
   }
 
-  const results = await runSnapshotAnalysis({
+  const results = await runAnalysis({
     repositoryRoot,
+    workflowAdapter,
     changeFilter: options.change,
     detectedFacets,
     analyzers,
@@ -44,7 +51,11 @@ export async function analyzeCommand(options: AnalyzeOptions): Promise<void> {
   });
 
   if (results.length === 0) {
-    process.stdout.write("No active OpenSpec changes found.\n");
+    process.stdout.write(
+      options.change && workflowId === WORKFLOW_IDS.OPENSPEC
+        ? `No OpenSpec change found matching ${options.change}.\n`
+        : "No analysis events found.\n",
+    );
     return;
   }
 
@@ -55,15 +66,19 @@ export async function analyzeCommand(options: AnalyzeOptions): Promise<void> {
 
 async function runWatchAnalysis(options: {
   repositoryRoot: string;
+  workflowAdapter: ReturnType<typeof resolveWorkflowAdapter>;
   changeFilter?: string;
   detectedFacets: Awaited<ReturnType<typeof detectRepositoryFacets>>;
   analyzers: ReturnType<typeof getRegisteredAnalyzers>;
   config: NonNullable<Awaited<ReturnType<typeof readDirecConfig>>>;
 }): Promise<void> {
-  process.stdout.write("Watching OpenSpec changes. Press Ctrl+C to stop.\n");
+  process.stdout.write(
+    `Watching ${options.workflowAdapter.displayName} analysis. Press Ctrl+C to stop.\n`,
+  );
 
   const watcher = await watchAnalysis({
     repositoryRoot: options.repositoryRoot,
+    workflowAdapter: options.workflowAdapter,
     changeFilter: options.changeFilter,
     detectedFacets: options.detectedFacets,
     analyzers: options.analyzers,
@@ -76,7 +91,7 @@ async function runWatchAnalysis(options: {
   await new Promise<void>((resolve) => {
     const handleSignal = () => {
       watcher.close();
-      process.stdout.write("Stopped OpenSpec analysis watch.\n");
+      process.stdout.write(`Stopped ${options.workflowAdapter.displayName} analysis watch.\n`);
       process.off("SIGINT", handleSignal);
       resolve();
     };

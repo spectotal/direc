@@ -1,35 +1,7 @@
-export type WorkflowEventType =
-  | "snapshot"
-  | "transition"
-  | "change_completed"
-  | "change_created"
-  | "change_removed";
+import type { NormalizedWorkflowEvent, WorkflowId } from "direc-workflow-runtime";
+export type { NormalizedWorkflowEvent } from "direc-workflow-runtime";
 
 export type DetectedFacetConfidence = "low" | "medium" | "high";
-
-export interface WorkflowChangeRef {
-  id: string;
-  schema?: string;
-  revision?: string | null;
-}
-
-export interface WorkflowArtifactRef {
-  id: string;
-  outputPath?: string;
-  fromStatus?: string;
-  toStatus?: string;
-}
-
-export interface NormalizedWorkflowEvent {
-  type: WorkflowEventType;
-  source: string;
-  timestamp: string;
-  repositoryRoot: string;
-  change?: WorkflowChangeRef;
-  artifact?: WorkflowArtifactRef;
-  pathScopes?: string[];
-  metadata?: Record<string, unknown>;
-}
 
 export interface DetectedFacet {
   id: string;
@@ -102,6 +74,54 @@ export interface AnalyzerConfigEntry {
   options?: Record<string, unknown>;
 }
 
+export type AutomationMode = "advisory" | "gatekeeper" | "worker";
+
+export type AutomationInvocation = "direct" | "handoff" | "hybrid";
+
+export type AutomationFailurePolicy = "continue" | "block_if_gatekeeper" | "block";
+
+export interface AutomationCommandTransportConfig {
+  kind: "command";
+  command: string;
+  args?: string[];
+  cwd?: string;
+  env?: Record<string, string>;
+  timeoutMs?: number;
+}
+
+export interface AutomationHttpTransportConfig {
+  kind: "http";
+  url: string;
+  headers?: Record<string, string>;
+  timeoutMs?: number;
+}
+
+export interface AutomationSdkTransportConfig {
+  kind: "sdk";
+  modulePath: string;
+  exportName?: string;
+}
+
+export type AutomationTransportConfig =
+  | AutomationCommandTransportConfig
+  | AutomationHttpTransportConfig
+  | AutomationSdkTransportConfig;
+
+export interface AutomationTriggerConfig {
+  workItemTransitions: boolean;
+  artifactTransitions: boolean;
+  changeCompleted: boolean;
+}
+
+export interface AutomationConfig {
+  enabled: boolean;
+  mode: AutomationMode;
+  invocation: AutomationInvocation;
+  failurePolicy: AutomationFailurePolicy;
+  transport: AutomationTransportConfig;
+  triggers: AutomationTriggerConfig;
+}
+
 export interface AnalyzerRunContext<TOptions = Record<string, unknown>> {
   repositoryRoot: string;
   event: NormalizedWorkflowEvent;
@@ -153,8 +173,10 @@ export interface AnalyzerResolution {
 export interface DirecConfig {
   version: 1;
   generatedAt: string;
+  workflow: WorkflowId;
   facets: string[];
   analyzers: Record<string, AnalyzerConfigEntry>;
+  automation?: AutomationConfig;
 }
 
 export interface AnalyzerRunResult {

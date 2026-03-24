@@ -5,9 +5,9 @@ dist
 *.tgz
 .husky/_/
 .DS_Store
-.direc/state.json
 .direc/latest/
 .direc/history/
+.direc/automation/
 .agent
 .claude
 .codex

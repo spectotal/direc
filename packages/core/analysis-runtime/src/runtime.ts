@@ -1,4 +1,8 @@
-import { readLatestAnalyzerSnapshot, writeAnalyzerSnapshot } from "./persistence.js";
+import {
+  getEventScopeId,
+  readLatestAnalyzerSnapshot,
+  writeAnalyzerSnapshot,
+} from "./persistence.js";
 import { resolveAnalyzers } from "./resolve-analyzers.js";
 import type {
   AnalyzerPlugin,
@@ -34,6 +38,7 @@ export async function processWorkflowEvent(
       const previousSnapshot = await readLatestAnalyzerSnapshot(
         options.repositoryRoot,
         entry.plugin.id,
+        getEventScopeId(options.event),
       );
 
       const snapshot = await entry.plugin.run({

@@ -15,6 +15,15 @@ export {
 } from "./path-patterns.js";
 export { resolveAnalyzers } from "./resolve-analyzers.js";
 export { processWorkflowEvent } from "./runtime.js";
+export {
+  WORKFLOW_EVENT_TYPES,
+  WORKFLOW_IDS,
+  isAutomationWorkflowEvent,
+  isWorkflowEventType,
+  isWorkflowId,
+  normalizeWorkflowId,
+} from "direc-workflow-runtime";
+export type { WorkflowId } from "direc-workflow-runtime";
 export type {
   AnalyzerConfigContext,
   AnalyzerConfigEntry,
@@ -30,13 +39,37 @@ export type {
   AnalyzerRunResult,
   AnalyzerScope,
   AnalyzerSnapshot,
+  AutomationCommandTransportConfig,
+  AutomationConfig,
+  AutomationFailurePolicy,
+  AutomationHttpTransportConfig,
+  AutomationInvocation,
+  AutomationMode,
+  AutomationSdkTransportConfig,
+  AutomationTransportConfig,
+  AutomationTriggerConfig,
   DetectedFacet,
   DetectedFacetConfidence,
   DirecConfig,
-  NormalizedWorkflowEvent,
   ResolvedAnalyzer,
   RuntimeExecutionResult,
+} from "./types.js";
+export type {
+  ArtifactTransitionWorkflowEvent,
+  AutomationWorkflowEvent,
+  ChangeCompletedWorkflowEvent,
+  ChangeCreatedWorkflowEvent,
+  ChangeRemovedWorkflowEvent,
+  NormalizedWorkflowEvent,
+  SnapshotWorkflowEvent,
+  WorkflowAdapter,
   WorkflowArtifactRef,
   WorkflowChangeRef,
+  WorkflowLoadEventsOptions,
+  WorkflowEventBase,
   WorkflowEventType,
-} from "./types.js";
+  WorkflowPathScopeMode,
+  WorkflowWatchEventsOptions,
+  WorkflowWorkItemRef,
+  WorkItemTransitionWorkflowEvent,
+} from "direc-workflow-runtime";

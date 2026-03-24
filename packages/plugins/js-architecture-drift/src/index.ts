@@ -5,22 +5,28 @@ import type {
 } from "direc-analysis-runtime";
 import { DEFAULT_ANALYZER_EXCLUDE_PATTERNS, filterPathsWithPatterns } from "direc-analysis-runtime";
 import { createDefaultOptions, defaultPrerequisiteCheck } from "./defaults.js";
+import { buildEmptySnapshot, createCycleFindings, filterResult } from "./findings.js";
 import {
-  buildEmptySnapshot,
-  collectBoundaryViolations,
-  createCycleFindings,
-  filterResult,
-} from "./findings.js";
+  collectModuleRoleAssignments,
+  collectRoleBoundaryViolations,
+  collectUnassignedModuleFindings,
+} from "./roles.js";
 import { runArchitectureTool } from "./runner.js";
 import { resolveTargetPaths, resolveTsConfigPath } from "./scope.js";
-import type { ArchitectureDriftPluginOptions, ArchitectureRunner, BoundaryRule } from "./types.js";
+import { validateRoleConfiguration } from "./validation.js";
+import type {
+  ArchitectureDriftPluginOptions,
+  ArchitectureRunner,
+  ModuleRoleDefinition,
+  RoleBoundaryRule,
+} from "./types.js";
 
 type ArchitecturePluginFactoryOptions = {
   prerequisiteCheck?: () => Promise<AnalyzerPrerequisiteResult>;
   runner?: ArchitectureRunner;
 };
 
-export type { ArchitectureDriftPluginOptions, BoundaryRule };
+export type { ArchitectureDriftPluginOptions, ModuleRoleDefinition, RoleBoundaryRule };
 
 export function createJsArchitectureDriftPlugin(
   factoryOptions: ArchitecturePluginFactoryOptions = {},
@@ -40,9 +46,17 @@ export function createJsArchitectureDriftPlugin(
     async run(context): Promise<AnalyzerSnapshot> {
       const runner = factoryOptions.runner ?? runArchitectureTool;
       const excludePaths = context.options.excludePaths ?? [...DEFAULT_ANALYZER_EXCLUDE_PATTERNS];
+      const moduleRoles = context.options.moduleRoles ?? [];
+      const roleBoundaryRules = context.options.roleBoundaryRules ?? [];
+      const configValidationFindings = validateRoleConfiguration(
+        context.repositoryRoot,
+        moduleRoles,
+        roleBoundaryRules,
+      );
       const targetPaths = filterPathsWithPatterns(
         resolveTargetPaths(
           context.repositoryRoot,
+          context.event.pathScopeMode,
           context.event.pathScopes ?? [],
           context.detectedFacets,
         ),
@@ -54,6 +68,7 @@ export function createJsArchitectureDriftPlugin(
           repositoryRoot: context.repositoryRoot,
           event: context.event,
           excludePaths,
+          findings: configValidationFindings,
         });
       }
 
@@ -64,22 +79,37 @@ export function createJsArchitectureDriftPlugin(
       });
       const filteredResult = filterResult(result, excludePaths);
       const cycleFindings = createCycleFindings(context.repositoryRoot, filteredResult.circular);
-      const boundaryFindings = collectBoundaryViolations(
+      const moduleRoleAssignments = collectModuleRoleAssignments(filteredResult.graph, moduleRoles);
+      const roleBoundaryFindings = collectRoleBoundaryViolations(
         context.repositoryRoot,
         filteredResult.graph,
-        context.options.boundaryRules ?? [],
+        moduleRoleAssignments,
+        roleBoundaryRules,
       );
+      const unassignedModuleFindings = collectUnassignedModuleFindings(
+        context.repositoryRoot,
+        filteredResult.graph,
+        moduleRoleAssignments,
+      );
+      const findings = [
+        ...configValidationFindings,
+        ...cycleFindings,
+        ...roleBoundaryFindings,
+        ...unassignedModuleFindings,
+      ];
 
       return {
         analyzerId: "js-architecture-drift",
         timestamp: new Date().toISOString(),
         repositoryRoot: context.repositoryRoot,
         event: context.event,
-        findings: [...cycleFindings, ...boundaryFindings],
+        findings,
         metrics: {
           moduleCount: Object.keys(filteredResult.graph).length,
           cycleCount: filteredResult.circular.length,
-          boundaryViolationCount: boundaryFindings.length,
+          boundaryViolationCount: roleBoundaryFindings.length,
+          unassignedModuleCount: unassignedModuleFindings.length,
+          configIssueCount: configValidationFindings.length,
           excludedPathCount:
             Object.keys(result.graph).length - Object.keys(filteredResult.graph).length,
         },
@@ -87,6 +117,7 @@ export function createJsArchitectureDriftPlugin(
           graph: filteredResult.graph,
           circular: filteredResult.circular,
           excludePaths,
+          moduleRoles: moduleRoleAssignments,
         },
       };
     },

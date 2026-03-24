@@ -5,29 +5,37 @@ import type {
   NormalizedWorkflowEvent,
 } from "direc-analysis-runtime";
 import { matchesAnyPathPattern } from "direc-analysis-runtime";
-import type { ArchitectureToolResult, BoundaryRule, MadgeGraph } from "./types.js";
+import type { ArchitectureToolResult, MadgeGraph } from "./types.js";
 
 export function buildEmptySnapshot(options: {
   repositoryRoot: string;
   event: NormalizedWorkflowEvent;
   excludePaths: string[];
+  findings?: AnalyzerFinding[];
 }): AnalyzerSnapshot {
+  const findings = options.findings ?? [];
+
   return {
     analyzerId: "js-architecture-drift",
     timestamp: new Date().toISOString(),
     repositoryRoot: options.repositoryRoot,
     event: options.event,
-    findings: [],
+    findings,
     metrics: {
       moduleCount: 0,
       cycleCount: 0,
       boundaryViolationCount: 0,
+      unassignedModuleCount: findings.filter((finding) => finding.category === "unassigned-module")
+        .length,
+      configIssueCount: findings.filter((finding) => finding.category === "invalid-role-config")
+        .length,
       excludedPathCount: 0,
     },
     metadata: {
       graph: {},
       circular: [],
       excludePaths: options.excludePaths,
+      moduleRoles: {},
     },
   };
 }
@@ -66,49 +74,6 @@ export function createCycleFindings(
   }));
 }
 
-export function collectBoundaryViolations(
-  repositoryRoot: string,
-  graph: MadgeGraph,
-  rules: BoundaryRule[],
-): AnalyzerFinding[] {
-  const findings: AnalyzerFinding[] = [];
-
-  for (const [fromModule, dependencies] of Object.entries(graph)) {
-    for (const rule of rules) {
-      if (!matchesRule(fromModule, rule.from)) {
-        continue;
-      }
-
-      for (const dependency of dependencies) {
-        if (!rule.disallow.some((pattern) => matchesRule(dependency, pattern))) {
-          continue;
-        }
-
-        findings.push({
-          fingerprint: `${fromModule}->${dependency}:boundary`,
-          analyzerId: "js-architecture-drift",
-          facetId: "js",
-          severity: "error" as const,
-          category: "forbidden-dependency",
-          message:
-            rule.message ??
-            `${fromModule} depends on ${dependency}, which violates configured boundaries.`,
-          scope: {
-            kind: "dependency-edge" as const,
-            path: resolve(repositoryRoot, fromModule),
-            dependency: {
-              from: fromModule,
-              to: dependency,
-            },
-          },
-        });
-      }
-    }
-  }
-
-  return findings;
-}
-
 function filterGraph(graph: MadgeGraph, excludePaths: readonly string[]): MadgeGraph {
   const filteredEntries = Object.entries(graph)
     .filter(([modulePath]) => !matchesAnyPathPattern(modulePath, excludePaths))
@@ -118,18 +83,4 @@ function filterGraph(graph: MadgeGraph, excludePaths: readonly string[]): MadgeG
     ]);
 
   return Object.fromEntries(filteredEntries);
-}
-
-function matchesRule(modulePath: string, pattern: string): boolean {
-  if (pattern === ".") {
-    return true;
-  }
-
-  const normalizedModulePath = modulePath.replaceAll("\\", "/");
-  const normalizedPattern = pattern.replaceAll("\\", "/").replace(/\/$/, "");
-
-  return (
-    normalizedModulePath === normalizedPattern ||
-    normalizedModulePath.startsWith(`${normalizedPattern}/`)
-  );
 }

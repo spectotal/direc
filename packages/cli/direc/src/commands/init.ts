@@ -45,9 +45,17 @@ export async function initCommand(options: InitOptions): Promise<void> {
   process.stdout.write(
     `Detected facets: ${detectedFacets.map((facet) => facet.id).join(", ") || "none"}\n`,
   );
+  process.stdout.write(`Workflow: ${config.workflow}\n`);
   process.stdout.write(
     `Enabled analyzers: ${resolution.enabled.map((entry) => entry.plugin.id).join(", ")}\n`,
   );
+  if (config.automation) {
+    process.stdout.write(
+      `Automation: ${config.automation.mode}, ${config.automation.invocation}, ${config.automation.transport.kind}\n`,
+    );
+  } else {
+    process.stdout.write("Automation: not configured\n");
+  }
 }
 
 async function guardExistingConfig(configFile: string, force: boolean): Promise<void> {
