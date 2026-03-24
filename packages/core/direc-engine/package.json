@@ -24,6 +24,10 @@
     "test": "tsx --test test/**/*.test.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@spectotal/direc-adapter-direc": "workspace:*",
     "@spectotal/direc-adapter-openspec": "workspace:*",

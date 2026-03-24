@@ -5,6 +5,9 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -22,6 +25,10 @@
     "build": "rimraf dist && tsc -p tsconfig.json",
     "clean": "rimraf dist",
     "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "import-in-the-middle": "^1.11.2"
