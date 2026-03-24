@@ -10,13 +10,20 @@ import { buildDirecConfig } from "../src/config.js";
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
 
 test("root workspace uses nested role-based package globs", async () => {
-  const packageJson = JSON.parse(
-    await readFile(resolve(repositoryRoot, "package.json"), "utf8"),
-  ) as {
-    workspaces: string[];
-  };
+  const workspaceYaml = await readFile(resolve(repositoryRoot, "pnpm-workspace.yaml"), "utf8");
 
-  assert.deepEqual(packageJson.workspaces, [
+  // Simple YAML list parser – each "  - " line is a package glob
+  const packages = workspaceYaml
+    .split("\n")
+    .filter((l) => l.match(/^\s+-\s+/))
+    .map((l) =>
+      l
+        .replace(/^\s+-\s+/, "")
+        .replace(/["']/g, "")
+        .trim(),
+    );
+
+  assert.deepEqual(packages, [
     "packages/cli/*",
     "packages/core/*",
     "packages/adapters/*",
