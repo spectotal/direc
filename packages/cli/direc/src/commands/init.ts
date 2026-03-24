@@ -1,14 +1,18 @@
 import { access } from "node:fs/promises";
 import { resolve } from "node:path";
-import { writeDirecConfig } from "direc-analysis-runtime";
-import { detectRepositoryFacets } from "direc-facet-detect";
-import { getRegisteredAnalyzers } from "../lib/analyzers.js";
-import { buildDirecConfig } from "../lib/config.js";
-import { ensureDirectory, writeFileSafe } from "../lib/fs.js";
-import { EXAMPLE_SPEC_TEMPLATE } from "../lib/templates.js";
+import {
+  bootstrapAnalysisEnvironment,
+  buildDirecConfig,
+  ensureDirectory,
+  EXAMPLE_SPEC_TEMPLATE,
+  resolveAnalyzers,
+  writeDirecConfig,
+  writeFileSafe,
+} from "direc-engine";
 
 type InitOptions = {
   force?: boolean;
+  extension?: string[];
 };
 
 export async function initCommand(options: InitOptions): Promise<void> {
@@ -21,14 +25,28 @@ export async function initCommand(options: InitOptions): Promise<void> {
   await ensureDirectory(specsDir);
   await writeFileSafe(exampleSpec, EXAMPLE_SPEC_TEMPLATE, options.force);
 
-  const detectedFacets = await detectRepositoryFacets(rootDir);
-  const { config, resolution } = await buildDirecConfig({
+  const environment = await bootstrapAnalysisEnvironment({
     repositoryRoot: rootDir,
-    detectedFacets,
-    plugins: getRegisteredAnalyzers(),
+    cliExtensions: options.extension,
   });
+  const { config } = await buildDirecConfig({
+    repositoryRoot: rootDir,
+    detectedFacets: environment.detectedFacets,
+    plugins: environment.analyzers,
+    extensions: environment.extensionSources,
+    qualityRoutines: environment.qualityRoutines,
+  });
+  const resolution = await resolveAnalyzers({
+    plugins: environment.analyzers,
+    repositoryRoot: rootDir,
+    detectedFacets: environment.detectedFacets,
+    config: config.analyzers,
+  });
+  const configuredAnalyzerIds = Object.entries(config.analyzers)
+    .filter(([, entry]) => entry.enabled !== false)
+    .map(([analyzerId]) => analyzerId);
 
-  if (resolution.enabled.length === 0) {
+  if (configuredAnalyzerIds.length === 0) {
     throw new Error(
       [
         "No supported analyzer set could be resolved for this repository.",
@@ -43,11 +61,12 @@ export async function initCommand(options: InitOptions): Promise<void> {
 
   process.stdout.write(`Initialized Direc workspace in ${rootDir}\n`);
   process.stdout.write(
-    `Detected facets: ${detectedFacets.map((facet) => facet.id).join(", ") || "none"}\n`,
+    `Detected facets: ${environment.detectedFacets.map((facet) => facet.id).join(", ") || "none"}\n`,
   );
   process.stdout.write(`Workflow: ${config.workflow}\n`);
+  process.stdout.write(`Enabled analyzers: ${configuredAnalyzerIds.join(", ") || "none"}\n`);
   process.stdout.write(
-    `Enabled analyzers: ${resolution.enabled.map((entry) => entry.plugin.id).join(", ")}\n`,
+    `Quality routines: ${Object.keys(environment.qualityRoutines).join(", ") || "none"}\n`,
   );
   if (config.automation) {
     process.stdout.write(
@@ -56,6 +75,7 @@ export async function initCommand(options: InitOptions): Promise<void> {
   } else {
     process.stdout.write("Automation: not configured\n");
   }
+  process.stdout.write(`Extensions: ${environment.extensionSources.join(", ") || "none"}\n`);
 }
 
 async function guardExistingConfig(configFile: string, force: boolean): Promise<void> {

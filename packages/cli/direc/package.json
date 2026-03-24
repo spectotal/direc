@@ -47,14 +47,7 @@
   },
   "dependencies": {
     "commander": "^13.1.0",
-    "direc-adapter-direc": "0.1.0",
-    "direc-analysis-runtime": "0.1.0",
-    "direc-automation-runtime": "0.1.0",
-    "direc-facet-detect": "0.1.0",
-    "direc-plugin-js-architecture-drift": "0.1.0",
-    "direc-plugin-js-complexity": "0.1.0",
-    "direc-adapter-openspec": "0.1.0",
-    "direc-workflow-runtime": "0.1.0"
+    "direc-engine": "0.1.0"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

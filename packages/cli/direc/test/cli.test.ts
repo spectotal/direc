@@ -16,7 +16,7 @@ test("registers analyze command options", () => {
   assert.ok(analyze);
   assert.deepEqual(
     analyze.options.map((option) => option.long),
-    ["--workflow", "--change", "--watch"],
+    ["--workflow", "--change", "--watch", "--extension"],
   );
 });
 
@@ -27,6 +27,23 @@ test("registers automate command options", () => {
   assert.ok(automate);
   assert.deepEqual(
     automate.options.map((option) => option.long),
-    ["--workflow", "--change"],
+    ["--workflow", "--change", "--extension"],
+  );
+});
+
+test("registers init and doctor extension options", () => {
+  const program = createCli();
+  const init = program.commands.find((command) => command.name() === "init");
+  const doctor = program.commands.find((command) => command.name() === "doctor");
+
+  assert.ok(init);
+  assert.ok(doctor);
+  assert.deepEqual(
+    init.options.map((option) => option.long),
+    ["--force", "--extension"],
+  );
+  assert.deepEqual(
+    doctor.options.map((option) => option.long),
+    ["--extension"],
   );
 });

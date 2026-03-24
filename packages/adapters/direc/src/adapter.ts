@@ -16,7 +16,7 @@ export function createDirecWorkflowAdapter(
   return {
     id: WORKFLOW_IDS.DIREC,
     displayName: "DIREC",
-    supportsAutomation: false,
+    supportsAutomation: true,
     async loadAnalysisEvents(options) {
       if (!options.changeFilter) {
         return [createDirecSnapshotEvent(options.repositoryRoot, now)];

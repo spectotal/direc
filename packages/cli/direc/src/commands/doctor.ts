@@ -1,10 +1,12 @@
 import { access } from "node:fs/promises";
 import { resolve } from "node:path";
-import { readDirecConfig, resolveAnalyzers } from "direc-analysis-runtime";
-import { detectRepositoryFacets } from "direc-facet-detect";
-import { getRegisteredAnalyzers } from "../lib/analyzers.js";
+import { loadConfiguredAnalysisEnvironment, readDirecConfig, resolveAnalyzers } from "direc-engine";
 
-export async function doctorCommand(): Promise<void> {
+type DoctorOptions = {
+  extension?: string[];
+};
+
+export async function doctorCommand(options: DoctorOptions = {}): Promise<void> {
   const cwd = process.cwd();
   const configPath = resolve(cwd, ".direc/config.json");
   const defaultSpecPath = resolve(cwd, "specs/example.spec.md");
@@ -20,26 +22,37 @@ export async function doctorCommand(): Promise<void> {
     process.stdout.write(`${check.ok ? "OK" : "MISS"} ${check.label}: ${check.path}\n`);
   }
 
-  const detectedFacets = await detectRepositoryFacets(cwd);
-  process.stdout.write(`Facets: ${detectedFacets.map((facet) => facet.id).join(", ") || "none"}\n`);
-
   const config = await readDirecConfig(cwd);
   if (!config) {
     process.stdout.write("MISS analyzer resolution: missing .direc/config.json\n");
     return;
   }
 
+  const environment = await loadConfiguredAnalysisEnvironment({
+    repositoryRoot: cwd,
+    config,
+    cliExtensions: options.extension,
+  });
+
+  process.stdout.write(
+    `Facets: ${environment.detectedFacets.map((facet) => facet.id).join(", ") || "none"}\n`,
+  );
+
   process.stdout.write(`Workflow: ${config.workflow}\n`);
   const resolution = await resolveAnalyzers({
-    plugins: getRegisteredAnalyzers(),
+    plugins: environment.analyzers,
     repositoryRoot: cwd,
-    detectedFacets,
+    detectedFacets: environment.detectedFacets,
     config: config.analyzers,
   });
 
   process.stdout.write(
     `Enabled analyzers: ${resolution.enabled.map((entry) => entry.plugin.id).join(", ") || "none"}\n`,
   );
+  process.stdout.write(
+    `Quality routines: ${Object.keys(config.qualityRoutines ?? {}).join(", ") || "none"}\n`,
+  );
+  process.stdout.write(`Extensions: ${environment.extensionSources.join(", ") || "none"}\n`);
   if (config.automation) {
     process.stdout.write(
       `Automation: ${config.automation.mode}, ${config.automation.invocation}, ${config.automation.transport.kind}\n`,

@@ -1,7 +1,7 @@
 import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
-import { isWorkflowId, normalizeWorkflowId } from "direc-workflow-runtime";
 import type { AnalyzerSnapshot, DirecConfig, NormalizedWorkflowEvent } from "./types.js";
+import { normalizeDirecConfig } from "./config-normalization.js";
 import { readJsonFile, writeJsonFile } from "./json-files.js";
 
 export const DIREC_DIRECTORY_NAME = ".direc";
@@ -122,83 +122,4 @@ export function getEventScopeId(event: NormalizedWorkflowEvent): string {
   }
 
   return "repository";
-}
-
-function normalizeDirecConfig(config: Record<string, unknown>): DirecConfig {
-  const automation = normalizeAutomationConfig(config.automation);
-  const workflow =
-    typeof config.workflow === "undefined"
-      ? normalizeWorkflowId(config.workflow)
-      : isWorkflowId(config.workflow)
-        ? config.workflow
-        : failUnsupportedWorkflow(config.workflow);
-
-  return {
-    ...config,
-    version: 1,
-    generatedAt:
-      typeof config.generatedAt === "string" ? config.generatedAt : new Date().toISOString(),
-    workflow,
-    facets: Array.isArray(config.facets) ? config.facets.filter(isString) : [],
-    analyzers: isRecord(config.analyzers) ? (config.analyzers as DirecConfig["analyzers"]) : {},
-    ...(automation ? { automation } : {}),
-  } satisfies DirecConfig;
-}
-
-function normalizeAutomationConfig(value: unknown): DirecConfig["automation"] {
-  if (!isRecord(value)) {
-    return undefined;
-  }
-
-  return {
-    ...(value as Omit<NonNullable<DirecConfig["automation"]>, "triggers">),
-    triggers: normalizeAutomationTriggers(value.triggers),
-  };
-}
-
-function normalizeAutomationTriggers(
-  value: unknown,
-): NonNullable<DirecConfig["automation"]>["triggers"] {
-  if (isRecord(value)) {
-    const legacyOpenSpec = isRecord(value.openspec) ? value.openspec : undefined;
-
-    return {
-      workItemTransitions:
-        typeof value.workItemTransitions === "boolean"
-          ? value.workItemTransitions
-          : typeof legacyOpenSpec?.taskDiffs === "boolean"
-            ? legacyOpenSpec.taskDiffs
-            : true,
-      artifactTransitions:
-        typeof value.artifactTransitions === "boolean"
-          ? value.artifactTransitions
-          : typeof legacyOpenSpec?.artifactTransitions === "boolean"
-            ? legacyOpenSpec.artifactTransitions
-            : false,
-      changeCompleted:
-        typeof value.changeCompleted === "boolean"
-          ? value.changeCompleted
-          : typeof legacyOpenSpec?.changeCompleted === "boolean"
-            ? legacyOpenSpec.changeCompleted
-            : true,
-    };
-  }
-
-  return {
-    workItemTransitions: true,
-    artifactTransitions: false,
-    changeCompleted: true,
-  };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function isString(value: unknown): value is string {
-  return typeof value === "string";
-}
-
-function failUnsupportedWorkflow(value: unknown): never {
-  throw new Error(`Unsupported workflow in .direc/config.json: ${String(value)}`);
 }

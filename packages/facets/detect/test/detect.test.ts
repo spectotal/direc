@@ -40,3 +40,37 @@ test("detectRepositoryFacets returns no supported facets for unsupported reposit
   const facets = await detectRepositoryFacets(resolve(fixturesRoot, "unsupported"));
   assert.deepEqual(facets, []);
 });
+
+test("detectRepositoryFacets returns a python facet for python repositories", async () => {
+  const facets = await detectRepositoryFacets(resolve(fixturesRoot, "python-project"));
+  const pythonFacet = facets.find((facet) => facet.id === "python");
+
+  assert.ok(pythonFacet);
+  assert.equal(pythonFacet?.confidence, "high");
+  assert.deepEqual(
+    (pythonFacet?.metadata.sourcePaths as string[]).includes("tests/test_app.py"),
+    true,
+  );
+  assert.deepEqual(
+    (pythonFacet?.metadata.configPaths as string[]).includes("pyproject.toml"),
+    true,
+  );
+});
+
+test("detectRepositoryFacets accepts extension detectors", async () => {
+  const facets = await detectRepositoryFacets(resolve(fixturesRoot, "unsupported"), {
+    detectors: [
+      () => ({
+        id: "custom",
+        confidence: "high",
+        evidence: ["extension"],
+        metadata: {},
+      }),
+    ],
+  });
+
+  assert.deepEqual(
+    facets.map((facet) => facet.id),
+    ["custom"],
+  );
+});

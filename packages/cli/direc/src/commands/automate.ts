@@ -1,23 +1,20 @@
-import { readDirecConfig } from "direc-analysis-runtime";
-import { detectRepositoryFacets } from "direc-facet-detect";
+import {
+  loadConfiguredAnalysisEnvironment,
+  readDirecConfig,
+  resolveRequestedWorkflowId,
+  resolveWorkflowAdapter,
+  watchAutomation,
+} from "direc-engine";
 import { formatAnalysisResult, formatFacetList } from "../lib/analysis-output.js";
 import { formatAutomationDispatch } from "../lib/automation-output.js";
-import { watchAutomation } from "../lib/automation-runner.js";
-import { getRegisteredAnalyzers } from "../lib/analyzers.js";
-import { resolveRequestedWorkflowId, resolveWorkflowAdapter } from "../registry/workflows.js";
 
 type AutomateOptions = {
   change?: string;
   workflow?: string;
+  extension?: string[];
 };
 
 export async function automateCommand(options: AutomateOptions): Promise<void> {
-  if (!options.workflow) {
-    throw new Error("Missing workflow. Use `direc automate --workflow openspec`.");
-  }
-  const workflowId = resolveRequestedWorkflowId(options.workflow);
-  const workflowAdapter = resolveWorkflowAdapter(workflowId);
-
   const repositoryRoot = process.cwd();
   const config = await readDirecConfig(repositoryRoot);
 
@@ -31,16 +28,21 @@ export async function automateCommand(options: AutomateOptions): Promise<void> {
     );
   }
   const automationConfig = config.automation;
+  const workflowId = resolveRequestedWorkflowId(options.workflow, config.workflow);
+  const workflowAdapter = resolveWorkflowAdapter(workflowId);
 
   if (!workflowAdapter.supportsAutomation) {
     throw new Error(`Workflow ${workflowId} does not support automation.`);
   }
 
-  const detectedFacets = await detectRepositoryFacets(repositoryRoot);
-  const analyzers = getRegisteredAnalyzers();
+  const environment = await loadConfiguredAnalysisEnvironment({
+    repositoryRoot,
+    config,
+    cliExtensions: options.extension,
+  });
 
   process.stdout.write(
-    `Automating ${repositoryRoot} with facets: ${formatFacetList(detectedFacets)}\n`,
+    `Automating ${repositoryRoot} with facets: ${formatFacetList(environment.detectedFacets)}\n`,
   );
   process.stdout.write(
     `Automation profile: ${automationConfig.mode}, ${automationConfig.invocation}, ${automationConfig.transport.kind}\n`,
@@ -51,8 +53,8 @@ export async function automateCommand(options: AutomateOptions): Promise<void> {
     repositoryRoot,
     workflowAdapter,
     changeFilter: options.change,
-    detectedFacets,
-    analyzers,
+    detectedFacets: environment.detectedFacets,
+    analyzers: environment.analyzers,
     config: { ...config, automation: automationConfig },
     onResult: (result) => {
       process.stdout.write(formatAnalysisResult(result.analysis));

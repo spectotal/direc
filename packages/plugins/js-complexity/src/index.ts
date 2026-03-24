@@ -1,5 +1,4 @@
-import { readFile } from "node:fs/promises";
-import { extname, relative, resolve } from "node:path";
+import { resolve } from "node:path";
 import type {
   AnalyzerFinding,
   AnalyzerPlugin,
@@ -7,30 +6,14 @@ import type {
   AnalyzerSnapshot,
 } from "direc-analysis-runtime";
 import { DEFAULT_ANALYZER_EXCLUDE_PATTERNS, filterPathsWithPatterns } from "direc-analysis-runtime";
-
-const SOURCE_EXTENSIONS = new Set([".cjs", ".cts", ".js", ".jsx", ".mjs", ".mts", ".ts", ".tsx"]);
-
-type ComplexityMetric = {
-  path: string;
-  cyclomatic: number;
-  logicalSloc: number;
-  maintainability: number;
-};
-
-type ComplexityAnalysisError = {
-  path: string;
-  message: string;
-};
-
-type ComplexityRunnerResult = {
-  metrics: ComplexityMetric[];
-  skippedFiles: ComplexityAnalysisError[];
-};
-
-type ComplexityRunner = (options: {
-  repositoryRoot: string;
-  sourcePaths: string[];
-}) => Promise<ComplexityMetric[] | ComplexityRunnerResult>;
+import {
+  defaultPrerequisiteCheck,
+  normalizeRunnerResult,
+  runComplexityTool,
+  type ComplexityMetric,
+  type ComplexityRunner,
+} from "./runner.js";
+import { resolveJsSourcePaths } from "./source-paths.js";
 
 export interface ComplexityPluginOptions {
   threshold?: number;
@@ -184,109 +167,4 @@ export function createJsComplexityPlugin(
       };
     },
   };
-}
-
-function normalizeRunnerResult(
-  result: ComplexityMetric[] | ComplexityRunnerResult,
-): ComplexityRunnerResult {
-  if (Array.isArray(result)) {
-    return {
-      metrics: result,
-      skippedFiles: [],
-    };
-  }
-
-  return {
-    metrics: result.metrics,
-    skippedFiles: result.skippedFiles,
-  };
-}
-
-async function defaultPrerequisiteCheck(): Promise<AnalyzerPrerequisiteResult> {
-  try {
-    await import("typhonjs-escomplex");
-    return {
-      ok: true,
-      summary: "typhonjs-escomplex is available.",
-    };
-  } catch (error) {
-    return {
-      ok: false,
-      summary: "typhonjs-escomplex is not available.",
-      details: error instanceof Error ? error.message : String(error),
-    };
-  }
-}
-
-async function runComplexityTool(options: {
-  repositoryRoot: string;
-  sourcePaths: string[];
-}): Promise<ComplexityRunnerResult> {
-  const { default: escomplex } = (await import("typhonjs-escomplex")) as {
-    default: {
-      analyzeModule: (source: string) => {
-        aggregate?: {
-          cyclomatic?: number;
-          sloc?: {
-            logical?: number;
-          };
-        };
-        maintainability?: number;
-      };
-    };
-  };
-
-  const metrics: ComplexityMetric[] = [];
-  const skippedFiles: ComplexityAnalysisError[] = [];
-
-  for (const sourcePath of options.sourcePaths) {
-    try {
-      const absolutePath = resolve(options.repositoryRoot, sourcePath);
-      const source = await readFile(absolutePath, "utf8");
-      const report = escomplex.analyzeModule(source);
-
-      metrics.push({
-        path: sourcePath,
-        cyclomatic: report.aggregate?.cyclomatic ?? 0,
-        logicalSloc: report.aggregate?.sloc?.logical ?? 0,
-        maintainability: report.maintainability ?? 0,
-      });
-    } catch (error) {
-      skippedFiles.push({
-        path: sourcePath,
-        message: error instanceof Error ? error.message : String(error),
-      });
-    }
-  }
-
-  return {
-    metrics,
-    skippedFiles,
-  };
-}
-
-function resolveJsSourcePaths(
-  repositoryRoot: string,
-  pathScopeMode: "fallback" | "strict" | undefined,
-  eventPaths: string[],
-  detectedFacets: Array<{ id: string; metadata: Record<string, unknown> }>,
-): string[] {
-  const scopedPaths = eventPaths
-    .map((path) => relative(repositoryRoot, path))
-    .filter((path) => SOURCE_EXTENSIONS.has(extname(path)));
-
-  if (scopedPaths.length > 0) {
-    return [...new Set(scopedPaths)].sort();
-  }
-
-  if (pathScopeMode === "strict") {
-    return [];
-  }
-
-  const jsFacet = detectedFacets.find((facet) => facet.id === "js");
-  const sourcePaths = Array.isArray(jsFacet?.metadata.sourcePaths)
-    ? (jsFacet.metadata.sourcePaths as string[])
-    : [];
-
-  return [...new Set(sourcePaths.filter((path) => SOURCE_EXTENSIONS.has(extname(path))))].sort();
 }

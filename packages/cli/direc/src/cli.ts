@@ -6,6 +6,10 @@ import { runCommand } from "./commands/run.js";
 import { doctorCommand } from "./commands/doctor.js";
 import { packageVersion } from "./lib/package-version.js";
 
+function collectValues(value: string, previous: string[]): string[] {
+  return [...previous, value];
+}
+
 export function createCli(): Command {
   const program = new Command();
 
@@ -19,6 +23,7 @@ export function createCli(): Command {
     .command("init")
     .description("Create a baseline direc workspace in the current directory.")
     .option("--force", "overwrite existing direc config files")
+    .option("--extension <module>", "load an extension module", collectValues, [])
     .action(initCommand);
 
   program
@@ -34,6 +39,7 @@ export function createCli(): Command {
     .option("--workflow <name>", "workflow to analyze")
     .option("--change <name>", "scope analysis using the selected workflow's change semantics")
     .option("--watch", "watch the selected workflow continuously")
+    .option("--extension <module>", "load an extension module", collectValues, [])
     .action(analyzeCommand);
 
   program
@@ -41,11 +47,13 @@ export function createCli(): Command {
     .description("Watch workflow events, run analyzers, and dispatch automation requests.")
     .option("--workflow <name>", "workflow event source to watch")
     .option("--change <name>", "limit automation to a workflow-specific change scope")
+    .option("--extension <module>", "load an extension module", collectValues, [])
     .action(automateCommand);
 
   program
     .command("doctor")
     .description("Inspect the current environment for expected direc inputs.")
+    .option("--extension <module>", "load an extension module", collectValues, [])
     .action(doctorCommand);
 
   return program;

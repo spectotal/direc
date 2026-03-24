@@ -3,6 +3,7 @@ import type { DetectedFacet } from "direc-analysis-runtime";
 export type PackageManifest = {
   name?: string;
   workspaces?: string[] | { packages?: string[] };
+  scripts?: Record<string, string>;
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
 };
@@ -29,6 +30,9 @@ export type RepositoryScan = {
   analyzableNodeSourcePaths: string[];
   cssPaths: string[];
   tailwindConfigPaths: string[];
+  pythonSourcePaths: string[];
+  analyzablePythonSourcePaths: string[];
+  pythonConfigPaths: string[];
 };
 
 export type FacetDetector = (scan: RepositoryScan) => DetectedFacet | null;

@@ -19,5 +19,5 @@ test("resolveWorkflowAdapter returns the registered workflow adapters", () => {
   assert.equal(openSpecAdapter.id, WORKFLOW_IDS.OPENSPEC);
   assert.equal(openSpecAdapter.supportsAutomation, true);
   assert.equal(direcAdapter.id, WORKFLOW_IDS.DIREC);
-  assert.equal(direcAdapter.supportsAutomation, false);
+  assert.equal(direcAdapter.supportsAutomation, true);
 });

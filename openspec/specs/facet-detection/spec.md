@@ -72,3 +72,21 @@ The `tailwind` facet detector SHALL identify Tailwind usage from repository sign
 
 - **WHEN** a repository includes Tailwind configuration and supporting package dependencies
 - **THEN** Direc returns the `tailwind` facet with evidence showing the relevant configuration files or manifests
+
+### Requirement: Python facet detection identifies Python source ownership and configuration
+
+The `python` facet detector SHALL identify Python repositories from `.py` source files and Python configuration signals such as `pyproject.toml`, `requirements*`, `pytest.ini`, `mypy.ini`, or `ruff.toml`, and it SHALL expose analyzable source scope plus config evidence for analyzer selection.
+
+#### Scenario: Python repository yields the python facet
+
+- **WHEN** the detector scans a repository with Python source files and `pyproject.toml`
+- **THEN** it returns the `python` facet with source paths and configuration evidence
+
+### Requirement: Facet detection accepts explicit extension detectors
+
+Direc SHALL allow explicitly loaded extension detectors to contribute additional facets alongside built-in detectors, and it SHALL fail when multiple detectors emit the same facet id.
+
+#### Scenario: Extension detector contributes a custom facet
+
+- **WHEN** a loaded extension detector returns a `custom` facet for the repository
+- **THEN** Direc includes that facet in the detected facet set

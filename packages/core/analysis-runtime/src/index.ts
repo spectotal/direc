@@ -51,6 +51,10 @@ export type {
   DetectedFacet,
   DetectedFacetConfidence,
   DirecConfig,
+  QualityRoutineCommandConfig,
+  QualityRoutineConfig,
+  QualityRoutineMode,
+  QualityRoutineReportConfig,
   ResolvedAnalyzer,
   RuntimeExecutionResult,
 } from "./types.js";

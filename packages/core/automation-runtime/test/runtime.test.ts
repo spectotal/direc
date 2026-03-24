@@ -32,6 +32,7 @@ function createAutomationConfig(overrides: Partial<AutomationConfig> = {}): Auto
       ],
     },
     triggers: {
+      snapshotEvents: true,
       workItemTransitions: true,
       artifactTransitions: false,
       changeCompleted: true,
@@ -145,6 +146,36 @@ test("buildSubagentRequest carries analyzer summary and worker write scope", asy
     join(repositoryRoot, "src", "feature.ts"),
   ]);
   assert.equal(request.analyzerSummary.findingCount, 1);
+});
+
+test("dispatchAutomationEvent supports DIREC snapshot events when enabled", async () => {
+  const repositoryRoot = await mkdtemp(join(tmpdir(), "direc-automation-"));
+  const analysisResult = createAnalysisResult(repositoryRoot);
+  const snapshotEvent = {
+    type: WORKFLOW_EVENT_TYPES.SNAPSHOT,
+    source: WORKFLOW_IDS.DIREC,
+    timestamp: new Date().toISOString(),
+    repositoryRoot,
+    pathScopes: [join(repositoryRoot, "src", "feature.ts")],
+  } as const;
+
+  const dispatch = await dispatchAutomationEvent({
+    repositoryRoot,
+    event: snapshotEvent,
+    detectedFacets: [],
+    analysisResult: {
+      ...analysisResult,
+      event: snapshotEvent,
+    },
+    profile: createAutomationConfig({
+      invocation: "handoff",
+    }),
+    requestIdFactory: () => "snapshot-request",
+  });
+
+  assert.equal(dispatch.triggered, true);
+  assert.equal(dispatch.request?.trigger.eventType, WORKFLOW_EVENT_TYPES.SNAPSHOT);
+  assert.equal(dispatch.result?.verdict, "handoff");
 });
 
 test("dispatchAutomationEvent persists handoff requests and latest status", async () => {

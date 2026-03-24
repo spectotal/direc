@@ -20,28 +20,41 @@ test("initCommand writes js analyzer identifiers", { concurrency: false }, async
   ) as {
     facets: string[];
     workflow: string;
-    analyzers: Record<string, { enabled: boolean }>;
+    qualityRoutines?: Record<string, unknown>;
+    analyzers: Record<
+      string,
+      { enabled: boolean; options?: { moduleRoles?: unknown[]; roleBoundaryRules?: unknown[] } }
+    >;
     automation: {
       mode: string;
       invocation: string;
       transport: {
         kind: string;
       };
+      triggers: {
+        snapshotEvents: boolean;
+      };
     };
   };
 
   assert.match(output, /Detected facets: js/);
   assert.match(output, /Workflow: direc/);
+  assert.match(output, /Quality routines: typescript/);
   assert.match(output, /Automation: advisory, hybrid, command/);
   assert.deepEqual(config.facets, ["js"]);
   assert.equal(config.workflow, WORKFLOW_IDS.DIREC);
+  assert.deepEqual(Object.keys(config.qualityRoutines ?? {}), ["typescript"]);
   assert.deepEqual(Object.keys(config.analyzers).sort(), [
     "js-architecture-drift",
     "js-complexity",
+    "routine:typescript",
   ]);
+  assert.deepEqual(config.analyzers["js-architecture-drift"]?.options?.moduleRoles, []);
+  assert.deepEqual(config.analyzers["js-architecture-drift"]?.options?.roleBoundaryRules, []);
   assert.equal(config.automation.mode, "advisory");
   assert.equal(config.automation.invocation, "hybrid");
   assert.equal(config.automation.transport.kind, "command");
+  assert.equal(config.automation.triggers.snapshotEvents, true);
   assert.equal(await readFile(legacyStatePath, "utf8"), '{"legacy":true}\n');
 });
 
@@ -77,6 +90,7 @@ test("doctorCommand reports configured js analyzers", { concurrency: false }, as
             args: ["./fake-subagent.js"],
           },
           triggers: {
+            snapshotEvents: true,
             workItemTransitions: true,
             artifactTransitions: false,
             changeCompleted: true,
@@ -105,6 +119,7 @@ test("doctorCommand reports configured js analyzers", { concurrency: false }, as
     output,
     /Enabled analyzers: js-complexity, js-architecture-drift|Enabled analyzers: js-architecture-drift, js-complexity/,
   );
+  assert.match(output, /Quality routines: none/);
   assert.match(output, /Automation: advisory, hybrid, command/);
   assert.deepEqual(config.facets, ["js"]);
   assert.deepEqual(Object.keys(config.analyzers).sort(), [

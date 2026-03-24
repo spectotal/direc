@@ -1,6 +1,11 @@
 import { basename, extname, join, resolve } from "node:path";
 import { DEFAULT_ANALYZER_EXCLUDE_PATTERNS, filterPathsWithPatterns } from "direc-analysis-runtime";
-import { CSS_EXTENSIONS, NODE_SOURCE_EXTENSIONS } from "./constants.js";
+import {
+  CSS_EXTENSIONS,
+  NODE_SOURCE_EXTENSIONS,
+  PYTHON_CONFIG_FILENAMES,
+  PYTHON_SOURCE_EXTENSIONS,
+} from "./constants.js";
 import { readJsonFile, walkRepository } from "./filesystem.js";
 import type { PackageManifest, RepositoryScan } from "./types.js";
 import { collectPackageBoundaries } from "./workspace.js";
@@ -30,6 +35,12 @@ export async function scanRepository(repositoryRoot: string): Promise<Repository
   );
   const cssPaths = files.filter((file) => CSS_EXTENSIONS.has(extname(file)));
   const tailwindConfigPaths = files.filter((file) => /^tailwind\.config\./.test(basename(file)));
+  const pythonSourcePaths = files.filter((file) => PYTHON_SOURCE_EXTENSIONS.has(extname(file)));
+  const analyzablePythonSourcePaths = filterPathsWithPatterns(
+    pythonSourcePaths,
+    DEFAULT_ANALYZER_EXCLUDE_PATTERNS,
+  );
+  const pythonConfigPaths = files.filter((file) => PYTHON_CONFIG_FILENAMES.has(basename(file)));
 
   return {
     root,
@@ -42,5 +53,8 @@ export async function scanRepository(repositoryRoot: string): Promise<Repository
     analyzableNodeSourcePaths,
     cssPaths,
     tailwindConfigPaths,
+    pythonSourcePaths,
+    analyzablePythonSourcePaths,
+    pythonConfigPaths,
   };
 }

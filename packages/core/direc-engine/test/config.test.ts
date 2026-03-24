@@ -4,8 +4,8 @@ import { dirname, resolve } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { WORKFLOW_IDS } from "direc-analysis-runtime";
-import { getRegisteredAnalyzers } from "../src/lib/analyzers.js";
-import { buildDirecConfig } from "../src/lib/config.js";
+import { getBuiltinAnalyzers } from "../src/analyzers.js";
+import { buildDirecConfig } from "../src/config.js";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
 
@@ -25,7 +25,7 @@ test("root workspace uses nested role-based package globs", async () => {
   ]);
 });
 
-test("buildDirecConfig keeps architecture drift generic by default", async () => {
+test("buildDirecConfig keeps desired analyzers enabled and seeds automation defaults", async () => {
   const { config } = await buildDirecConfig({
     repositoryRoot,
     detectedFacets: [
@@ -38,7 +38,7 @@ test("buildDirecConfig keeps architecture drift generic by default", async () =>
         },
       },
     ],
-    plugins: getRegisteredAnalyzers(),
+    plugins: getBuiltinAnalyzers(),
   });
 
   const architectureConfig = config.analyzers["js-architecture-drift"];
@@ -54,6 +54,7 @@ test("buildDirecConfig keeps architecture drift generic by default", async () =>
   assert.equal(config.automation.mode, "advisory");
   assert.equal(config.automation.invocation, "hybrid");
   assert.equal(config.automation.transport.kind, "command");
+  assert.equal(config.automation.triggers.snapshotEvents, true);
   assert.equal(config.automation.triggers.workItemTransitions, true);
   assert.equal(config.automation.triggers.changeCompleted, true);
   assert.equal(config.automation.triggers.artifactTransitions, false);

@@ -1,10 +1,10 @@
 import { fileURLToPath } from "node:url";
 import {
-  resolveAnalyzers,
   type AnalyzerPlugin,
   type AutomationConfig,
   type DetectedFacet,
   type DirecConfig,
+  type QualityRoutineConfig,
 } from "direc-analysis-runtime";
 import { WORKFLOW_IDS } from "direc-workflow-runtime";
 
@@ -12,17 +12,21 @@ type BuildDirecConfigOptions = {
   repositoryRoot: string;
   detectedFacets: DetectedFacet[];
   plugins: AnalyzerPlugin[];
+  extensions?: string[];
+  qualityRoutines?: Record<string, QualityRoutineConfig>;
 };
 
 export async function buildDirecConfig(options: BuildDirecConfigOptions): Promise<{
   config: DirecConfig;
-  resolution: Awaited<ReturnType<typeof resolveAnalyzers>>;
 }> {
+  const enabledFacetIds = new Set(options.detectedFacets.map((facet) => facet.id));
   const analyzerEntries = await Promise.all(
     options.plugins.map(async (plugin) => [
       plugin.id,
       {
-        enabled: plugin.defaultEnabled ?? true,
+        enabled:
+          (plugin.defaultEnabled ?? true) &&
+          plugin.supportedFacets.some((facetId) => enabledFacetIds.has(facetId)),
         options:
           plugin.createDefaultOptions?.({
             repositoryRoot: options.repositoryRoot,
@@ -37,42 +41,23 @@ export async function buildDirecConfig(options: BuildDirecConfigOptions): Promis
     generatedAt: new Date().toISOString(),
     workflow: WORKFLOW_IDS.DIREC,
     facets: options.detectedFacets.map((facet) => facet.id),
+    ...(options.extensions && options.extensions.length > 0
+      ? { extensions: options.extensions }
+      : {}),
+    ...(options.qualityRoutines && Object.keys(options.qualityRoutines).length > 0
+      ? { qualityRoutines: options.qualityRoutines }
+      : {}),
     automation: buildAutomationConfig(),
     analyzers: Object.fromEntries(analyzerEntries),
   };
 
-  const resolution = await resolveAnalyzers({
-    plugins: options.plugins,
-    repositoryRoot: options.repositoryRoot,
-    detectedFacets: options.detectedFacets,
-    config: initialConfig.analyzers,
-  });
-
-  const analyzers = Object.fromEntries(
-    options.plugins.map((plugin) => {
-      const enabledEntry = resolution.enabled.find((entry) => entry.plugin.id === plugin.id);
-
-      return [
-        plugin.id,
-        {
-          enabled: Boolean(enabledEntry),
-          options: enabledEntry?.options ?? initialConfig.analyzers[plugin.id]?.options ?? {},
-        },
-      ];
-    }),
-  );
-
   return {
-    config: {
-      ...initialConfig,
-      analyzers,
-    },
-    resolution,
+    config: initialConfig,
   };
 }
 
 function buildAutomationConfig(): AutomationConfig {
-  const bundledBackendPath = fileURLToPath(new URL("../../bin/direc-subagent.js", import.meta.url));
+  const bundledBackendPath = fileURLToPath(new URL("../bin/direc-subagent.js", import.meta.url));
 
   return {
     enabled: true,
@@ -85,6 +70,7 @@ function buildAutomationConfig(): AutomationConfig {
       args: [bundledBackendPath],
     },
     triggers: {
+      snapshotEvents: true,
       workItemTransitions: true,
       artifactTransitions: false,
       changeCompleted: true,

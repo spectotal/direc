@@ -44,6 +44,11 @@ The generated analyzer config includes default path exclusions for fixtures, tes
 
 It also seeds a small set of architecture boundary rules for the built-in Direc CLI and OpenSpec adapter layers, plus an automation profile that runs in advisory mode via a bundled command backend.
 
+The generated config can now also include:
+
+- `qualityRoutines` for project-native lint, format, typecheck, and test routines
+- `extensions` for explicitly allowed local modules or npm packages that contribute analyzers, facet detectors, or quality adapters
+
 `direc analyze` persists analyzer snapshots under `.direc/latest/` and `.direc/history/`, running repository-wide by default or against a scoped OpenSpec change when `--change` is provided.
 
 ```bash
@@ -58,11 +63,23 @@ By default, `direc analyze` runs a repository-wide scan, so analyzers work even 
 
 `direc automate --workflow openspec` watches the same normalized OpenSpec events, runs analyzers first, then writes formalized subagent requests and results under `.direc/automation/`.
 
+`direc automate` now also works with the native `direc` workflow and defaults to the configured workflow in `.direc/config.json`.
+
 ```bash
+direc automate
 direc automate --workflow openspec
 ```
 
 The default automation transport uses a bundled command backend so the event loop is runnable immediately after `direc init`. Replace the `automation.transport` section in `.direc/config.json` to point at a different command, HTTP endpoint, or in-process SDK adapter.
+
+All analysis-oriented commands accept repeated `--extension <module>` flags to opt in extra analyzers, facet detectors, and quality adapters:
+
+```bash
+direc init --extension ./direc-extension.mjs
+direc analyze --extension @acme/direc-python
+direc automate --extension ./direc-extension.mjs
+direc doctor --extension ./direc-extension.mjs
+```
 
 ## Local development in the monorepo
 

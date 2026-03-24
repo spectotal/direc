@@ -1,21 +1,9 @@
 import { resolve } from "node:path";
 import type { AnalyzerFinding } from "direc-analysis-runtime";
-import { matchesModulePattern } from "./module-match.js";
-import type { MadgeGraph, ModuleRoleDefinition, RoleBoundaryRule } from "./types.js";
-
-export type ModuleRoleAssignments = Record<string, string[]>;
-
-export function collectModuleRoleAssignments(
-  graph: MadgeGraph,
-  roleDefinitions: ModuleRoleDefinition[],
-): ModuleRoleAssignments {
-  return Object.fromEntries(
-    Object.keys(graph).map((modulePath) => [
-      modulePath,
-      resolveModuleRoles(modulePath, roleDefinitions),
-    ]),
-  );
-}
+import type { MadgeGraph, RoleBoundaryRule } from "./types.js";
+import type { ModuleRoleAssignments } from "./role-assignment.js";
+export type { ModuleRoleAssignments } from "./role-assignment.js";
+export { collectModuleRoleAssignments } from "./role-assignment.js";
 
 export function collectRoleBoundaryViolations(
   repositoryRoot: string,
@@ -132,12 +120,4 @@ export function collectUnassignedModuleFindings(
         },
       ];
     });
-}
-
-function resolveModuleRoles(modulePath: string, roleDefinitions: ModuleRoleDefinition[]): string[] {
-  return roleDefinitions
-    .filter((definition) =>
-      definition.match.some((pattern) => matchesModulePattern(modulePath, pattern)),
-    )
-    .map((definition) => definition.role);
 }

@@ -96,6 +96,7 @@ export type NormalizedWorkflowEvent =
   | ChangeRemovedWorkflowEvent;
 
 export type AutomationWorkflowEvent =
+  | SnapshotWorkflowEvent
   | ArtifactTransitionWorkflowEvent
   | WorkItemTransitionWorkflowEvent
   | ChangeCompletedWorkflowEvent;
@@ -104,6 +105,7 @@ export function isAutomationWorkflowEvent(
   event: NormalizedWorkflowEvent,
 ): event is AutomationWorkflowEvent {
   return (
+    event.type === WORKFLOW_EVENT_TYPES.SNAPSHOT ||
     event.type === WORKFLOW_EVENT_TYPES.TRANSITION ||
     event.type === WORKFLOW_EVENT_TYPES.WORK_ITEM_TRANSITION ||
     event.type === WORKFLOW_EVENT_TYPES.CHANGE_COMPLETED

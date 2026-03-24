@@ -1,8 +1,46 @@
 {
   "version": 1,
-  "generatedAt": "2026-03-24T11:20:50.730Z",
+  "generatedAt": "2026-03-24T16:48:38.363Z",
   "workflow": "direc",
-  "facets": ["js", "css", "tailwind"],
+  "facets": ["js", "python", "css", "tailwind"],
+  "qualityRoutines": {
+    "eslint": {
+      "adapter": "eslint",
+      "mode": "run",
+      "enabled": true,
+      "command": {
+        "command": "npm",
+        "args": ["exec", "--", "eslint", "--format", "json"]
+      }
+    },
+    "prettier": {
+      "adapter": "prettier",
+      "mode": "run",
+      "enabled": true,
+      "command": {
+        "command": "npm",
+        "args": ["exec", "--", "prettier", "--check"]
+      }
+    },
+    "typescript": {
+      "adapter": "typescript",
+      "mode": "run",
+      "enabled": true,
+      "command": {
+        "command": "npm",
+        "args": [
+          "exec",
+          "--",
+          "tsc",
+          "--noEmit",
+          "--pretty",
+          "false",
+          "-p",
+          "packages/adapters/direc/tsconfig.json"
+        ]
+      }
+    }
+  },
   "automation": {
     "enabled": true,
     "mode": "advisory",
@@ -11,9 +49,12 @@
     "transport": {
       "kind": "command",
       "command": "/Users/zavalit/.nvm/versions/node/v22.21.1/bin/node",
-      "args": ["/Users/zavalit/Playgrounds/direc/packages/cli/direc/bin/direc-subagent.js"]
+      "args": [
+        "/Users/zavalit/Playgrounds/direc-project-linters/packages/core/direc-engine/bin/direc-subagent.js"
+      ]
     },
     "triggers": {
+      "snapshotEvents": true,
       "workItemTransitions": true,
       "artifactTransitions": false,
       "changeCompleted": true
@@ -57,127 +98,276 @@
         ],
         "moduleRoles": [
           {
-            "role": "cli-command",
-            "match": ["packages/cli/direc/src/commands"],
-            "description": "CLI command handlers."
-          },
-          {
-            "role": "cli-lib",
-            "match": ["packages/cli/direc/src/lib"],
-            "description": "CLI support modules below the command layer."
-          },
-          {
-            "role": "cli-entrypoint",
+            "role": "cli-command-surface",
+            "description": "CLI command registration and command handlers.",
             "match": [
               "packages/cli/direc/src/cli.ts",
-              "packages/cli/direc/src/run-cli.ts",
               "packages/cli/direc/src/main.ts",
-              "packages/cli/direc/src/index.ts"
-            ],
-            "description": "CLI assembly and entrypoint modules that wire commands into the public executable surface."
+              "packages/cli/direc/src/run-cli.ts",
+              "packages/cli/direc/src/commands"
+            ]
           },
           {
-            "role": "workflow-registry",
-            "match": ["packages/cli/direc/src/registry"],
-            "description": "CLI composition modules that bind workflow IDs to concrete adapters."
+            "role": "cli-output-formatting",
+            "description": "CLI-only output formatters and presentation helpers.",
+            "match": ["packages/cli/direc/src/lib"]
+          },
+          {
+            "role": "cli-public-api",
+            "description": "Public CLI package entrypoint.",
+            "match": ["packages/cli/direc/src/index.ts"]
+          },
+          {
+            "role": "engine-public-api",
+            "description": "Public engine package entrypoint.",
+            "match": ["packages/core/direc-engine/src/index.ts"]
+          },
+          {
+            "role": "engine-config-bootstrap",
+            "description": "Bootstrap helpers for config, files, and templates.",
+            "match": [
+              "packages/core/direc-engine/src/config.ts",
+              "packages/core/direc-engine/src/fs.ts",
+              "packages/core/direc-engine/src/templates.ts"
+            ]
+          },
+          {
+            "role": "engine-extension-loading",
+            "description": "Extension contracts and loader logic.",
+            "match": [
+              "packages/core/direc-engine/src/extension-types.ts",
+              "packages/core/direc-engine/src/extensions.ts",
+              "packages/core/direc-engine/src/extensions-helpers.ts"
+            ]
+          },
+          {
+            "role": "engine-analyzer-registry",
+            "description": "Analyzer registration and composition.",
+            "match": ["packages/core/direc-engine/src/analyzers.ts"]
+          },
+          {
+            "role": "engine-quality-routines",
+            "description": "Quality-routine detection, adapters, and analyzers.",
+            "match": [
+              "packages/core/direc-engine/src/quality-routines.ts",
+              "packages/core/direc-engine/src/quality-routines"
+            ]
+          },
+          {
+            "role": "engine-runtime-assembly",
+            "description": "Runtime environment assembly and workflow registry resolution.",
+            "match": [
+              "packages/core/direc-engine/src/runtime-environment.ts",
+              "packages/core/direc-engine/src/registry"
+            ]
+          },
+          {
+            "role": "engine-analysis-execution",
+            "description": "Analysis execution orchestration.",
+            "match": ["packages/core/direc-engine/src/analysis-runner.ts"]
+          },
+          {
+            "role": "engine-automation-execution",
+            "description": "Automation execution orchestration.",
+            "match": ["packages/core/direc-engine/src/automation-runner.ts"]
           },
           {
             "role": "core-runtime",
-            "match": ["packages/core/analysis-runtime/src", "packages/core/automation-runtime/src"],
-            "description": "Core runtime modules that must stay adapter-agnostic."
+            "description": "Core runtime modules that stay independent from CLI and engine composition.",
+            "match": ["packages/core/analysis-runtime/src", "packages/core/automation-runtime/src"]
           },
           {
             "role": "workflow-contract",
-            "match": ["packages/core/workflow-runtime/src"],
-            "description": "Workflow contract modules shared by runtimes and adapters."
+            "description": "Workflow contracts shared by runtimes and adapters.",
+            "match": ["packages/core/workflow-runtime/src"]
           },
           {
             "role": "workflow-adapter-module",
-            "match": ["packages/adapters"],
-            "description": "Any concrete workflow adapter module."
+            "description": "Concrete workflow adapter modules.",
+            "match": ["packages/adapters"]
           },
           {
             "role": "workflow-public-entry",
+            "description": "Public adapter entrypoints that should stay thin.",
             "match": [
               "packages/adapters/direc/src/index.ts",
               "packages/adapters/openspec/src/index.ts"
-            ],
-            "description": "Public adapter entrypoints that should stay thin."
+            ]
           },
           {
             "role": "workflow-orchestrator",
+            "description": "Adapter modules that coordinate workflow behavior.",
             "match": [
               "packages/adapters/direc/src/adapter.ts",
               "packages/adapters/openspec/src/adapter.ts",
               "packages/adapters/openspec/src/watch.ts"
-            ],
-            "description": "Workflow modules allowed to coordinate multiple leaf responsibilities."
+            ]
           },
           {
             "role": "workflow-event-shaper",
+            "description": "Workflow event and transition normalization helpers.",
             "match": [
               "packages/adapters/direc/src/events.ts",
-              "packages/adapters/openspec/src/events.ts"
-            ],
-            "description": "Leaf modules that normalize workflow events."
+              "packages/adapters/openspec/src/events.ts",
+              "packages/adapters/openspec/src/event-transitions.ts",
+              "packages/adapters/openspec/src/status-revision.ts"
+            ]
           },
           {
             "role": "workflow-change-loader",
+            "description": "Leaf modules that load change state.",
             "match": [
               "packages/adapters/direc/src/git.ts",
               "packages/adapters/openspec/src/status.ts"
-            ],
-            "description": "Leaf modules that load workflow change state."
+            ]
           },
           {
             "role": "workflow-shared-types",
+            "description": "Adapter-local shared type modules.",
             "match": [
               "packages/adapters/direc/src/types.ts",
               "packages/adapters/openspec/src/types.ts"
-            ],
-            "description": "Shared adapter-local types."
+            ]
           }
         ],
         "roleBoundaryRules": [
           {
-            "fromRoles": ["cli-lib"],
-            "disallowRoles": ["cli-command"],
-            "message": "CLI utility modules must not depend on command handlers."
+            "fromRoles": ["cli-output-formatting"],
+            "disallowRoles": [
+              "cli-command-surface",
+              "engine-public-api",
+              "engine-config-bootstrap",
+              "engine-extension-loading",
+              "engine-analyzer-registry",
+              "engine-quality-routines",
+              "engine-runtime-assembly",
+              "engine-analysis-execution",
+              "engine-automation-execution"
+            ],
+            "message": "CLI output helpers must stay presentation-only and must not depend on commands or engine internals."
           },
           {
-            "fromRoles": ["cli-lib"],
-            "disallowRoles": ["workflow-adapter-module", "workflow-registry"],
-            "message": "CLI library modules must stay below the workflow composition boundary."
+            "fromRoles": ["cli-command-surface"],
+            "disallowRoles": [
+              "engine-config-bootstrap",
+              "engine-extension-loading",
+              "engine-analyzer-registry",
+              "engine-quality-routines",
+              "engine-runtime-assembly",
+              "engine-analysis-execution",
+              "engine-automation-execution",
+              "workflow-adapter-module"
+            ],
+            "message": "CLI commands must stay above engine internals and workflow adapters."
           },
           {
-            "fromRoles": ["cli-command"],
-            "disallowRoles": ["workflow-adapter-module"],
-            "message": "CLI commands must resolve workflow adapters through the registry."
+            "fromRoles": ["cli-public-api"],
+            "disallowRoles": [
+              "engine-config-bootstrap",
+              "engine-extension-loading",
+              "engine-analyzer-registry",
+              "engine-quality-routines",
+              "engine-runtime-assembly",
+              "engine-analysis-execution",
+              "engine-automation-execution",
+              "workflow-adapter-module"
+            ],
+            "message": "CLI public entrypoints must stay thin and must not reach into engine internals or adapters."
           },
           {
-            "fromRoles": ["cli-entrypoint"],
-            "disallowRoles": ["workflow-adapter-module", "workflow-registry"],
-            "message": "CLI entry modules must stay above workflow composition and delegate runtime resolution through commands."
+            "fromRoles": ["engine-public-api"],
+            "disallowRoles": ["cli-command-surface", "cli-output-formatting", "cli-public-api"],
+            "message": "The engine public API must not depend on CLI modules."
+          },
+          {
+            "fromRoles": [
+              "engine-config-bootstrap",
+              "engine-extension-loading",
+              "engine-analyzer-registry",
+              "engine-quality-routines",
+              "engine-runtime-assembly",
+              "engine-analysis-execution",
+              "engine-automation-execution"
+            ],
+            "disallowRoles": [
+              "cli-command-surface",
+              "cli-output-formatting",
+              "cli-public-api",
+              "engine-public-api"
+            ],
+            "message": "Engine internals must not depend on CLI modules or on the engine barrel."
+          },
+          {
+            "fromRoles": [
+              "engine-config-bootstrap",
+              "engine-extension-loading",
+              "engine-analyzer-registry",
+              "engine-quality-routines"
+            ],
+            "disallowRoles": [
+              "engine-runtime-assembly",
+              "engine-analysis-execution",
+              "engine-automation-execution"
+            ],
+            "message": "Lower-level engine modules must not depend on orchestration entrypoints."
+          },
+          {
+            "fromRoles": ["engine-analysis-execution", "engine-automation-execution"],
+            "disallowRoles": ["engine-runtime-assembly"],
+            "message": "Execution runners must consume prepared inputs and must not assemble runtime environments."
           },
           {
             "fromRoles": ["core-runtime"],
-            "disallowRoles": ["workflow-adapter-module"],
-            "message": "Core packages must not depend on concrete workflow adapters."
+            "disallowRoles": [
+              "cli-command-surface",
+              "cli-output-formatting",
+              "cli-public-api",
+              "engine-public-api",
+              "engine-config-bootstrap",
+              "engine-extension-loading",
+              "engine-analyzer-registry",
+              "engine-quality-routines",
+              "engine-runtime-assembly",
+              "engine-analysis-execution",
+              "engine-automation-execution",
+              "workflow-adapter-module"
+            ],
+            "message": "Core runtimes must stay independent from CLI composition, engine orchestration, and concrete adapters."
           },
           {
             "fromRoles": ["workflow-contract"],
             "disallowRoles": [
-              "cli-command",
-              "cli-lib",
-              "workflow-registry",
+              "cli-command-surface",
+              "cli-output-formatting",
+              "cli-public-api",
+              "engine-public-api",
+              "engine-config-bootstrap",
+              "engine-extension-loading",
+              "engine-analyzer-registry",
+              "engine-quality-routines",
+              "engine-runtime-assembly",
+              "engine-analysis-execution",
+              "engine-automation-execution",
               "workflow-adapter-module"
             ],
-            "message": "Workflow runtime must stay independent from adapters and CLI composition."
+            "message": "Workflow contracts must remain independent from CLI, engine orchestration, and adapters."
           },
           {
             "fromRoles": ["workflow-adapter-module"],
-            "disallowRoles": ["cli-command", "cli-lib", "workflow-registry"],
-            "message": "Workflow adapters must not depend on CLI composition or commands."
+            "disallowRoles": [
+              "cli-command-surface",
+              "cli-output-formatting",
+              "cli-public-api",
+              "engine-public-api",
+              "engine-config-bootstrap",
+              "engine-extension-loading",
+              "engine-analyzer-registry",
+              "engine-quality-routines",
+              "engine-runtime-assembly",
+              "engine-analysis-execution",
+              "engine-automation-execution"
+            ],
+            "message": "Workflow adapters must not depend on CLI modules or engine internals."
           },
           {
             "fromRoles": ["workflow-public-entry"],
@@ -188,35 +378,44 @@
             "fromRoles": ["workflow-event-shaper"],
             "disallowRoles": [
               "workflow-public-entry",
-              "workflow-registry",
               "workflow-orchestrator",
               "workflow-change-loader"
             ],
-            "message": "Workflow event shaping modules must stay leaf-level and must not load change state or orchestrate workflows."
+            "message": "Workflow event shapers must stay leaf-level and must not orchestrate workflow loading."
           },
           {
             "fromRoles": ["workflow-change-loader"],
             "disallowRoles": [
               "workflow-public-entry",
-              "workflow-registry",
               "workflow-orchestrator",
               "workflow-event-shaper"
             ],
-            "message": "Workflow change-loading modules must stay leaf-level and must not orchestrate workflows or normalize events."
+            "message": "Workflow change loaders must stay leaf-level and must not normalize events or orchestrate adapters."
           },
           {
             "fromRoles": ["workflow-shared-types"],
             "disallowRoles": [
               "workflow-public-entry",
-              "workflow-registry",
               "workflow-orchestrator",
               "workflow-event-shaper",
               "workflow-change-loader"
             ],
-            "message": "Workflow shared type modules must remain dependency-light and must not absorb runtime behavior."
+            "message": "Workflow shared type modules must stay dependency-light."
           }
         ]
       }
+    },
+    "routine:eslint": {
+      "enabled": true,
+      "options": {}
+    },
+    "routine:prettier": {
+      "enabled": true,
+      "options": {}
+    },
+    "routine:typescript": {
+      "enabled": true,
+      "options": {}
     }
   }
 }

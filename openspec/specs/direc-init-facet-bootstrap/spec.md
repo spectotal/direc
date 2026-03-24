@@ -6,7 +6,7 @@ Define how `direc init` detects repository facets, resolves supported analyzers,
 
 ### Requirement: Init bootstraps Direc configuration from detected facets
 
-`direc init` SHALL detect repository facets, resolve the analyzers supported by the current installation, and write a `.direc/config.json` file that enables the matching analyzer set and includes default thresholds, severity bands, non-production exclusions, and seeded architecture boundary-rule slots.
+`direc init` SHALL detect repository facets, resolve the analyzers supported by the current installation, and write a `.direc/config.json` file that enables the matching analyzer set and includes default thresholds, severity bands, non-production exclusions, seeded architecture boundary-rule slots, and default automation settings.
 
 #### Scenario: Supported repository produces config
 
@@ -17,6 +17,11 @@ Define how `direc init` detects repository facets, resolves supported analyzers,
 
 - **WHEN** `direc init` resolves the JavaScript and TypeScript analyzer set for a repository
 - **THEN** `.direc/config.json` includes default complexity thresholds and exclude patterns plus default architecture exclude patterns and boundary rule slots
+
+#### Scenario: Generated config includes quality routines
+
+- **WHEN** `direc init` detects repository-native lint, format, typecheck, or test tooling
+- **THEN** `.direc/config.json` includes `qualityRoutines` entries for those tools and enables the corresponding `routine:<name>` analyzers
 
 #### Scenario: Generated config uses taxonomy-aware boundary rules
 
@@ -31,6 +36,15 @@ Define how `direc init` detects repository facets, resolves supported analyzers,
 
 - **WHEN** `direc init` detects only unsupported facets or no compatible analyzers are installed
 - **THEN** the command exits with guidance describing the missing support or prerequisites and does not write an unusable `.direc/config.json`
+
+### Requirement: Init preserves desired analyzers even when prerequisites are currently missing
+
+`direc init` SHALL persist the selected analyzer and quality-routine configuration as the desired state even when the local environment is temporarily missing a tool prerequisite, and it SHALL surface that prerequisite issue during doctor or analysis resolution instead of disabling the config entry.
+
+#### Scenario: Missing local binary does not disable a selected routine
+
+- **WHEN** `direc init` detects a `typescript` quality routine from repository signals but `npm exec tsc` is not currently available
+- **THEN** it still writes the `routine:typescript` config as enabled and reports the missing prerequisite separately
 
 ### Requirement: Init respects existing Direc configuration
 

@@ -20,6 +20,19 @@ export const NODE_SOURCE_EXTENSIONS = new Set([
 
 export const CSS_EXTENSIONS = new Set([".css", ".less", ".sass", ".scss"]);
 
+export const PYTHON_SOURCE_EXTENSIONS = new Set([".py", ".pyi"]);
+
+export const PYTHON_CONFIG_FILENAMES = new Set([
+  "pyproject.toml",
+  "requirements.txt",
+  "requirements-dev.txt",
+  "requirements-test.txt",
+  "setup.py",
+  "pytest.ini",
+  "mypy.ini",
+  "ruff.toml",
+]);
+
 export const FRONTEND_DEPENDENCIES = new Set([
   "@angular/core",
   "next",

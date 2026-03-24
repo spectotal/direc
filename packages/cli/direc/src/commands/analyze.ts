@@ -1,15 +1,19 @@
-import { readDirecConfig } from "direc-analysis-runtime";
-import { WORKFLOW_IDS } from "direc-workflow-runtime";
-import { detectRepositoryFacets } from "direc-facet-detect";
-import { getRegisteredAnalyzers } from "../lib/analyzers.js";
+import { WORKFLOW_IDS } from "direc-engine";
+import {
+  loadConfiguredAnalysisEnvironment,
+  readDirecConfig,
+  resolveRequestedWorkflowId,
+  resolveWorkflowAdapter,
+  runAnalysis,
+  watchAnalysis,
+} from "direc-engine";
 import { formatAnalysisResult, formatFacetList } from "../lib/analysis-output.js";
-import { runAnalysis, watchAnalysis } from "../lib/analysis-runner.js";
-import { resolveRequestedWorkflowId, resolveWorkflowAdapter } from "../registry/workflows.js";
 
 type AnalyzeOptions = {
   change?: string;
   workflow?: string;
   watch?: boolean;
+  extension?: string[];
 };
 
 export async function analyzeCommand(options: AnalyzeOptions): Promise<void> {
@@ -20,13 +24,16 @@ export async function analyzeCommand(options: AnalyzeOptions): Promise<void> {
     throw new Error("Missing .direc/config.json. Run `direc init` first.");
   }
 
-  const detectedFacets = await detectRepositoryFacets(repositoryRoot);
-  const analyzers = getRegisteredAnalyzers();
+  const environment = await loadConfiguredAnalysisEnvironment({
+    repositoryRoot,
+    config,
+    cliExtensions: options.extension,
+  });
   const workflowId = resolveRequestedWorkflowId(options.workflow, config.workflow);
   const workflowAdapter = resolveWorkflowAdapter(workflowId);
 
   process.stdout.write(
-    `Analyzing ${repositoryRoot} with facets: ${formatFacetList(detectedFacets)}\n`,
+    `Analyzing ${repositoryRoot} with facets: ${formatFacetList(environment.detectedFacets)}\n`,
   );
 
   if (options.watch) {
@@ -34,8 +41,8 @@ export async function analyzeCommand(options: AnalyzeOptions): Promise<void> {
       repositoryRoot,
       workflowAdapter,
       changeFilter: options.change,
-      detectedFacets,
-      analyzers,
+      detectedFacets: environment.detectedFacets,
+      analyzers: environment.analyzers,
       config,
     });
     return;
@@ -45,8 +52,8 @@ export async function analyzeCommand(options: AnalyzeOptions): Promise<void> {
     repositoryRoot,
     workflowAdapter,
     changeFilter: options.change,
-    detectedFacets,
-    analyzers,
+    detectedFacets: environment.detectedFacets,
+    analyzers: environment.analyzers,
     config,
   });
 
@@ -68,8 +75,8 @@ async function runWatchAnalysis(options: {
   repositoryRoot: string;
   workflowAdapter: ReturnType<typeof resolveWorkflowAdapter>;
   changeFilter?: string;
-  detectedFacets: Awaited<ReturnType<typeof detectRepositoryFacets>>;
-  analyzers: ReturnType<typeof getRegisteredAnalyzers>;
+  detectedFacets: Awaited<ReturnType<typeof loadConfiguredAnalysisEnvironment>>["detectedFacets"];
+  analyzers: Awaited<ReturnType<typeof loadConfiguredAnalysisEnvironment>>["analyzers"];
   config: NonNullable<Awaited<ReturnType<typeof readDirecConfig>>>;
 }): Promise<void> {
   process.stdout.write(

@@ -49,3 +49,12 @@ The analysis runtime SHALL write normalized analyzer output to `.direc/latest/` 
 
 - **WHEN** an analyzer completes successfully for a normalized event
 - **THEN** the runtime writes the analyzer's latest normalized snapshot and an event-linked historical record under `.direc/`
+
+### Requirement: Quality routines behave like first-class analyzers
+
+Project-native lint, format, typecheck, and test routines SHALL be represented as analyzer plugins so their findings, metrics, failures, and snapshots flow through the same Direc persistence and automation paths as built-in analyzers.
+
+#### Scenario: Synthetic routine analyzer is persisted like a built-in analyzer
+
+- **WHEN** Direc runs a configured `qualityRoutine` such as `routine:typescript`
+- **THEN** it writes normalized findings under `.direc/latest/` and `.direc/history/` using the routine analyzer id

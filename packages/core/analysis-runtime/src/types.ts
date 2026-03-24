@@ -74,6 +74,27 @@ export interface AnalyzerConfigEntry {
   options?: Record<string, unknown>;
 }
 
+export type QualityRoutineMode = "run" | "ingest";
+
+export interface QualityRoutineCommandConfig {
+  command: string;
+  args?: string[];
+  cwd?: string;
+  env?: Record<string, string>;
+}
+
+export interface QualityRoutineReportConfig {
+  reportPath: string;
+}
+
+export interface QualityRoutineConfig {
+  adapter: string;
+  mode: QualityRoutineMode;
+  enabled: boolean;
+  command?: QualityRoutineCommandConfig;
+  report?: QualityRoutineReportConfig;
+}
+
 export type AutomationMode = "advisory" | "gatekeeper" | "worker";
 
 export type AutomationInvocation = "direct" | "handoff" | "hybrid";
@@ -108,6 +129,7 @@ export type AutomationTransportConfig =
   | AutomationSdkTransportConfig;
 
 export interface AutomationTriggerConfig {
+  snapshotEvents: boolean;
   workItemTransitions: boolean;
   artifactTransitions: boolean;
   changeCompleted: boolean;
@@ -175,6 +197,8 @@ export interface DirecConfig {
   generatedAt: string;
   workflow: WorkflowId;
   facets: string[];
+  extensions?: string[];
+  qualityRoutines?: Record<string, QualityRoutineConfig>;
   analyzers: Record<string, AnalyzerConfigEntry>;
   automation?: AutomationConfig;
 }

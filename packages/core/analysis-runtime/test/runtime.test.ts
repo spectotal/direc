@@ -174,6 +174,7 @@ test("readDirecConfig normalizes missing workflow and legacy automation triggers
 
   assert.equal(config?.workflow, WORKFLOW_IDS.DIREC);
   assert.deepEqual(config?.automation?.triggers, {
+    snapshotEvents: true,
     workItemTransitions: true,
     artifactTransitions: false,
     changeCompleted: true,

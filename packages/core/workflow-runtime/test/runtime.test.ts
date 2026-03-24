@@ -39,6 +39,6 @@ test("workflow runtime validates event types and automation events", () => {
       timestamp: new Date().toISOString(),
       repositoryRoot: process.cwd(),
     }),
-    false,
+    true,
   );
 });

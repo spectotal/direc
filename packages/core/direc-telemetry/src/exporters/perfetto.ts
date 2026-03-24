@@ -1,65 +1,13 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Span } from "../tracer.js";
-
-// Chrome DevTools / Perfetto "JSON Object Format"
-// ts and dur must be in microseconds
-// See: https://docs.google.com/document/d/1CvAClvFfyA5R-PhYUmn5OOQtYMH4h6I0nSsKchNAySU
-
-interface TraceEvent {
-  ph: "X" | "M";
-  name: string;
-  ts: number;
-  dur?: number;
-  pid: number;
-  tid: number;
-  args?: Record<string, unknown>;
-}
-
-function toUs(ms: number): number {
-  return Math.round(ms * 1000);
-}
-
-// Assign each root span its own thread so Perfetto shows them in separate lanes
-function buildThreadMap(spans: Span[]): Map<string, number> {
-  const map = new Map<string, number>();
-  let tid = 1;
-  for (const span of spans) {
-    if (!span.parentId) {
-      map.set(span.id, tid++);
-    }
-  }
-  return map;
-}
-
-function resolveThread(
-  span: Span,
-  spanById: Map<string, Span>,
-  threadMap: Map<string, number>,
-): number {
-  let current: Span | undefined = span;
-  while (current) {
-    const tid = threadMap.get(current.id);
-    if (tid !== undefined) return tid;
-    current = current.parentId ? spanById.get(current.parentId) : undefined;
-  }
-  return 1;
-}
-
-function sanitizeArgs(attrs: Record<string, unknown>): Record<string, unknown> {
-  // Perfetto args must be primitives or simple objects
-  const out: Record<string, unknown> = {};
-  for (const [key, val] of Object.entries(attrs)) {
-    if (typeof val === "string" || typeof val === "number" || typeof val === "boolean") {
-      out[key] = val;
-    } else if (Array.isArray(val)) {
-      out[key] = val.join(", ");
-    } else if (val !== null && val !== undefined) {
-      out[key] = JSON.stringify(val);
-    }
-  }
-  return out;
-}
+import {
+  buildThreadMap,
+  resolveThread,
+  sanitizeArgs,
+  toUs,
+  type TraceEvent,
+} from "./perfetto-format.js";
 
 export async function writePerfettoTrace(
   spans: Span[],

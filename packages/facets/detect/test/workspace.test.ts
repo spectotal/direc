@@ -38,3 +38,11 @@ test("scanRepository preserves the mixed fixture's analyzable source scope", asy
   );
   assert.deepEqual(scan.analyzableNodeSourcePaths.includes("packages/web/src/types.d.ts"), false);
 });
+
+test("scanRepository captures python source and config paths", async () => {
+  const scan = await scanRepository(resolve(fixturesRoot, "python-project"));
+
+  assert.ok(scan.pythonSourcePaths.includes("src/app.py"));
+  assert.ok(scan.pythonSourcePaths.includes("tests/test_app.py"));
+  assert.ok(scan.pythonConfigPaths.includes("pyproject.toml"));
+});

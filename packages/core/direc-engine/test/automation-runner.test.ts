@@ -11,7 +11,7 @@ import {
   type DirecConfig,
   type NormalizedWorkflowEvent,
 } from "direc-analysis-runtime";
-import { watchAutomation } from "../src/lib/automation-runner.js";
+import { watchAutomation } from "../src/automation-runner.js";
 
 test("watchAutomation processes a work item event and dispatches the configured backend", async () => {
   const repositoryRoot = await mkdtemp(join(tmpdir(), "direc-cli-automation-"));
@@ -95,6 +95,7 @@ test("watchAutomation processes a work item event and dispatches the configured 
         ],
       },
       triggers: {
+        snapshotEvents: true,
         workItemTransitions: true,
         artifactTransitions: false,
         changeCompleted: true,
