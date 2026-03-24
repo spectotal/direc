@@ -1,0 +1,35 @@
+{
+  "name": "direc-telemetry",
+  "version": "0.1.0",
+  "description": "Non-invasive telemetry preloader for the Direc runtime.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./preload": {
+      "types": "./dist/preload.d.ts",
+      "import": "./dist/preload.js"
+    }
+  },
+  "engines": {
+    "node": ">=18.19"
+  },
+  "scripts": {
+    "build": "rimraf dist && tsc -p tsconfig.json",
+    "clean": "rimraf dist",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "import-in-the-middle": "^1.11.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "direc-analysis-runtime": "0.1.0",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.8.3"
+  }
+}
