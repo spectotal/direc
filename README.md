@@ -1,108 +1,116 @@
-# @spectotal/direc-monorepo
+<p align="center">
+  <img src="assets/direc-intro.png" alt="direc" width="480" />
+</p>
 
-This repository is an npm workspace monorepo for `direc`.
+<h3 align="center">Boundary-first agentic development</h3>
 
-- `packages/cli/direc`: the publishable CLI package that users can run with `npx direc` or install globally with `npm install -g direc`
-- `packages/core/analysis-runtime`: vendor-independent analyzer execution and persistence
-- `packages/core/automation-runtime`: workflow-driven subagent request and result orchestration
-- `packages/facets/detect`: repository facet detection with evidence and scope metadata
-- `packages/adapters/openspec`: OpenSpec event normalization and watch support
-- `packages/plugins/js-complexity`: JavaScript and TypeScript complexity analyzer plugin
-- `packages/plugins/js-architecture-drift`: JavaScript and TypeScript dependency drift analyzer plugin
+<p align="center">
+  <a href="https://www.npmjs.com/package/direc"><img src="https://img.shields.io/npm/v/direc.svg" alt="npm version" /></a>
+  <a href="https://github.com/spectotal/direc/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="license" /></a>
+</p>
 
-## Workspace commands
+---
 
-```bash
-npm install
-npm run lint
-npm run typecheck
-npm run test
-npm run build
-```
+## Getting Started
 
-## Local CLI development
+### Install
 
 ```bash
-npm run dev:direc -- --help
-npm run dev:direc -- init
-npm run dev:direc -- run specs/example.spec.md --dry-run
-npm run dev:direc -- analyze
-npm run dev:direc -- analyze --watch
-npm run dev:direc -- automate --workflow openspec
+npx direc --help
+# or install globally
+npm install -g direc
 ```
 
-## Direc Analysis Bootstrap
+### Initialize a project
 
-Direc now stores repository-local analysis state under `.direc/`:
-
-- `.direc/config.json`: facet IDs and enabled analyzers
-- `.direc/latest/`: latest analyzer snapshots
-- `.direc/history/`: event-linked analyzer history
-- `.direc/automation/requests/`: formalized subagent request envelopes
-- `.direc/automation/results/`: formalized subagent results
-- `.direc/automation/latest/`: latest per-change automation status
-
-The config can now also capture:
-
-- `extensions`: explicitly allowed local modules or npm packages that contribute analyzers, facet detectors, or quality adapters
-- `qualityRoutines`: project-native lint, format, typecheck, and test routines that run as synthetic `routine:<name>` analyzers
-
-The generated config now includes default analyzer tuning:
-
-- non-production path exclusions for fixtures, tests, declaration files, `dist`, and `scripts/`
-- warning and error complexity thresholds
-- initial positive architecture boundary rules that keep `packages/cli/direc/src/lib` isolated from command handlers and keep OpenSpec status or event logic isolated from watch orchestration
-- an automation profile with advisory mode, hybrid invocation, command transport, DIREC snapshot triggers, and OpenSpec task-diff plus change-complete triggers
-
-Typical workflow:
+`direc init` detects your repository facets, enables matching analyzers, and writes a local `.direc/config.json`:
 
 ```bash
-npm run dev:direc -- init
-npm run dev:direc -- doctor
-npm run dev:direc -- analyze
-npm run dev:direc -- analyze --change my-change
-npm run dev:direc -- analyze --change my-change --watch
-npm run dev:direc -- analyze --extension ./direc-extension.mjs
-npm run dev:direc -- automate --workflow openspec
-npm run dev:direc -- automate
+direc init
 ```
 
-## Pre-commit flow
+This generates:
 
-The repo uses Husky plus lint-staged.
+- **`.direc/config.json`** — facet IDs, enabled analyzers, path exclusions, thresholds, and architecture boundaries
+- **`.direc/latest/`** — latest analyzer snapshots
+- **`.direc/history/`** — event-linked analyzer history
 
-- staged JavaScript and TypeScript files run through ESLint and Prettier
-- staged JSON, Markdown, and YAML files run through Prettier
-- affected workspace packages run `typecheck`
-- affected workspace packages run `test` when the package exposes a test script
+---
 
-## Publish the CLI
+## Facets & Analyzers
+
+Direc uses a concept of **Facets** to understand what kind of project it's analyzing. A facet represents a detected technology stack or framework (e.g., `js`, `python`, `tailwind`).
+
+1. **Detection**: During `direc init` (or when analyzers run), Direc scans the repository for evidence (like `package.json`, `tsconfig.json`, or specific file extensions) to detect active facets.
+2. **Analyzer Resolution**: Analyzers declare which facets they support. Direc automatically enables the built-in and extended analyzers that match the detected facets in your project.
+3. **Prerequisites**: Before an analyzer runs, it can check prerequisites (e.g., "is `eslint` installed?"). If a prerequisite fails or a facet is missing, the analyzer is gracefully skipped.
+
+You can explicitly enable or disable specific analyzers and override their options in your `.direc/config.json`.
+
+---
+
+## Scenarios
+
+### a. Analyze
+
+Run code-quality analysis across your repository or delegate it to agents for validation loop.
 
 ```bash
-npm run build
-npm publish --workspace=direc --access public
+# repository-wide scan
+direc analyze
+
+# continuous watch mode
+direc analyze --watch
 ```
 
-## Release Workflow
+`direc analyze` runs built-in analyzers (complexity, architecture drift) and prints a findings summary plus saved report paths. For deeper inspection, open the JSON files in `.direc/latest/`.
 
-The repo uses Changesets to track package-level changes and produce version bumps plus changelogs.
+#### Extend with plugins
 
 ```bash
-# 1. Record a user-facing package change in your feature branch
-npm run changeset
-
-# 2. Inspect pending release state
-npm run changeset:status
-
-# 3. When main is ready to cut a release, version packages and changelogs
-npm run release:version
-
-# 4. Commit the generated version updates, then publish
-npm run release:publish
+direc analyze --extension ./my-plugin.mjs
+direc analyze --extension @acme/direc-python
 ```
 
-Notes:
+#### Health check
 
-- Changeset files live in `.changeset/` and should be committed with the change they describe.
-- `release:version` and `release:publish` require a clean git worktree.
-- `release:publish` runs the repo checks before publishing to npm.
+```bash
+direc doctor
+```
+
+Validates that your `.direc/config.json` is well-formed and all referenced analyzers are loadable.
+
+---
+
+### b. Automation 🧪
+
+> [!WARNING]
+> **Experimental** — the automation surface is under active development and may change.
+
+Automate subagent workflows that react to analysis results and spec events.
+
+```bash
+# run the default workflow from config
+direc automate
+
+# explicit workflow
+direc automate --workflow openspec
+```
+
+`direc automate` watches normalized events, runs analyzers first, then writes formalized subagent requests and results under `.direc/automation/`.
+
+Automation artifacts are stored in:
+
+| Path                          | Purpose                             |
+| ----------------------------- | ----------------------------------- |
+| `.direc/automation/requests/` | Subagent request envelopes          |
+| `.direc/automation/results/`  | Subagent results                    |
+| `.direc/automation/latest/`   | Latest per-change automation status |
+
+The default transport uses a bundled command backend — runnable immediately after `direc init`. Replace `automation.transport` in your config to point at a different command, HTTP endpoint, or SDK adapter.
+
+---
+
+## License
+
+[MIT](LICENSE)
