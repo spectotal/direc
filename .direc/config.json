@@ -98,6 +98,22 @@
         ],
         "moduleRoles": [
           {
+            "role": "architecture-drift",
+            "description": "Architecture drift analyzer and related utilities.",
+            "match": [
+              "packages/core/architecture-drift/src/index.ts",
+              "packages/core/architecture-drift/src/types",
+              "packages/core/architecture-drift/src/validation",
+              "packages/core/architecture-drift/src/assignments",
+              "packages/core/architecture-drift/src/violations"
+            ]
+          },
+          {
+            "role": "js-architecture-drift-plugin",
+            "description": "JS Architecture Drift plugin.",
+            "match": ["packages/plugins/js-architecture-drift/src"]
+          },
+          {
             "role": "cli-command-surface",
             "description": "CLI command registration and command handlers.",
             "match": [
@@ -238,6 +254,16 @@
           }
         ],
         "roleBoundaryRules": [
+          {
+            "sourceRole": "architecture-drift",
+            "onlyDependOnRoles": ["architecture-drift"],
+            "message": "Architecture drift analysis must stay self-contained."
+          },
+          {
+            "sourceRole": "js-architecture-drift-plugin",
+            "onlyDependOnRoles": ["js-architecture-drift-plugin", "architecture-drift"],
+            "message": "Architecture drift analysis must stay self-contained."
+          },
           {
             "sourceRole": "cli-output-formatting",
             "onlyDependOnRoles": ["cli-output-formatting"],

@@ -1,11 +1,11 @@
-import { extname, relative } from "node:path";
-import type { DetectedFacet } from "@spectotal/direc-analysis-runtime";
+import { extname, relative, resolve } from "node:path";
+import { existsSync } from "node:fs";
 
 export function resolveTargetPaths(
   repositoryRoot: string,
   pathScopeMode: "fallback" | "strict" | undefined,
   eventPaths: string[],
-  detectedFacets: DetectedFacet[],
+  packageBoundaries: Array<{ root?: string }>,
 ): string[] {
   const scopedSourcePaths = eventPaths
     .map((path) => relative(repositoryRoot, path))
@@ -19,37 +19,27 @@ export function resolveTargetPaths(
     return [];
   }
 
-  const jsFacet = detectedFacets.find((facet) => facet.id === "js");
-  const sourcePaths = Array.isArray(jsFacet?.metadata.sourcePaths)
-    ? (jsFacet.metadata.sourcePaths as string[])
-    : [];
-  if (sourcePaths.length > 0) {
-    return [...new Set(sourcePaths)].sort();
-  }
-
-  const packageBoundaries = Array.isArray(jsFacet?.metadata.packageBoundaries)
-    ? (jsFacet.metadata.packageBoundaries as Array<{ root?: string }>)
-    : [];
   const roots = packageBoundaries
     .map((boundary) => boundary.root)
     .filter((root): root is string => Boolean(root))
-    .filter((root) => root !== ".");
+    .filter((root) => root !== ".")
+    .map((root) => {
+      const srcPath = `${root}/src`;
+      return existsSync(resolve(repositoryRoot, srcPath)) ? srcPath : root;
+    });
 
-  return roots.length > 0 ? [...new Set(roots)].sort() : ["."];
+  return roots.length > 0
+    ? [...new Set(roots)].sort()
+    : ["src", "."].filter((p) => existsSync(resolve(repositoryRoot, p)));
 }
 
 export function resolveTsConfigPath(
-  detectedFacets: DetectedFacet[],
+  tsConfigPaths: string[],
   explicitPath?: string,
 ): string | undefined {
   if (explicitPath) {
     return explicitPath;
   }
-
-  const jsFacet = detectedFacets.find((facet) => facet.id === "js");
-  const tsConfigPaths = Array.isArray(jsFacet?.metadata.tsconfigPaths)
-    ? (jsFacet.metadata.tsconfigPaths as string[])
-    : [];
 
   return tsConfigPaths[0];
 }

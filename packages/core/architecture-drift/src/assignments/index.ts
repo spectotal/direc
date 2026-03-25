@@ -1,5 +1,5 @@
 import { matchesModulePattern } from "./module-match.js";
-import type { MadgeGraph, ModuleRoleDefinition } from "./types.js";
+import type { MadgeGraph, ModuleRoleDefinition } from "../types/index.js";
 
 export type ModuleRoleAssignments = Record<string, string[]>;
 

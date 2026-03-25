@@ -11,17 +11,8 @@ export function createDefaultOptions(): ArchitectureDriftPluginOptions {
 }
 
 export async function defaultPrerequisiteCheck(): Promise<AnalyzerPrerequisiteResult> {
-  try {
-    await import("madge");
-    return {
-      ok: true,
-      summary: "madge is available.",
-    };
-  } catch (error) {
-    return {
-      ok: false,
-      summary: "madge is not available.",
-      details: error instanceof Error ? error.message : String(error),
-    };
-  }
+  return {
+    ok: true,
+    summary: "Built-in AST analyzer uses native typescript resolution implicitly.",
+  };
 }

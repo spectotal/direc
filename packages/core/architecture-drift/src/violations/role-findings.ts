@@ -1,7 +1,15 @@
 import { resolve } from "node:path";
 import type { AnalyzerFinding } from "@spectotal/direc-analysis-runtime";
+import {
+  type ArchitectureDriftContext,
+  ROLE_BOUNDARY_CONFIG_KEYS,
+  VIOLATION_CATEGORIES,
+  FINDING_SCOPES,
+} from "../types/index.js";
 
-export type RoleBoundaryViolationKind = "onlyDependOnRoles" | "notDependOnRoles";
+export type RoleBoundaryViolationKind =
+  | typeof ROLE_BOUNDARY_CONFIG_KEYS.ONLY_DEPEND_ON_ROLES
+  | typeof ROLE_BOUNDARY_CONFIG_KEYS.NOT_DEPEND_ON_ROLES;
 
 export function buildRoleBoundaryFinding(options: {
   repositoryRoot: string;
@@ -14,6 +22,7 @@ export function buildRoleBoundaryFinding(options: {
   matchedForbiddenRoles?: string[];
   violationKinds: RoleBoundaryViolationKind[];
   message?: string;
+  context: ArchitectureDriftContext;
 }): AnalyzerFinding {
   return {
     fingerprint:
@@ -21,15 +30,15 @@ export function buildRoleBoundaryFinding(options: {
       `${options.sourceRoles.join(",")}:` +
       `${options.violationKinds.join(",")}:` +
       `${(options.allowedRoles ?? []).join(",")}=>${(options.matchedForbiddenRoles ?? []).join(",")}`,
-    analyzerId: "js-architecture-drift",
-    facetId: "js",
+    analyzerId: options.context.analyzerId,
+    facetId: options.context.facetId,
     severity: "error" as const,
-    category: "forbidden-role-dependency",
+    category: VIOLATION_CATEGORIES.FORBIDDEN_DEPENDENCY,
     message:
       options.message ??
       `${options.fromModule} depends on ${options.dependency}, which violates configured role dependency constraints.`,
     scope: {
-      kind: "dependency-edge" as const,
+      kind: FINDING_SCOPES.DEPENDENCY_EDGE,
       path: resolve(options.repositoryRoot, options.fromModule),
       dependency: {
         from: options.fromModule,
@@ -52,18 +61,19 @@ export function buildUnassignedModuleFinding(options: {
   modulePath: string;
   assignedDependencies: string[];
   assignedDependents: string[];
+  context: ArchitectureDriftContext;
 }): AnalyzerFinding {
   return {
     fingerprint: `${options.modulePath}:unassigned-module`,
-    analyzerId: "js-architecture-drift",
-    facetId: "js",
+    analyzerId: options.context.analyzerId,
+    facetId: options.context.facetId,
     severity: "error" as const,
-    category: "unassigned-module",
+    category: VIOLATION_CATEGORIES.UNASSIGNED_MODULE,
     message:
       `${options.modulePath} participates in governed dependency edges ` +
       "but does not match any configured module role.",
     scope: {
-      kind: "file" as const,
+      kind: FINDING_SCOPES.FILE,
       path: resolve(options.repositoryRoot, options.modulePath),
     },
     details: {

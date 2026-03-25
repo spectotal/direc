@@ -5,18 +5,25 @@ import type {
   NormalizedWorkflowEvent,
 } from "@spectotal/direc-analysis-runtime";
 import { matchesAnyPathPattern } from "@spectotal/direc-analysis-runtime";
-import type { ArchitectureToolResult, MadgeGraph } from "./types.js";
+import {
+  type ArchitectureToolResult,
+  type MadgeGraph,
+  type ArchitectureDriftContext,
+  VIOLATION_CATEGORIES,
+  FINDING_SCOPES,
+} from "../types/index.js";
 
 export function buildEmptySnapshot(options: {
   repositoryRoot: string;
   event: NormalizedWorkflowEvent;
   excludePaths: string[];
   findings?: AnalyzerFinding[];
+  context: ArchitectureDriftContext;
 }): AnalyzerSnapshot {
   const findings = options.findings ?? [];
 
   return {
-    analyzerId: "js-architecture-drift",
+    analyzerId: options.context.analyzerId,
     timestamp: new Date().toISOString(),
     repositoryRoot: options.repositoryRoot,
     event: options.event,
@@ -25,10 +32,12 @@ export function buildEmptySnapshot(options: {
       moduleCount: 0,
       cycleCount: 0,
       boundaryViolationCount: 0,
-      unassignedModuleCount: findings.filter((finding) => finding.category === "unassigned-module")
-        .length,
-      configIssueCount: findings.filter((finding) => finding.category === "invalid-role-config")
-        .length,
+      unassignedModuleCount: findings.filter(
+        (finding) => finding.category === VIOLATION_CATEGORIES.UNASSIGNED_MODULE,
+      ).length,
+      configIssueCount: findings.filter(
+        (finding) => finding.category === VIOLATION_CATEGORIES.INVALID_ROLE_CONFIG,
+      ).length,
       excludedPathCount: 0,
     },
     metadata: {
@@ -55,16 +64,17 @@ export function filterResult(
 export function createCycleFindings(
   repositoryRoot: string,
   circular: string[][],
+  context: ArchitectureDriftContext,
 ): AnalyzerFinding[] {
   return circular.map((cyclePath) => ({
     fingerprint: `${cyclePath.join("->")}:cycle`,
-    analyzerId: "js-architecture-drift",
-    facetId: "js",
+    analyzerId: context.analyzerId,
+    facetId: context.facetId,
     severity: "error" as const,
-    category: "cycle",
+    category: VIOLATION_CATEGORIES.CIRCULAR_DEPENDENCY,
     message: `Dependency cycle detected for ${cyclePath.join(" -> ")}.`,
     scope: {
-      kind: "dependency-edge" as const,
+      kind: FINDING_SCOPES.DEPENDENCY_EDGE,
       path: resolve(repositoryRoot, cyclePath[0] ?? "."),
       dependency: {
         from: cyclePath[0] ?? ".",

@@ -1,12 +1,13 @@
 import type { AnalyzerFinding } from "@spectotal/direc-analysis-runtime";
 import { buildUnassignedModuleFinding } from "./role-findings.js";
-import type { ModuleRoleAssignments } from "./role-assignment.js";
-import type { MadgeGraph } from "./types.js";
+import type { ModuleRoleAssignments } from "../assignments/index.js";
+import type { MadgeGraph, ArchitectureDriftContext } from "../types/index.js";
 
 export function collectUnassignedModuleFindings(
   repositoryRoot: string,
   graph: MadgeGraph,
   roleAssignments: ModuleRoleAssignments,
+  context: ArchitectureDriftContext,
 ): AnalyzerFinding[] {
   const incomingAssignedDependencies = collectIncomingAssignedDependencies(graph, roleAssignments);
 
@@ -28,6 +29,7 @@ export function collectUnassignedModuleFindings(
           modulePath,
           assignedDependencies,
           assignedDependents,
+          context,
         }),
       ];
     });

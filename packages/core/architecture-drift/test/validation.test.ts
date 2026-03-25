@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { validateRoleConfiguration } from "../src/validation.js";
+import { validateRoleConfiguration } from "../src/index.js";
+
+const TEST_CONTEXT = { analyzerId: "test-analyzer", facetId: "test-facet" };
 
 test("validateRoleConfiguration reports broken role and rule definitions", () => {
   const findings = validateRoleConfiguration(
@@ -34,6 +36,7 @@ test("validateRoleConfiguration reports broken role and rule definitions", () =>
         allSourceRoles: [""],
       },
     ],
+    TEST_CONTEXT,
   );
 
   assert.deepEqual(

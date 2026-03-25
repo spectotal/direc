@@ -1,10 +1,11 @@
 import type { AnalyzerFinding } from "@spectotal/direc-analysis-runtime";
 import { createConfigFinding } from "./config-findings.js";
-import type { ModuleRoleDefinition } from "./types.js";
+import type { ModuleRoleDefinition, ArchitectureDriftContext } from "../types/index.js";
 
 export function validateRoleDefinitions(
   repositoryRoot: string,
   roleDefinitions: ModuleRoleDefinition[],
+  context: ArchitectureDriftContext,
 ): AnalyzerFinding[] {
   const findings: AnalyzerFinding[] = [];
   const roleNames = roleDefinitions.map((definition) => definition.role).filter(isNonEmptyString);
@@ -19,6 +20,7 @@ export function validateRoleDefinitions(
         {
           role: duplicateRoleName,
         },
+        context,
       ),
     );
   }
@@ -33,6 +35,7 @@ export function validateRoleDefinitions(
           {
             index,
           },
+          context,
         ),
       );
     }
@@ -46,7 +49,9 @@ export function validateRoleDefinitions(
           {
             index,
             role: definition.role,
+            roleDefinition: definition,
           },
+          context,
         ),
       );
       return;
@@ -64,6 +69,7 @@ export function validateRoleDefinitions(
               role: definition.role,
               patternIndex,
             },
+            context,
           ),
         );
       }

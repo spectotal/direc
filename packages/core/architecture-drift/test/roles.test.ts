@@ -4,7 +4,9 @@ import {
   collectModuleRoleAssignments,
   collectRoleBoundaryViolations,
   collectUnassignedModuleFindings,
-} from "../src/roles.js";
+} from "../src/index.js";
+
+const TEST_CONTEXT = { analyzerId: "test-analyzer", facetId: "test-facet" };
 
 test("collectModuleRoleAssignments maps modules to configured roles", () => {
   const assignments = collectModuleRoleAssignments(
@@ -55,13 +57,19 @@ test("collectRoleBoundaryViolations reports forbidden role-to-role dependencies"
     },
   ]);
 
-  const findings = collectRoleBoundaryViolations(process.cwd(), graph, assignments, [
-    {
-      sourceRole: "workflow-event-shaper",
-      onlyDependOnRoles: ["workflow-event-shaper", "workflow-shared-types"],
-      message: "Event shapers must only depend on shared workflow helpers.",
-    },
-  ]);
+  const findings = collectRoleBoundaryViolations(
+    process.cwd(),
+    graph,
+    assignments,
+    [
+      {
+        sourceRole: "workflow-event-shaper",
+        onlyDependOnRoles: ["workflow-event-shaper", "workflow-shared-types"],
+        message: "Event shapers must only depend on shared workflow helpers.",
+      },
+    ],
+    TEST_CONTEXT,
+  );
 
   assert.equal(findings.length, 1);
   assert.equal(findings[0]?.category, "forbidden-role-dependency");
@@ -97,16 +105,22 @@ test("collectRoleBoundaryViolations combines matching constraints with AND seman
     },
   ]);
 
-  const findings = collectRoleBoundaryViolations(process.cwd(), graph, assignments, [
-    {
-      sourceRole: "ui",
-      onlyDependOnRoles: ["shared"],
-    },
-    {
-      sourceRole: "feature",
-      onlyDependOnRoles: ["domain"],
-    },
-  ]);
+  const findings = collectRoleBoundaryViolations(
+    process.cwd(),
+    graph,
+    assignments,
+    [
+      {
+        sourceRole: "ui",
+        onlyDependOnRoles: ["shared"],
+      },
+      {
+        sourceRole: "feature",
+        onlyDependOnRoles: ["domain"],
+      },
+    ],
+    TEST_CONTEXT,
+  );
 
   assert.equal(findings.length, 1);
   assert.deepEqual(findings[0]?.details, {
@@ -139,13 +153,19 @@ test("collectRoleBoundaryViolations supports allSourceRoles and deny constraints
     },
   ]);
 
-  const findings = collectRoleBoundaryViolations(process.cwd(), graph, assignments, [
-    {
-      allSourceRoles: ["ui", "feature"],
-      notDependOnRoles: ["shared"],
-      message: "UI feature modules must not depend on shared modules here.",
-    },
-  ]);
+  const findings = collectRoleBoundaryViolations(
+    process.cwd(),
+    graph,
+    assignments,
+    [
+      {
+        allSourceRoles: ["ui", "feature"],
+        notDependOnRoles: ["shared"],
+        message: "UI feature modules must not depend on shared modules here.",
+      },
+    ],
+    TEST_CONTEXT,
+  );
 
   assert.equal(findings.length, 1);
   assert.deepEqual(findings[0]?.details, {
@@ -170,7 +190,7 @@ test("collectUnassignedModuleFindings reports adjacent modules without roles", (
     },
   ]);
 
-  const findings = collectUnassignedModuleFindings(process.cwd(), graph, assignments);
+  const findings = collectUnassignedModuleFindings(process.cwd(), graph, assignments, TEST_CONTEXT);
 
   assert.equal(findings.length, 1);
   assert.equal(findings[0]?.category, "unassigned-module");

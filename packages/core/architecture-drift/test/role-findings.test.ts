@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildRoleBoundaryFinding, buildUnassignedModuleFinding } from "../src/role-findings.js";
+import { buildRoleBoundaryFinding, buildUnassignedModuleFinding } from "../src/index.js";
+
+const TEST_CONTEXT = { analyzerId: "test-analyzer", facetId: "test-facet" };
 
 test("buildRoleBoundaryFinding preserves dependency-edge details", () => {
   const finding = buildRoleBoundaryFinding({
@@ -14,6 +16,7 @@ test("buildRoleBoundaryFinding preserves dependency-edge details", () => {
     matchedForbiddenRoles: ["data"],
     violationKinds: ["onlyDependOnRoles", "notDependOnRoles"],
     message: "ui must only depend on shared and must not depend on data",
+    context: TEST_CONTEXT,
   });
 
   assert.equal(finding.category, "forbidden-role-dependency");
@@ -35,6 +38,7 @@ test("buildUnassignedModuleFinding preserves adjacent dependency details", () =>
     modulePath: "src/helper.ts",
     assignedDependencies: ["src/core.ts"],
     assignedDependents: ["src/ui.ts"],
+    context: TEST_CONTEXT,
   });
 
   assert.equal(finding.category, "unassigned-module");
