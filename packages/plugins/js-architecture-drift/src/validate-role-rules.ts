@@ -17,34 +17,6 @@ export function validateRoleRules(
     const hasOnlyDependOnRolesKey = "onlyDependOnRoles" in rule;
     const hasNotDependOnRolesKey = "notDependOnRoles" in rule;
 
-    if ("fromRoles" in rule) {
-      findings.push(
-        createConfigFinding(
-          repositoryRoot,
-          `rule-${index}:legacy-from-roles`,
-          `Role boundary rule at index ${index} uses removed field "fromRoles"; use "sourceRole" or "allSourceRoles" instead.`,
-          {
-            index,
-            side: "fromRoles",
-          },
-        ),
-      );
-    }
-
-    if ("disallowRoles" in rule) {
-      findings.push(
-        createConfigFinding(
-          repositoryRoot,
-          `rule-${index}:legacy-disallow-roles`,
-          `Role boundary rule at index ${index} uses removed field "disallowRoles"; use "onlyDependOnRoles" or "notDependOnRoles" instead.`,
-          {
-            index,
-            side: "disallowRoles",
-          },
-        ),
-      );
-    }
-
     if (hasSourceRoleKey && !isNonEmptyString(rule.sourceRole)) {
       findings.push(
         createConfigFinding(
