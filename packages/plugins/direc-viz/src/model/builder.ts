@@ -22,6 +22,7 @@ export function buildVizModel(
   driftSnapshot: AnalyzerSnapshot | null,
   complexitySnapshot: AnalyzerSnapshot | null,
   historyPoints: ReaderHistoryPoint[],
+  repositoryRoot: string,
 ): VizModel {
   const driftMeta = driftSnapshot?.metadata as
     | {
@@ -167,6 +168,7 @@ export function buildVizModel(
 
   return {
     generatedAt: new Date().toISOString(),
+    repositoryRoot,
     roles,
     edges,
     violations,

@@ -40,6 +40,7 @@ export interface HistoryPoint {
 
 export interface VizModel {
   generatedAt: string;
+  repositoryRoot: string;
   roles: RoleNode[];
   edges: DependencyEdge[];
   violations: Violation[];

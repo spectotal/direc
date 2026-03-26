@@ -371,7 +371,10 @@ export function buildHtmlTemplate(dataJson: string): string {
 
         var path = document.createElement('span');
         path.className = 'hm-path';
-        path.textContent = f.path.replace(/^.*\\/src\\//, 'src/');
+        var repoRoot = data.repositoryRoot ? data.repositoryRoot.replace(/\\\\$/, '') : '';
+        path.textContent = (repoRoot && f.path.startsWith(repoRoot))
+          ? f.path.slice(repoRoot.length).replace(/^\\//, '')
+          : f.path;
 
         var score = document.createElement('span');
         score.className = 'hm-score';
@@ -443,7 +446,7 @@ export function buildHtmlTemplate(dataJson: string): string {
 
   <!-- React Flow diagram (module, runs after DOMContentLoaded) -->
   <script type="module">
-  import React, { useMemo } from 'react';
+  import React, { useMemo, useState, useRef, useCallback } from 'react';
   import { createRoot } from 'react-dom/client';
   import {
     ReactFlow, Controls, Background, MarkerType,
@@ -457,36 +460,19 @@ export function buildHtmlTemplate(dataJson: string): string {
   var NODE_W = 200;
   var NODE_H = 72;
 
-  /* ── Dagre layout – minimises edge crossings ──────────────────────────── */
+  /* ── Dagre layout ──────────────────────────────────────────────────────── */
   function computeLayout(roles, edges) {
     var g = new dagre.graphlib.Graph({ compound: true });
     g.setDefaultEdgeLabel(function() { return {}; });
-    g.setGraph({
-      rankdir: 'TB',   // top → bottom hierarchy
-      ranksep: 80,     // vertical gap between ranks
-      nodesep: 40,     // horizontal gap between nodes on same rank
-      edgesep: 20,
-      marginx: 40,
-      marginy: 40,
-    });
-
-    roles.forEach(function(r) {
-      g.setNode(r.id, { width: NODE_W, height: NODE_H });
-    });
-
-    // Use only non-violation edges for layout so violations don't distort ranks
+    g.setGraph({ rankdir: 'TB', ranksep: 80, nodesep: 40, edgesep: 20, marginx: 40, marginy: 40 });
+    roles.forEach(function(r) { g.setNode(r.id, { width: NODE_W, height: NODE_H }); });
     edges.forEach(function(e) {
-      if (!e.violation && g.hasNode(e.from) && g.hasNode(e.to)) {
-        g.setEdge(e.from, e.to);
-      }
+      if (!e.violation && g.hasNode(e.from) && g.hasNode(e.to)) g.setEdge(e.from, e.to);
     });
-
     dagre.layout(g);
-
     var positions = {};
     roles.forEach(function(r) {
       var n = g.node(r.id);
-      // dagre centres nodes; React Flow uses top-left corner
       positions[r.id] = { x: n.x - NODE_W / 2, y: n.y - NODE_H / 2 };
     });
     return positions;
@@ -499,7 +485,7 @@ export function buildHtmlTemplate(dataJson: string): string {
     return { bg: '#2d0a0a', border: '#ef4444', text: '#fca5a5' };
   }
 
-  /* ── Node label component ─────────────────────────────────────────────── */
+  /* ── Node label ────────────────────────────────────────────────────────── */
   function NodeLabel(props) {
     var r = props.role;
     var colors = nodeColors(r.violationCount);
@@ -516,24 +502,26 @@ export function buildHtmlTemplate(dataJson: string): string {
     );
   }
 
-  /* ── Main diagram component ───────────────────────────────────────────── */
+  /* ── Diagram ───────────────────────────────────────────────────────────── */
   function ArchDiagram() {
     var positions = useMemo(function() { return computeLayout(data.roles, data.edges); }, []);
 
+    // Base nodes/edges (positions tracked by React Flow for dragging)
     var initialNodes = useMemo(function() {
       return data.roles.map(function(r) {
         var colors = nodeColors(r.violationCount);
         return {
           id: r.id,
           position: positions[r.id] || { x: 0, y: 0 },
-          data: { label: ce(NodeLabel, { role: r }) },
+          data: { label: ce(NodeLabel, { role: r }), colors: colors },
           style: {
             background: colors.bg,
             border: '1px solid ' + colors.border,
             borderRadius: r.id === '__unassigned__' ? '50%' : '6px',
             padding: '8px 12px',
-            width: '200px',
+            width: NODE_W + 'px',
             boxShadow: '0 2px 10px rgba(0,0,0,0.5)',
+            transition: 'opacity 0.15s ease, box-shadow 0.15s ease',
           },
           type: 'default',
         };
@@ -548,15 +536,16 @@ export function buildHtmlTemplate(dataJson: string): string {
           target: e.to,
           type: 'smoothstep',
           animated: e.violation,
+          _violation: e.violation,
           style: {
             stroke: e.violation ? '#ef4444' : '#334155',
             strokeWidth: e.violation ? 2 : 1,
+            transition: 'opacity 0.15s ease',
           },
           markerEnd: {
             type: MarkerType.ArrowClosed,
             color: e.violation ? '#ef4444' : '#334155',
-            width: 14,
-            height: 14,
+            width: 14, height: 14,
           },
         };
       });
@@ -564,12 +553,100 @@ export function buildHtmlTemplate(dataJson: string): string {
 
     var nodesState = useNodesState(initialNodes);
     var edgesState = useEdgesState(initialEdges);
+    var rfNodes = nodesState[0], onNodesChange = nodesState[2];
+    var rfEdges = edgesState[0], onEdgesChange = edgesState[2];
+
+    /* ── Highlight state ─────────────────────────────────────────────────── */
+    var activeIdState = useState(null);
+    var activeId = activeIdState[0], setActiveId = activeIdState[1];
+    var pinnedRef = useRef(false);   // click locks the highlight
+
+    // Sets of connected node/edge IDs for the active node
+    var connected = useMemo(function() {
+      if (!activeId) return null;
+      var nodeIds = new Set([activeId]);
+      var edgeIds = new Set();
+      rfEdges.forEach(function(e) {
+        if (e.source === activeId || e.target === activeId) {
+          edgeIds.add(e.id);
+          nodeIds.add(e.source);
+          nodeIds.add(e.target);
+        }
+      });
+      return { nodeIds: nodeIds, edgeIds: edgeIds };
+    }, [activeId, rfEdges]);
+
+    // Overlay highlight/dim on top of drag-tracked nodes
+    var displayNodes = useMemo(function() {
+      if (!connected) return rfNodes;
+      return rfNodes.map(function(n) {
+        var isConnected = connected.nodeIds.has(n.id);
+        var isActive    = n.id === activeId;
+        return Object.assign({}, n, {
+          style: Object.assign({}, n.style, {
+            opacity: isConnected ? 1 : 0.12,
+            boxShadow: isActive
+              ? '0 0 0 2px ' + n.data.colors.border + ', 0 0 18px ' + n.data.colors.border + '88'
+              : isConnected
+                ? '0 0 0 1px ' + n.data.colors.border + '66, 0 2px 10px rgba(0,0,0,0.5)'
+                : 'none',
+          }),
+        });
+      });
+    }, [rfNodes, connected, activeId]);
+
+    // Overlay highlight/dim on top of edges
+    var displayEdges = useMemo(function() {
+      if (!connected) return rfEdges;
+      return rfEdges.map(function(e) {
+        var isHighlighted = connected.edgeIds.has(e.id);
+        return Object.assign({}, e, {
+          animated: isHighlighted || e._violation,
+          style: Object.assign({}, e.style, {
+            opacity:     isHighlighted ? 1 : 0.04,
+            strokeWidth: isHighlighted ? (e._violation ? 3 : 2.5) : (e._violation ? 2 : 1),
+            stroke:      isHighlighted ? (e._violation ? '#f87171' : '#64748b') : e.style.stroke,
+          }),
+          markerEnd: Object.assign({}, e.markerEnd, {
+            color: isHighlighted ? (e._violation ? '#f87171' : '#64748b') : e.markerEnd.color,
+          }),
+        });
+      });
+    }, [rfEdges, connected]);
+
+    /* ── Event handlers ──────────────────────────────────────────────────── */
+    var onNodeMouseEnter = useCallback(function(evt, node) {
+      if (!pinnedRef.current) setActiveId(node.id);
+    }, []);
+
+    var onNodeMouseLeave = useCallback(function() {
+      if (!pinnedRef.current) setActiveId(null);
+    }, []);
+
+    var onNodeClick = useCallback(function(evt, node) {
+      if (pinnedRef.current && activeId === node.id) {
+        pinnedRef.current = false;
+        setActiveId(null);
+      } else {
+        pinnedRef.current = true;
+        setActiveId(node.id);
+      }
+    }, [activeId]);
+
+    var onPaneClick = useCallback(function() {
+      pinnedRef.current = false;
+      setActiveId(null);
+    }, []);
 
     return ce(ReactFlow, {
-        nodes: nodesState[0],
-        edges: edgesState[0],
-        onNodesChange: nodesState[2],
-        onEdgesChange: edgesState[2],
+        nodes: displayNodes,
+        edges: displayEdges,
+        onNodesChange: onNodesChange,
+        onEdgesChange: onEdgesChange,
+        onNodeMouseEnter: onNodeMouseEnter,
+        onNodeMouseLeave: onNodeMouseLeave,
+        onNodeClick: onNodeClick,
+        onPaneClick: onPaneClick,
         colorMode: 'dark',
         fitView: true,
         fitViewOptions: { padding: 0.15 },

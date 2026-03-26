@@ -23,7 +23,13 @@ export async function generateViz(repositoryRoot: string, outPath: string): Prom
 
   const historyPoints = await readHistory(repositoryRoot);
 
-  const model = buildVizModel(config, driftSnapshot, complexitySnapshot, historyPoints);
+  const model = buildVizModel(
+    config,
+    driftSnapshot,
+    complexitySnapshot,
+    historyPoints,
+    repositoryRoot,
+  );
   const html = serialise(model);
 
   await mkdir(dirname(outPath), { recursive: true });
