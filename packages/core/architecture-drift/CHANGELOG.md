@@ -1,6 +1,6 @@
-# @spectotal/direc-agent-skills
+# @spectotal/direc-core-architecture-drift
 
-## 0.2.0
+## 0.3.0
 
 ### Minor Changes
 
@@ -9,7 +9,3 @@
   Introduce `direc viz` for generating a shareable HTML architecture report from `.direc` snapshots and history.
 
   Extract shared architecture-drift logic into a dedicated core package and migrate the JavaScript architecture drift plugin to the new TypeScript-based graph pipeline.
-
-## 0.1.0
-
-- Initial package for repo-local agent skill scaffolding.

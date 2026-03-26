@@ -1,6 +1,6 @@
 {
   "name": "@spectotal/direc-agent-skills",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Repo-local skill and prompt scaffolding for Direc-supported agents.",
   "type": "module",
   "main": "./dist/index.js",

@@ -1,6 +1,6 @@
 {
   "name": "@spectotal/direc-viz",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Visualization generator for direc bounded architecture reports.",
   "type": "module",
   "main": "./dist/index.js",

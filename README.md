@@ -11,6 +11,14 @@
 
 ---
 
+Direc gives your repository a living architecture model.
+
+- It integrates with Antigravity, Codex, and Claude Code through repo-local commands like `/direc-bound`.
+- It turns your current architecture state into a visual report with `npx direc viz`.
+- It keeps boundaries, drift, and complexity visible while your code keeps moving.
+
+---
+
 ## Getting Started
 
 ### Install
@@ -23,7 +31,7 @@ npm install -g direc
 
 ### Initialize a project
 
-`direc init` detects your repository facets, enables matching analyzers, and writes a local `.direc/config.json`. It can also scaffold repo-local agent assets for Codex, Claude, and Antigravity:
+`direc init` detects your repository facets, enables matching analyzers, and writes a local `.direc/config.json`. It can also scaffold repo-local agent assets for Codex, Claude Code, and Antigravity:
 
 ```bash
 direc init --agent codex --agent claude
@@ -85,9 +93,19 @@ direc doctor
 
 Validates that your `.direc/config.json` is well-formed and all referenced analyzers are loadable.
 
+### b. Visualize
+
+Turn the current architecture state into a shareable report.
+
+```bash
+npx direc viz
+```
+
+`npx direc viz` generates an HTML view of your architecture diagram, complexity heatmap, and progress over time.
+
 ---
 
-### b. Automation 🧪
+### c. Automation 🧪
 
 > [!WARNING]
 > **Experimental** — the automation surface is under active development and may change.
