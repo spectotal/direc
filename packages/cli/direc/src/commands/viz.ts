@@ -34,9 +34,32 @@ function openBrowser(filePath: string): void {
   exec(cmd);
 }
 
+const DEFAULT_FILENAME = "direc-report.html";
+
+async function resolveOutPath(raw: string): Promise<string> {
+  const resolved = resolve(process.cwd(), raw);
+
+  // Explicit directory separator at the end → treat as directory
+  if (raw.endsWith("/") || raw.endsWith("\\")) {
+    return resolve(resolved, DEFAULT_FILENAME);
+  }
+
+  // Path already exists as a directory
+  try {
+    const s = await stat(resolved);
+    if (s.isDirectory()) {
+      return resolve(resolved, DEFAULT_FILENAME);
+    }
+  } catch {
+    // doesn't exist yet — treat as a file path, mkdir will create parents
+  }
+
+  return resolved;
+}
+
 export async function vizCommand(options: VizOptions): Promise<void> {
   const repositoryRoot = await findDirecRoot(process.cwd());
-  const outPath = resolve(process.cwd(), options.out);
+  const outPath = await resolveOutPath(options.out);
 
   await generateViz(repositoryRoot, outPath);
 
