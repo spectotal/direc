@@ -50,7 +50,8 @@
     "@spectotal/direc-agent-skills": "workspace:*",
     "@spectotal/direc-analysis-runtime": "workspace:*",
     "@spectotal/direc-automation-runtime": "workspace:*",
-    "@spectotal/direc-engine": "workspace:*"
+    "@spectotal/direc-engine": "workspace:*",
+    "@spectotal/direc-viz": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
