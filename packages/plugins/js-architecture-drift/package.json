@@ -19,6 +19,7 @@
   },
   "scripts": {
     "build": "rimraf dist && tsc -p tsconfig.json",
+    "build:watch": "rimraf dist && tsc -p tsconfig.json --watch",
     "clean": "rimraf dist",
     "test": "tsx --test test/**/*.test.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json"
