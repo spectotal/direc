@@ -36,7 +36,9 @@ test("scaffoldInitBundles writes only requested agent artifacts", async () => {
   );
 
   assert.match(prompt, /\/direc-bound/);
+  assert.match(prompt, /open a GitHub issue/i);
   assert.match(skill, /name: direc-bound-architecture/);
+  assert.match(skill, /detected facets and enabled analyzers/);
 });
 
 test("scaffoldInitBundles keeps canonical command bodies aligned across agents", async () => {
