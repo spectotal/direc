@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-03-24T16:48:38.363Z",
+  "generatedAt": "2026-03-26T11:45:46.007Z",
   "workflow": "direc",
   "facets": ["js", "python", "css", "tailwind"],
   "qualityRoutines": {
@@ -36,7 +36,7 @@
           "--pretty",
           "false",
           "-p",
-          "packages/adapters/direc/tsconfig.json"
+          ".claude/worktrees/keen-swanson/packages/adapters/direc/tsconfig.json"
         ]
       }
     }
@@ -50,7 +50,7 @@
       "kind": "command",
       "command": "/Users/zavalit/.nvm/versions/node/v22.21.1/bin/node",
       "args": [
-        "/Users/zavalit/Playgrounds/direc-project-linters/packages/core/direc-engine/bin/direc-subagent.js"
+        "/Users/zavalit/Projects/spectotal/direc/packages/core/direc-engine/bin/direc-subagent.js"
       ]
     },
     "triggers": {
@@ -98,293 +98,130 @@
         ],
         "moduleRoles": [
           {
-            "role": "architecture-drift",
-            "description": "Architecture drift analyzer and related utilities.",
-            "match": [
-              "packages/core/architecture-drift/src/index.ts",
-              "packages/core/architecture-drift/src/types",
-              "packages/core/architecture-drift/src/validation",
-              "packages/core/architecture-drift/src/assignments",
-              "packages/core/architecture-drift/src/violations"
-            ]
+            "role": "cli-direc",
+            "match": ["packages/cli/direc/**"]
           },
           {
-            "role": "js-architecture-drift-plugin",
-            "description": "JS Architecture Drift plugin.",
-            "match": ["packages/plugins/js-architecture-drift/src"]
+            "role": "adapter-direc",
+            "match": ["packages/adapters/direc/**"]
           },
           {
-            "role": "cli-command-surface",
-            "description": "CLI command registration and command handlers.",
-            "match": [
-              "packages/cli/direc/src/cli.ts",
-              "packages/cli/direc/src/main.ts",
-              "packages/cli/direc/src/run-cli.ts",
-              "packages/cli/direc/src/commands"
-            ]
+            "role": "adapter-openspec",
+            "match": ["packages/adapters/openspec/**"]
           },
           {
-            "role": "cli-output-formatting",
-            "description": "CLI-only output formatters and presentation helpers.",
-            "match": ["packages/cli/direc/src/lib"]
+            "role": "analysis-runtime",
+            "match": ["packages/core/analysis-runtime/**"]
           },
           {
-            "role": "cli-public-api",
-            "description": "Public CLI package entrypoint.",
-            "match": ["packages/cli/direc/src/index.ts"]
+            "role": "architecture-core",
+            "match": ["packages/core/architecture-drift/**"]
           },
           {
-            "role": "engine-public-api",
-            "description": "Public engine package entrypoint.",
-            "match": ["packages/core/direc-engine/src/index.ts"]
+            "role": "automation-runtime",
+            "match": ["packages/core/automation-runtime/**"]
           },
           {
-            "role": "engine-config-bootstrap",
-            "description": "Bootstrap helpers for config, files, and templates.",
-            "match": [
-              "packages/core/direc-engine/src/config.ts",
-              "packages/core/direc-engine/src/fs.ts",
-              "packages/core/direc-engine/src/templates.ts"
-            ]
+            "role": "engine",
+            "match": ["packages/core/direc-engine/**"]
           },
           {
-            "role": "engine-extension-loading",
-            "description": "Extension contracts and loader logic.",
-            "match": [
-              "packages/core/direc-engine/src/extension-types.ts",
-              "packages/core/direc-engine/src/extensions.ts",
-              "packages/core/direc-engine/src/extensions-helpers.ts"
-            ]
+            "role": "telemetry",
+            "match": ["packages/core/direc-telemetry/**"]
           },
           {
-            "role": "engine-analyzer-registry",
-            "description": "Analyzer registration and composition.",
-            "match": ["packages/core/direc-engine/src/analyzers.ts"]
+            "role": "workflow-runtime",
+            "match": ["packages/core/workflow-runtime/**"]
           },
           {
-            "role": "engine-quality-routines",
-            "description": "Quality-routine detection, adapters, and analyzers.",
-            "match": [
-              "packages/core/direc-engine/src/quality-routines.ts",
-              "packages/core/direc-engine/src/quality-routines"
-            ]
+            "role": "agent-skills",
+            "match": ["packages/core/agent-skills/**", "packages/core/direc-skills/**"]
           },
           {
-            "role": "engine-runtime-assembly",
-            "description": "Runtime environment assembly and workflow registry resolution.",
-            "match": [
-              "packages/core/direc-engine/src/runtime-environment.ts",
-              "packages/core/direc-engine/src/registry"
-            ]
+            "role": "facet-detect",
+            "match": ["packages/facets/detect/**"]
           },
           {
-            "role": "engine-analysis-execution",
-            "description": "Analysis execution orchestration.",
-            "match": ["packages/core/direc-engine/src/analysis-runner.ts"]
+            "role": "plugin-js-architecture-drift",
+            "match": ["packages/plugins/js-architecture-drift/**"]
           },
           {
-            "role": "engine-automation-execution",
-            "description": "Automation execution orchestration.",
-            "match": ["packages/core/direc-engine/src/automation-runner.ts"]
-          },
-          {
-            "role": "core-runtime",
-            "description": "Core runtime modules that stay independent from CLI and engine composition.",
-            "match": ["packages/core/analysis-runtime/src", "packages/core/automation-runtime/src"]
-          },
-          {
-            "role": "workflow-contract",
-            "description": "Workflow contracts shared by runtimes and adapters.",
-            "match": ["packages/core/workflow-runtime/src"]
-          },
-          {
-            "role": "workflow-public-entry",
-            "description": "Public adapter entrypoints that should stay thin.",
-            "match": [
-              "packages/adapters/direc/src/index.ts",
-              "packages/adapters/openspec/src/index.ts"
-            ]
-          },
-          {
-            "role": "workflow-orchestrator",
-            "description": "Adapter modules that coordinate workflow behavior.",
-            "match": [
-              "packages/adapters/direc/src/adapter.ts",
-              "packages/adapters/openspec/src/adapter.ts",
-              "packages/adapters/openspec/src/watch.ts"
-            ]
-          },
-          {
-            "role": "workflow-event-shaper",
-            "description": "Workflow event and transition normalization helpers.",
-            "match": [
-              "packages/adapters/direc/src/events.ts",
-              "packages/adapters/openspec/src/events.ts",
-              "packages/adapters/openspec/src/event-transitions.ts",
-              "packages/adapters/openspec/src/status-revision.ts"
-            ]
-          },
-          {
-            "role": "workflow-change-loader",
-            "description": "Leaf modules that load change state.",
-            "match": [
-              "packages/adapters/direc/src/git.ts",
-              "packages/adapters/openspec/src/status.ts"
-            ]
-          },
-          {
-            "role": "workflow-support",
-            "description": "Internal adapter helpers that support loaders or watchers.",
-            "match": [
-              "packages/adapters/direc/src/analysis-events.ts",
-              "packages/adapters/direc/src/watch-events.ts",
-              "packages/adapters/openspec/src/status-io.ts",
-              "packages/adapters/openspec/src/status-json.ts",
-              "packages/adapters/openspec/src/status-snapshot.ts",
-              "packages/adapters/openspec/src/status-tasks.ts"
-            ]
-          },
-          {
-            "role": "workflow-shared-types",
-            "description": "Adapter-local shared type modules.",
-            "match": [
-              "packages/adapters/direc/src/types.ts",
-              "packages/adapters/openspec/src/types.ts"
-            ]
+            "role": "plugin-js-complexity",
+            "match": ["packages/plugins/js-complexity/**"]
           }
         ],
         "roleBoundaryRules": [
           {
-            "sourceRole": "architecture-drift",
-            "onlyDependOnRoles": ["architecture-drift"],
-            "message": "Architecture drift analysis must stay self-contained."
-          },
-          {
-            "sourceRole": "js-architecture-drift-plugin",
-            "onlyDependOnRoles": ["js-architecture-drift-plugin", "architecture-drift"],
-            "message": "Architecture drift analysis must stay self-contained."
-          },
-          {
-            "sourceRole": "cli-output-formatting",
-            "onlyDependOnRoles": ["cli-output-formatting"],
-            "message": "CLI output helpers must stay presentation-only."
-          },
-          {
-            "sourceRole": "cli-command-surface",
-            "onlyDependOnRoles": ["cli-command-surface", "cli-output-formatting"],
-            "message": "CLI commands may depend only on command handlers and CLI presentation helpers."
-          },
-          {
-            "sourceRole": "cli-public-api",
-            "onlyDependOnRoles": ["cli-command-surface"],
-            "message": "CLI public entrypoints must stay thin and delegate into command handlers."
-          },
-          {
-            "sourceRole": "engine-public-api",
+            "sourceRole": "cli-direc",
             "onlyDependOnRoles": [
-              "engine-config-bootstrap",
-              "engine-extension-loading",
-              "engine-analyzer-registry",
-              "engine-quality-routines",
-              "engine-runtime-assembly",
-              "engine-analysis-execution",
-              "engine-automation-execution"
-            ],
-            "message": "The engine public API may compose engine internals, but must not reach into CLI or adapter layers."
+              "cli-direc",
+              "engine",
+              "analysis-runtime",
+              "automation-runtime",
+              "agent-skills"
+            ]
           },
           {
-            "sourceRole": "engine-config-bootstrap",
-            "onlyDependOnRoles": ["engine-config-bootstrap"],
-            "message": "Engine bootstrap helpers must stay self-contained."
+            "sourceRole": "adapter-direc",
+            "onlyDependOnRoles": ["adapter-direc", "workflow-runtime"]
           },
           {
-            "sourceRole": "engine-extension-loading",
-            "onlyDependOnRoles": ["engine-extension-loading", "engine-quality-routines"],
-            "message": "Extension loading may depend only on extension-loading helpers and quality-routine contracts."
+            "sourceRole": "adapter-openspec",
+            "onlyDependOnRoles": ["adapter-openspec", "workflow-runtime"]
           },
           {
-            "sourceRole": "engine-analyzer-registry",
-            "onlyDependOnRoles": ["engine-quality-routines"],
-            "message": "Analyzer registry modules may depend only on quality-routine composition."
+            "sourceRole": "analysis-runtime",
+            "onlyDependOnRoles": ["analysis-runtime", "workflow-runtime"]
           },
           {
-            "sourceRole": "engine-quality-routines",
-            "onlyDependOnRoles": ["engine-quality-routines"],
-            "message": "Quality-routine modules may depend only on quality-routine helpers."
+            "sourceRole": "architecture-core",
+            "onlyDependOnRoles": ["architecture-core", "analysis-runtime"]
           },
           {
-            "sourceRole": "engine-runtime-assembly",
+            "sourceRole": "automation-runtime",
+            "onlyDependOnRoles": ["automation-runtime", "analysis-runtime", "workflow-runtime"]
+          },
+          {
+            "sourceRole": "engine",
             "onlyDependOnRoles": [
-              "engine-analyzer-registry",
-              "engine-extension-loading",
-              "engine-quality-routines",
-              "engine-runtime-assembly"
-            ],
-            "message": "Runtime assembly may depend only on registry, extension-loading, and quality-routine layers."
+              "engine",
+              "analysis-runtime",
+              "automation-runtime",
+              "workflow-runtime",
+              "adapter-direc",
+              "adapter-openspec",
+              "facet-detect",
+              "plugin-js-architecture-drift",
+              "plugin-js-complexity"
+            ]
           },
           {
-            "sourceRole": "engine-analysis-execution",
-            "onlyDependOnRoles": ["engine-analysis-execution"],
-            "message": "Analysis execution must stay isolated from runtime assembly details."
+            "sourceRole": "telemetry",
+            "onlyDependOnRoles": ["telemetry", "analysis-runtime"]
           },
           {
-            "sourceRole": "engine-automation-execution",
-            "onlyDependOnRoles": ["engine-analysis-execution", "engine-automation-execution"],
-            "message": "Automation execution may build on analysis execution, but not on broader engine orchestration."
+            "sourceRole": "workflow-runtime",
+            "onlyDependOnRoles": ["workflow-runtime"]
           },
           {
-            "sourceRole": "core-runtime",
-            "onlyDependOnRoles": ["core-runtime"],
-            "message": "Core runtime modules must remain self-contained."
+            "sourceRole": "agent-skills",
+            "onlyDependOnRoles": ["agent-skills"]
           },
           {
-            "sourceRole": "workflow-contract",
-            "onlyDependOnRoles": ["workflow-contract"],
-            "message": "Workflow contracts must remain independent from adapters and higher orchestration layers."
+            "sourceRole": "facet-detect",
+            "onlyDependOnRoles": ["facet-detect", "analysis-runtime"]
           },
           {
-            "sourceRole": "workflow-public-entry",
-            "onlyDependOnRoles": ["workflow-orchestrator", "workflow-shared-types"],
-            "message": "Workflow public entrypoints must stay thin and delegate through orchestrators or shared types."
-          },
-          {
-            "sourceRole": "workflow-orchestrator",
+            "sourceRole": "plugin-js-architecture-drift",
             "onlyDependOnRoles": [
-              "workflow-orchestrator",
-              "workflow-support",
-              "workflow-event-shaper",
-              "workflow-change-loader",
-              "workflow-shared-types"
-            ],
-            "message": "Workflow orchestrators may depend only on local helpers, event shaping, loaders, and shared types."
+              "plugin-js-architecture-drift",
+              "analysis-runtime",
+              "architecture-core"
+            ]
           },
           {
-            "sourceRole": "workflow-event-shaper",
-            "onlyDependOnRoles": ["workflow-event-shaper", "workflow-shared-types"],
-            "message": "Workflow event shapers may depend only on shared types or peer event-shaping helpers."
-          },
-          {
-            "sourceRole": "workflow-change-loader",
-            "onlyDependOnRoles": [
-              "workflow-change-loader",
-              "workflow-support",
-              "workflow-shared-types"
-            ],
-            "message": "Workflow change loaders may depend only on loader helpers and shared types."
-          },
-          {
-            "sourceRole": "workflow-support",
-            "onlyDependOnRoles": [
-              "workflow-support",
-              "workflow-event-shaper",
-              "workflow-shared-types"
-            ],
-            "message": "Workflow support helpers may depend only on other support helpers, event shaping, and shared types."
-          },
-          {
-            "sourceRole": "workflow-shared-types",
-            "onlyDependOnRoles": ["workflow-contract"],
-            "message": "Workflow shared type modules may only depend on workflow contract types."
+            "sourceRole": "plugin-js-complexity",
+            "onlyDependOnRoles": ["plugin-js-complexity", "analysis-runtime"]
           }
         ]
       }

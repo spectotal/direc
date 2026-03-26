@@ -3,6 +3,7 @@ import {
   buildDirecConfig,
   resolveAnalyzers,
 } from "@spectotal/direc-engine";
+import type { SupportedAgent } from "@spectotal/direc-agent-skills";
 
 type InitEnvironment = Awaited<ReturnType<typeof bootstrapAnalysisEnvironment>>;
 type InitConfig = Awaited<ReturnType<typeof buildDirecConfig>>["config"];
@@ -35,6 +36,10 @@ export function formatInitSummary(
   config: InitConfig,
   environment: InitEnvironment,
   configuredAnalyzerIds: string[],
+  options: {
+    selectedAgents?: SupportedAgent[];
+    nextStep?: string;
+  } = {},
 ): string {
   const lines = [`Initialized Direc workspace in ${repositoryRoot}`];
 
@@ -46,6 +51,11 @@ export function formatInitSummary(
   lines.push(`Quality routines: ${Object.keys(environment.qualityRoutines).join(", ") || "none"}`);
   lines.push(formatAutomationLine(config));
   lines.push(`Extensions: ${environment.extensionSources.join(", ") || "none"}`);
+  lines.push(`Scaffolded agents: ${options.selectedAgents?.join(", ") || "none"}`);
+
+  if (options.nextStep) {
+    lines.push(options.nextStep);
+  }
 
   return `${lines.join("\n")}\n`;
 }

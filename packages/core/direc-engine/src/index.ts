@@ -17,7 +17,6 @@ export {
   detectQualityRoutines,
   getBuiltinQualityAdapters,
 } from "./quality-routines.js";
-export { EXAMPLE_SPEC_TEMPLATE } from "./templates.js";
 export { resolveRequestedWorkflowId, resolveWorkflowAdapter } from "./registry/workflows.js";
 export {
   readDirecConfig,

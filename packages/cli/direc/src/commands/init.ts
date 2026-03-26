@@ -1,23 +1,34 @@
+import { formatNextStepNotice, scaffoldInitBundles } from "@spectotal/direc-agent-skills";
 import {
   bootstrapAnalysisEnvironment,
   buildDirecConfig,
+  ensureDirectory,
   resolveAnalyzers,
   writeDirecConfig,
 } from "@spectotal/direc-engine";
-import { guardExistingConfig, resolveInitPaths, writeInitArtifacts } from "./init-files.js";
+import { resolveSelectedAgents, type InitAgentDependencies } from "./init-agents.js";
+import { guardExistingConfig, resolveInitPaths } from "./init-files.js";
 import { assertConfiguredAnalyzers, formatInitSummary } from "./init-output.js";
 
 type InitOptions = {
   force?: boolean;
+  agent?: string[];
   extension?: string[];
 };
 
-export async function initCommand(options: InitOptions): Promise<void> {
+type InitCommandDependencies = InitAgentDependencies;
+
+export async function initCommand(
+  options: InitOptions,
+  dependencies: InitCommandDependencies = {},
+): Promise<void> {
   const rootDir = process.cwd();
   const paths = resolveInitPaths(rootDir);
+  const stdout = dependencies.stdout ?? process.stdout;
 
   await guardExistingConfig(paths.configFile, options.force ?? false);
-  await writeInitArtifacts(paths, options.force);
+  const selectedAgents = await resolveSelectedAgents(options.agent, dependencies);
+  await ensureDirectory(paths.specsDir);
 
   const environment = await bootstrapAnalysisEnvironment({
     repositoryRoot: rootDir,
@@ -37,7 +48,19 @@ export async function initCommand(options: InitOptions): Promise<void> {
     config: config.analyzers,
   });
   const configuredAnalyzerIds = assertConfiguredAnalyzers(config, resolution);
+  const nextStep = formatNextStepNotice("direc-bound", selectedAgents);
 
   await writeDirecConfig(rootDir, config);
-  process.stdout.write(formatInitSummary(rootDir, config, environment, configuredAnalyzerIds));
+  await scaffoldInitBundles({
+    repositoryRoot: rootDir,
+    agents: selectedAgents,
+    bundles: ["direc-bound"],
+    force: options.force,
+  });
+  stdout.write(
+    formatInitSummary(rootDir, config, environment, configuredAnalyzerIds, {
+      selectedAgents,
+      nextStep,
+    }),
+  );
 }

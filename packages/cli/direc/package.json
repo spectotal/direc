@@ -47,6 +47,7 @@
   },
   "dependencies": {
     "commander": "^13.1.0",
+    "@spectotal/direc-agent-skills": "workspace:*",
     "@spectotal/direc-analysis-runtime": "workspace:*",
     "@spectotal/direc-automation-runtime": "workspace:*",
     "@spectotal/direc-engine": "workspace:*"

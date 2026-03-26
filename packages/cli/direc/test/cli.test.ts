@@ -40,7 +40,7 @@ test("registers init and doctor extension options", () => {
   assert.ok(doctor);
   assert.deepEqual(
     init.options.map((option) => option.long),
-    ["--force", "--extension"],
+    ["--force", "--agent", "--extension"],
   );
   assert.deepEqual(
     doctor.options.map((option) => option.long),

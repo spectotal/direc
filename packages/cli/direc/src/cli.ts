@@ -23,6 +23,7 @@ export function createCli(): Command {
     .command("init")
     .description("Create a baseline direc workspace in the current directory.")
     .option("--force", "overwrite existing direc config files")
+    .option("--agent <name>", "scaffold repo-local files for an agent", collectValues, [])
     .option("--extension <module>", "load an extension module", collectValues, [])
     .action(initCommand);
 

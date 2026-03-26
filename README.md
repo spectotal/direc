@@ -23,17 +23,22 @@ npm install -g direc
 
 ### Initialize a project
 
-`direc init` detects your repository facets, enables matching analyzers, and writes a local `.direc/config.json`:
+`direc init` detects your repository facets, enables matching analyzers, and writes a local `.direc/config.json`. It can also scaffold repo-local agent assets for Codex, Claude, and Antigravity:
 
 ```bash
-direc init
+direc init --agent codex --agent claude
 ```
+
+If you omit `--agent` in an interactive terminal, Direc prompts you to choose which agents to scaffold.
 
 This generates:
 
 - **`.direc/config.json`** — facet IDs, enabled analyzers, path exclusions, thresholds, and architecture boundaries
+- **Repo-local agent assets** — selected `direc-bound` prompts, commands, workflows, and `direc-bound-architecture` skills
 - **`.direc/latest/`** — latest analyzer snapshots
 - **`.direc/history/`** — event-linked analyzer history
+
+After scaffolding agent assets, the next step is to run `/direc-bound` in your selected agent.
 
 ---
 

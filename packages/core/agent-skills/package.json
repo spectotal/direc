@@ -1,12 +1,11 @@
 {
-  "name": "@spectotal/direc-engine",
-  "version": "0.2.0",
-  "description": "Core orchestration and bootstrap engine for Direc.",
+  "name": "@spectotal/direc-agent-skills",
+  "version": "0.1.0",
+  "description": "Repo-local skill and prompt scaffolding for Direc-supported agents.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [
-    "bin",
     "dist"
   ],
   "exports": {
@@ -29,16 +28,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "dependencies": {
-    "@spectotal/direc-adapter-direc": "workspace:*",
-    "@spectotal/direc-adapter-openspec": "workspace:*",
-    "@spectotal/direc-analysis-runtime": "workspace:*",
-    "@spectotal/direc-automation-runtime": "workspace:*",
-    "@spectotal/direc-facet-detect": "workspace:*",
-    "@spectotal/direc-plugin-js-architecture-drift": "workspace:*",
-    "@spectotal/direc-plugin-js-complexity": "workspace:*",
-    "@spectotal/direc-workflow-runtime": "workspace:*"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/node": "^24.0.0",
     "rimraf": "^6.0.1",

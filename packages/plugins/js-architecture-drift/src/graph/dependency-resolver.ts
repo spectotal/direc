@@ -16,12 +16,15 @@ export function resolveDependencies(
 
   return preProcessedInfo.importedFiles
     .map((imported) => ts.resolveModuleName(imported.fileName, absolutePath, compilerOptions, host))
-    .filter(
-      (resolved) =>
-        resolved.resolvedModule &&
-        !resolved.resolvedModule.isExternalLibraryImport &&
-        !resolved.resolvedModule.resolvedFileName.includes("node_modules"),
-    )
+    .filter((resolved) => {
+      if (!resolved.resolvedModule) return false;
+      if (resolved.resolvedModule.isExternalLibraryImport) return false;
+
+      const fileName = resolved.resolvedModule.resolvedFileName;
+      const isInternal = !fileName.includes("node_modules") || fileName.startsWith(repositoryRoot);
+
+      return isInternal;
+    })
     .map((resolved) =>
       relativePath(repositoryRoot, resolved.resolvedModule!.resolvedFileName).replace(/\\/g, "/"),
     );
