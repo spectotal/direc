@@ -25,39 +25,21 @@ The goal is boundary-first agentic development: humans define the architecture, 
   <em>Example output from <code>direc viz</code>.</em>
 </p>
 
-## What Direc Actually Does
-
-- `direc init` creates a repo-local `.direc/config.json` from the repository's detected facets.
-- `direc analyze` runs the matching analyzers and writes the latest snapshots plus history under `.direc/`.
-- `direc viz` turns those snapshots into a shareable HTML report with an architecture diagram and complexity heatmap.
-- `direc init --agent ...` can scaffold repo-local commands and skills for Codex, Claude Code, and Antigravity.
-- It is designed for agents working from spec-driven workflows, with OpenSpec integration available today.
-
-Shortest version: Direc is repository architecture analysis, visualization, and agent scaffolding around one shared boundary model, so agents can respect the bounds you define.
-
 ## Quick Start
 
 Requires Node.js `>=18.18`.
 
 ```bash
-npx direc init --agent codex
-npx direc analyze
-npx direc viz --open
+npx direc init
 ```
 
-That flow:
+With that you can start define you first architecture roles and rules by running `/direc-bound` in your AI agent.
 
-1. Detects the repository shape and writes `.direc/config.json`
-2. Saves analyzer snapshots in `.direc/latest/` and `.direc/history/`
-3. Generates `direc-viz.html` by default
-
-If you prefer a global install:
+Done that, you can check your architecture by running:
 
 ```bash
-npm install -g direc
+npx direc viz --open
 ```
-
-If you omit `--agent` in an interactive terminal, Direc prompts you to choose which agent files to scaffold.
 
 ## The Workspace Direc Creates
 
@@ -65,8 +47,6 @@ If you omit `--agent` in an interactive terminal, Direc prompts you to choose wh
 - `.direc/latest/` stores the latest snapshot for each analyzer.
 - `.direc/history/` stores historical snapshots across repository or change-scoped runs.
 - Repo-local agent assets are generated only if you ask for them, for example under `.codex/` or `.claude/`.
-
-After scaffolding an agent, the usual next step is to run `/direc-bound` in that agent so it can refine architecture roles and rules against the current repository.
 
 ## Core Commands
 
