@@ -371,8 +371,11 @@ export function buildHtmlTemplate(dataJson: string): string {
 
         var path = document.createElement('span');
         path.className = 'hm-path';
+        // Cell shows only the filename
+        path.textContent = f.path.split('/').pop();
+
         var repoRoot = data.repositoryRoot ? data.repositoryRoot.replace(/\\\\$/, '') : '';
-        path.textContent = (repoRoot && f.path.startsWith(repoRoot))
+        var repoRelPath = (repoRoot && f.path.startsWith(repoRoot))
           ? f.path.slice(repoRoot.length).replace(/^\\//, '')
           : f.path;
 
@@ -388,8 +391,9 @@ export function buildHtmlTemplate(dataJson: string): string {
           tooltip.style.display = 'block';
           tooltip.style.left = (ev.clientX + 14) + 'px';
           tooltip.style.top  = (ev.clientY - 10) + 'px';
+          // Tooltip shows full repo-relative path + metrics
           tooltip.innerHTML =
-            '<strong>' + f.path.split('/').slice(-2).join('/') + '</strong><br/>' +
+            '<strong>' + repoRelPath + '</strong><br/>' +
             'Maintainability: ' + f.maintainability.toFixed(1) + '<br/>' +
             'Cyclomatic: ' + f.cyclomatic + '<br/>' +
             'SLOC: ' + f.logicalSloc;
