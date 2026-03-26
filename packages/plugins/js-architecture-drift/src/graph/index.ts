@@ -18,7 +18,15 @@ export async function runArchitectureTool(options: {
   const graph: Record<string, string[]> = {};
   for (const targetPath of targetPaths) {
     graph[targetPath] = Array.from(
-      new Set(resolveDependencies(targetPath, options.repositoryRoot, compilerOptions, host)),
+      new Set(
+        resolveDependencies(
+          targetPath,
+          options.repositoryRoot,
+          compilerOptions,
+          host,
+          options.packageBoundaries,
+        ),
+      ),
     );
   }
 

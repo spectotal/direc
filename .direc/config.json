@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-03-26T15:22:54.992Z",
+  "generatedAt": "2026-03-26T17:28:11Z",
   "workflow": "direc",
   "facets": ["js", "python", "css", "frontend", "tailwind"],
   "qualityRoutines": {
@@ -36,7 +36,7 @@
           "--pretty",
           "false",
           "-p",
-          ".claude/worktrees/keen-swanson/packages/adapters/direc/tsconfig.json"
+          "packages/adapters/direc/tsconfig.json"
         ]
       }
     }
@@ -98,139 +98,135 @@
         ],
         "moduleRoles": [
           {
-            "role": "cli-direc",
-            "match": ["packages/cli/direc"]
-          },
-          {
             "role": "adapter-direc",
-            "match": ["packages/adapters/direc"]
+            "match": ["packages/adapters/direc/src"]
           },
           {
             "role": "adapter-openspec",
-            "match": ["packages/adapters/openspec"]
+            "match": ["packages/adapters/openspec/src"]
           },
           {
-            "role": "analysis-runtime",
-            "match": ["packages/core/analysis-runtime"]
+            "role": "cli-direc",
+            "match": ["packages/cli/direc/src"]
           },
           {
-            "role": "architecture-core",
-            "match": ["packages/core/architecture-drift"]
+            "role": "core-agent-skills",
+            "match": ["packages/core/agent-skills/src"]
           },
           {
-            "role": "automation-runtime",
-            "match": ["packages/core/automation-runtime"]
+            "role": "core-analysis-runtime",
+            "match": ["packages/core/analysis-runtime/src"]
           },
           {
-            "role": "engine",
-            "match": ["packages/core/direc-engine"]
+            "role": "core-architecture-drift",
+            "match": ["packages/core/architecture-drift/src"]
           },
           {
-            "role": "telemetry",
-            "match": ["packages/core/direc-telemetry"]
+            "role": "core-automation-runtime",
+            "match": ["packages/core/automation-runtime/src"]
           },
           {
-            "role": "workflow-runtime",
-            "match": ["packages/core/workflow-runtime"]
+            "role": "core-direc-engine",
+            "match": ["packages/core/direc-engine/src"]
           },
           {
-            "role": "agent-skills",
-            "match": ["packages/core/agent-skills"]
+            "role": "core-direc-telemetry",
+            "match": ["packages/core/direc-telemetry/src"]
+          },
+          {
+            "role": "core-workflow-runtime",
+            "match": ["packages/core/workflow-runtime/src"]
           },
           {
             "role": "facet-detect",
-            "match": ["packages/facets/detect"]
-          },
-          {
-            "role": "plugin-js-architecture-drift",
-            "match": ["packages/plugins/js-architecture-drift"]
-          },
-          {
-            "role": "plugin-js-complexity",
-            "match": ["packages/plugins/js-complexity"]
+            "match": ["packages/facets/detect/src"]
           },
           {
             "role": "plugin-direc-viz",
-            "match": ["packages/plugins/direc-viz"]
+            "match": ["packages/plugins/direc-viz/src"]
+          },
+          {
+            "role": "plugin-js-architecture-drift",
+            "match": ["packages/plugins/js-architecture-drift/src"]
+          },
+          {
+            "role": "plugin-js-complexity",
+            "match": ["packages/plugins/js-complexity/src"]
           }
         ],
         "roleBoundaryRules": [
           {
+            "sourceRole": "adapter-direc",
+            "onlyDependOnRoles": ["adapter-direc", "core-workflow-runtime"]
+          },
+          {
+            "sourceRole": "adapter-openspec",
+            "onlyDependOnRoles": ["adapter-openspec", "core-workflow-runtime"]
+          },
+          {
             "sourceRole": "cli-direc",
             "onlyDependOnRoles": [
               "cli-direc",
-              "agent-skills",
-              "analysis-runtime",
-              "automation-runtime",
-              "engine",
+              "core-agent-skills",
+              "core-analysis-runtime",
+              "core-automation-runtime",
+              "core-direc-engine",
               "plugin-direc-viz"
             ]
           },
           {
-            "sourceRole": "adapter-direc",
-            "onlyDependOnRoles": ["adapter-direc", "workflow-runtime"]
+            "sourceRole": "core-analysis-runtime",
+            "onlyDependOnRoles": ["core-analysis-runtime", "core-workflow-runtime"]
           },
           {
-            "sourceRole": "adapter-openspec",
-            "onlyDependOnRoles": ["adapter-openspec", "workflow-runtime"]
+            "sourceRole": "core-architecture-drift",
+            "onlyDependOnRoles": ["core-analysis-runtime", "core-architecture-drift"]
           },
           {
-            "sourceRole": "analysis-runtime",
-            "onlyDependOnRoles": ["analysis-runtime", "workflow-runtime"]
-          },
-          {
-            "sourceRole": "architecture-core",
-            "onlyDependOnRoles": ["architecture-core", "analysis-runtime"]
-          },
-          {
-            "sourceRole": "automation-runtime",
-            "onlyDependOnRoles": ["automation-runtime", "analysis-runtime", "workflow-runtime"]
-          },
-          {
-            "sourceRole": "engine",
+            "sourceRole": "core-automation-runtime",
             "onlyDependOnRoles": [
-              "engine",
-              "adapter-direc",
-              "adapter-openspec",
-              "analysis-runtime",
-              "automation-runtime",
-              "facet-detect",
-              "plugin-js-architecture-drift",
-              "plugin-js-complexity",
-              "workflow-runtime"
+              "core-analysis-runtime",
+              "core-automation-runtime",
+              "core-workflow-runtime"
             ]
           },
           {
-            "sourceRole": "telemetry",
-            "onlyDependOnRoles": ["telemetry", "analysis-runtime"]
+            "sourceRole": "core-direc-engine",
+            "onlyDependOnRoles": [
+              "adapter-direc",
+              "adapter-openspec",
+              "core-analysis-runtime",
+              "core-automation-runtime",
+              "core-direc-engine",
+              "core-workflow-runtime",
+              "facet-detect",
+              "plugin-js-architecture-drift",
+              "plugin-js-complexity"
+            ]
           },
           {
-            "sourceRole": "workflow-runtime",
-            "onlyDependOnRoles": ["workflow-runtime"]
-          },
-          {
-            "sourceRole": "agent-skills",
-            "onlyDependOnRoles": ["agent-skills"]
+            "sourceRole": "core-direc-telemetry",
+            "onlyDependOnRoles": ["core-analysis-runtime", "core-direc-telemetry"]
           },
           {
             "sourceRole": "facet-detect",
-            "onlyDependOnRoles": ["facet-detect", "analysis-runtime"]
+            "onlyDependOnRoles": ["core-analysis-runtime", "facet-detect"]
+          },
+          {
+            "sourceRole": "plugin-direc-viz",
+            "onlyDependOnRoles": ["core-analysis-runtime", "plugin-direc-viz"]
           },
           {
             "sourceRole": "plugin-js-architecture-drift",
             "onlyDependOnRoles": [
-              "plugin-js-architecture-drift",
-              "analysis-runtime",
-              "architecture-core"
+              "core-analysis-runtime",
+              "core-architecture-drift",
+              "plugin-js-architecture-drift"
             ]
           },
           {
             "sourceRole": "plugin-js-complexity",
-            "onlyDependOnRoles": ["plugin-js-complexity", "analysis-runtime"]
-          },
-          {
-            "sourceRole": "plugin-direc-viz",
-            "onlyDependOnRoles": ["plugin-direc-viz", "analysis-runtime"]
+            "onlyDependOnRoles": ["core-analysis-runtime", "plugin-js-complexity"]
           }
         ]
       }
