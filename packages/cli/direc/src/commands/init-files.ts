@@ -1,6 +1,5 @@
 import { access } from "node:fs/promises";
 import { resolve } from "node:path";
-import { ensureDirectory, EXAMPLE_SPEC_TEMPLATE, writeFileSafe } from "@spectotal/direc-engine";
 
 export type InitPaths = {
   specsDir: string;
@@ -30,14 +29,6 @@ export async function guardExistingConfig(configFile: string, force: boolean): P
       `Existing Direc configuration found:\n${existingPaths.join("\n")}\nRe-run with --force to overwrite.`,
     );
   }
-}
-
-export async function writeInitArtifacts(
-  paths: InitPaths,
-  force: boolean | undefined,
-): Promise<void> {
-  await ensureDirectory(paths.specsDir);
-  await writeFileSafe(paths.exampleSpec, EXAMPLE_SPEC_TEMPLATE, force);
 }
 
 async function pathExists(path: string): Promise<boolean> {

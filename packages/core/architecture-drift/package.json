@@ -1,0 +1,39 @@
+{
+  "name": "@spectotal/direc-core-architecture-drift",
+  "version": "0.3.0",
+  "description": "Core architecture drift analysis engine for Direc.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "engines": {
+    "node": ">=18.18"
+  },
+  "scripts": {
+    "build": "rimraf dist && tsc -p tsconfig.json",
+    "clean": "rimraf dist",
+    "test": "tsx --test test/**/*.test.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@spectotal/direc-analysis-runtime": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "rimraf": "^6.0.1",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  }
+}

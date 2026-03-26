@@ -54,7 +54,7 @@ test("architecture drift plugin reports cycles and forbidden dependencies", asyn
   });
 
   const categories = snapshot.findings.map((finding) => finding.category).sort();
-  assert.deepEqual(categories, ["cycle", "forbidden-role-dependency"]);
+  assert.deepEqual(categories, ["circular-dependency", "forbidden-role-dependency"]);
   assert.ok(snapshot.findings.every((finding) => finding.severity === "error"));
 });
 

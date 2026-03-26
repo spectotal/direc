@@ -1,61 +1,146 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { WORKFLOW_IDS } from "@spectotal/direc-analysis-runtime";
 import { doctorCommand } from "../src/commands/doctor.js";
+import { normalizeSelectedAgents } from "../src/commands/init-agents.js";
 import { initCommand } from "../src/commands/init.js";
 
-test("initCommand writes js analyzer identifiers", { concurrency: false }, async () => {
-  const repositoryRoot = await createFixtureRepository();
-  const legacyStatePath = join(repositoryRoot, ".direc", "state.json");
-  await mkdir(join(repositoryRoot, ".direc"), { recursive: true });
-  await writeFile(legacyStatePath, '{"legacy":true}\n');
-  const { output } = await captureStdout(() =>
-    withWorkingDirectory(repositoryRoot, () => initCommand({})),
-  );
-  const config = JSON.parse(
-    await readFile(join(repositoryRoot, ".direc", "config.json"), "utf8"),
-  ) as {
-    facets: string[];
-    workflow: string;
-    qualityRoutines?: Record<string, unknown>;
-    analyzers: Record<
-      string,
-      { enabled: boolean; options?: { moduleRoles?: unknown[]; roleBoundaryRules?: unknown[] } }
-    >;
-    automation: {
-      mode: string;
-      invocation: string;
-      transport: {
-        kind: string;
-      };
-      triggers: {
-        snapshotEvents: boolean;
+test("normalizeSelectedAgents accepts supported names and preserves canonical order", () => {
+  assert.deepEqual(normalizeSelectedAgents(["claude", "codex"]), ["codex", "claude"]);
+});
+
+test(
+  "initCommand writes js analyzer identifiers and codex scaffolds",
+  { concurrency: false },
+  async () => {
+    const repositoryRoot = await createFixtureRepository();
+    const legacyStatePath = join(repositoryRoot, ".direc", "state.json");
+    await mkdir(join(repositoryRoot, ".direc"), { recursive: true });
+    await writeFile(legacyStatePath, '{"legacy":true}\n');
+    const { output } = await captureStdout(() =>
+      withWorkingDirectory(repositoryRoot, () => initCommand({ agent: ["codex"] })),
+    );
+    const config = JSON.parse(
+      await readFile(join(repositoryRoot, ".direc", "config.json"), "utf8"),
+    ) as {
+      facets: string[];
+      workflow: string;
+      qualityRoutines?: Record<string, unknown>;
+      analyzers: Record<
+        string,
+        { enabled: boolean; options?: { moduleRoles?: unknown[]; roleBoundaryRules?: unknown[] } }
+      >;
+      automation: {
+        mode: string;
+        invocation: string;
+        transport: {
+          kind: string;
+        };
+        triggers: {
+          snapshotEvents: boolean;
+        };
       };
     };
-  };
 
-  assert.match(output, /Detected facets: js/);
-  assert.match(output, /Workflow: direc/);
-  assert.match(output, /Quality routines: typescript/);
-  assert.match(output, /Automation: advisory, hybrid, command/);
-  assert.deepEqual(config.facets, ["js"]);
-  assert.equal(config.workflow, WORKFLOW_IDS.DIREC);
-  assert.deepEqual(Object.keys(config.qualityRoutines ?? {}), ["typescript"]);
-  assert.deepEqual(Object.keys(config.analyzers).sort(), [
-    "js-architecture-drift",
-    "js-complexity",
-    "routine:typescript",
-  ]);
-  assert.deepEqual(config.analyzers["js-architecture-drift"]?.options?.moduleRoles, []);
-  assert.deepEqual(config.analyzers["js-architecture-drift"]?.options?.roleBoundaryRules, []);
-  assert.equal(config.automation.mode, "advisory");
-  assert.equal(config.automation.invocation, "hybrid");
-  assert.equal(config.automation.transport.kind, "command");
-  assert.equal(config.automation.triggers.snapshotEvents, true);
-  assert.equal(await readFile(legacyStatePath, "utf8"), '{"legacy":true}\n');
+    assert.match(output, /Detected facets: js/);
+    assert.match(output, /Workflow: direc/);
+    assert.match(output, /Quality routines: typescript/);
+    assert.match(output, /Automation: advisory, hybrid, command/);
+    assert.match(output, /Scaffolded agents: codex/);
+    assert.match(output, /\/direc-bound/);
+    assert.deepEqual(config.facets, ["js"]);
+    assert.equal(config.workflow, WORKFLOW_IDS.DIREC);
+    assert.deepEqual(Object.keys(config.qualityRoutines ?? {}), ["typescript"]);
+    assert.deepEqual(Object.keys(config.analyzers).sort(), [
+      "js-architecture-drift",
+      "js-complexity",
+      "routine:typescript",
+    ]);
+    assert.deepEqual(config.analyzers["js-architecture-drift"]?.options?.moduleRoles, []);
+    assert.deepEqual(config.analyzers["js-architecture-drift"]?.options?.roleBoundaryRules, []);
+    assert.equal(config.automation.mode, "advisory");
+    assert.equal(config.automation.invocation, "hybrid");
+    assert.equal(config.automation.transport.kind, "command");
+    assert.equal(config.automation.triggers.snapshotEvents, true);
+    assert.equal(await readFile(legacyStatePath, "utf8"), '{"legacy":true}\n');
+    assert.equal(
+      await pathExists(join(repositoryRoot, ".codex", "prompts", "direc-bound.md")),
+      true,
+    );
+    assert.equal(
+      await pathExists(
+        join(repositoryRoot, ".codex", "skills", "direc-bound-architecture", "SKILL.md"),
+      ),
+      true,
+    );
+    assert.equal(
+      await pathExists(join(repositoryRoot, ".agent", "workflows", "direc-bound.md")),
+      false,
+    );
+  },
+);
+
+test("initCommand rejects unsupported agents", { concurrency: false }, async () => {
+  const repositoryRoot = await createFixtureRepository();
+
+  await assert.rejects(
+    () => withWorkingDirectory(repositoryRoot, () => initCommand({ agent: ["bogus"] })),
+    /Unsupported agent: bogus/,
+  );
+});
+
+test("initCommand uses prompt selection in TTY mode when agents are omitted", async () => {
+  const repositoryRoot = await createFixtureRepository();
+  const stdout = createMockStdout(true);
+  let prompted = false;
+
+  await withWorkingDirectory(repositoryRoot, () =>
+    initCommand(
+      {},
+      {
+        stdin: { isTTY: true },
+        stdout: stdout.stream,
+        async selectAgents() {
+          prompted = true;
+          return ["claude", "codex"];
+        },
+      },
+    ),
+  );
+
+  assert.equal(prompted, true);
+  assert.match(stdout.output, /Scaffolded agents: codex, claude/);
+  assert.equal(
+    await pathExists(join(repositoryRoot, ".claude", "commands", "direc-bound.md")),
+    true,
+  );
+  assert.equal(await pathExists(join(repositoryRoot, ".codex", "prompts", "direc-bound.md")), true);
+  assert.equal(
+    await pathExists(join(repositoryRoot, ".agent", "workflows", "direc-bound.md")),
+    false,
+  );
+});
+
+test("initCommand errors in non-tty mode when agents are omitted", async () => {
+  const repositoryRoot = await createFixtureRepository();
+  const stdout = createMockStdout(false);
+
+  await assert.rejects(
+    () =>
+      withWorkingDirectory(repositoryRoot, () =>
+        initCommand(
+          {},
+          {
+            stdin: { isTTY: false },
+            stdout: stdout.stream,
+          },
+        ),
+      ),
+    /Re-run `direc init --agent <name>`/,
+  );
 });
 
 test("doctorCommand reports configured js analyzers", { concurrency: false }, async () => {
@@ -172,6 +257,42 @@ async function withWorkingDirectory<T>(directory: string, run: () => Promise<T>)
   } finally {
     process.chdir(previousDirectory);
   }
+}
+
+async function pathExists(filePath: string): Promise<boolean> {
+  try {
+    await access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function createMockStdout(isTTY: boolean): {
+  output: string;
+  stream: {
+    isTTY: boolean;
+    write(chunk: string | Uint8Array, ...args: unknown[]): boolean;
+  };
+} {
+  const chunks: string[] = [];
+
+  return {
+    get output() {
+      return chunks.join("");
+    },
+    stream: {
+      isTTY,
+      write(chunk: string | Uint8Array, ...args: unknown[]) {
+        chunks.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
+        const callback = args.find(
+          (value): value is (error?: Error | null) => void => typeof value === "function",
+        );
+        callback?.();
+        return true;
+      },
+    },
+  };
 }
 
 async function captureStdout<T>(run: () => Promise<T>): Promise<{ output: string; result: T }> {

@@ -1,6 +1,6 @@
 {
   "name": "direc",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Spec-driven development tooling for turning specifications into executable workflows.",
   "type": "module",
   "main": "./dist/index.js",
@@ -46,10 +46,13 @@
     "access": "public"
   },
   "dependencies": {
+    "@clack/prompts": "^0.11.0",
     "commander": "^13.1.0",
+    "@spectotal/direc-agent-skills": "workspace:*",
     "@spectotal/direc-analysis-runtime": "workspace:*",
     "@spectotal/direc-automation-runtime": "workspace:*",
-    "@spectotal/direc-engine": "workspace:*"
+    "@spectotal/direc-engine": "workspace:*",
+    "@spectotal/direc-viz": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

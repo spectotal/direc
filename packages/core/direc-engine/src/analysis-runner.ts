@@ -27,6 +27,7 @@ export async function runAnalysis(options: AnalysisOptions): Promise<RuntimeExec
   }
 
   const results: RuntimeExecutionResult[] = [];
+
   for (const event of events) {
     results.push(await processEvent(options, event));
   }

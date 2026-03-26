@@ -11,105 +11,108 @@
 
 ---
 
-## Getting Started
+Direc is a CLI for turning a repository into a living architecture workspace.
 
-### Install
+Instead of keeping architecture in static docs that drift out of date, Direc lets you define architectural bounds, read the current codebase, run analyzers, store snapshots under `.direc/`, and generate reports you can use while the code is still changing.
+
+The goal is boundary-first agentic development: humans define the architecture, then agents can work inside those bounds while following a spec-driven development workflow. Direc is built to support that model across agent setups, and the workflow integration available today is OpenSpec.
+
+<p align="center">
+  <img src="assets/direc-viz-example.png" alt="Example Direc visualization output showing an architecture graph and complexity heatmap" />
+</p>
+
+<p align="center">
+  <em>Example output from <code>direc viz</code>.</em>
+</p>
+
+## What Direc Actually Does
+
+- `direc init` creates a repo-local `.direc/config.json` from the repository's detected facets.
+- `direc analyze` runs the matching analyzers and writes the latest snapshots plus history under `.direc/`.
+- `direc viz` turns those snapshots into a shareable HTML report with an architecture diagram and complexity heatmap.
+- `direc init --agent ...` can scaffold repo-local commands and skills for Codex, Claude Code, and Antigravity.
+- It is designed for agents working from spec-driven workflows, with OpenSpec integration available today.
+
+Shortest version: Direc is repository architecture analysis, visualization, and agent scaffolding around one shared boundary model, so agents can respect the bounds you define.
+
+## Quick Start
+
+Requires Node.js `>=18.18`.
 
 ```bash
-npx direc --help
-# or install globally
+npx direc init --agent codex
+npx direc analyze
+npx direc viz --open
+```
+
+That flow:
+
+1. Detects the repository shape and writes `.direc/config.json`
+2. Saves analyzer snapshots in `.direc/latest/` and `.direc/history/`
+3. Generates `direc-viz.html` by default
+
+If you prefer a global install:
+
+```bash
 npm install -g direc
 ```
 
-### Initialize a project
+If you omit `--agent` in an interactive terminal, Direc prompts you to choose which agent files to scaffold.
 
-`direc init` detects your repository facets, enables matching analyzers, and writes a local `.direc/config.json`:
+## The Workspace Direc Creates
 
-```bash
-direc init
-```
+- `.direc/config.json` contains detected facets, analyzer settings, exclusions, thresholds, and architecture boundaries.
+- `.direc/latest/` stores the latest snapshot for each analyzer.
+- `.direc/history/` stores historical snapshots across repository or change-scoped runs.
+- Repo-local agent assets are generated only if you ask for them, for example under `.codex/` or `.claude/`.
 
-This generates:
+After scaffolding an agent, the usual next step is to run `/direc-bound` in that agent so it can refine architecture roles and rules against the current repository.
 
-- **`.direc/config.json`** — facet IDs, enabled analyzers, path exclusions, thresholds, and architecture boundaries
-- **`.direc/latest/`** — latest analyzer snapshots
-- **`.direc/history/`** — event-linked analyzer history
-
----
-
-## Facets & Analyzers
-
-Direc uses a concept of **Facets** to understand what kind of project it's analyzing. A facet represents a detected technology stack or framework (e.g., `js`, `python`, `tailwind`).
-
-1. **Detection**: During `direc init` (or when analyzers run), Direc scans the repository for evidence (like `package.json`, `tsconfig.json`, or specific file extensions) to detect active facets.
-2. **Analyzer Resolution**: Analyzers declare which facets they support. Direc automatically enables the built-in and extended analyzers that match the detected facets in your project.
-3. **Prerequisites**: Before an analyzer runs, it can check prerequisites (e.g., "is `eslint` installed?"). If a prerequisite fails or a facet is missing, the analyzer is gracefully skipped.
-
-You can explicitly enable or disable specific analyzers and override their options in your `.direc/config.json`.
-
----
-
-## Scenarios
-
-### a. Analyze
-
-Run code-quality analysis across your repository or delegate it to agents for validation loop.
+## Core Commands
 
 ```bash
-# repository-wide scan
+direc init --agent codex --agent claude
 direc analyze
-
-# continuous watch mode
 direc analyze --watch
-```
-
-`direc analyze` runs built-in analyzers (complexity, architecture drift) and prints a findings summary plus saved report paths. For deeper inspection, open the JSON files in `.direc/latest/`.
-
-#### Extend with plugins
-
-```bash
-direc analyze --extension ./my-plugin.mjs
-direc analyze --extension @acme/direc-python
-```
-
-#### Health check
-
-```bash
 direc doctor
+direc viz --open
 ```
 
-Validates that your `.direc/config.json` is well-formed and all referenced analyzers are loadable.
+- `init` bootstraps the Direc workspace and resolves analyzers from detected facets.
+- `analyze` runs enabled analyzers such as architecture drift and complexity.
+- `doctor` checks that config, analyzers, and extensions can load correctly.
+- `viz` renders the current `.direc` state into HTML.
 
----
+### Load extensions
 
-### b. Automation 🧪
+```bash
+direc init --extension @acme/direc-python
+direc analyze --extension ./my-plugin.mjs
+```
+
+## How Analyzer Selection Works
+
+Direc uses **facets** to infer what kind of repository it is analyzing.
+
+1. It scans for signals such as `package.json`, `tsconfig.json`, source extensions, and other tool markers.
+2. It enables analyzers that support the detected facets and pass their prerequisites.
+3. You can override the defaults in `.direc/config.json` by enabling, disabling, or reconfiguring analyzers.
+
+This keeps the default setup lightweight. JavaScript and TypeScript repositories can get architecture-drift and complexity analysis immediately, while extensions can add analyzers for other stacks.
+
+## Spec-Driven Workflows
 
 > [!WARNING]
-> **Experimental** — the automation surface is under active development and may change.
-
-Automate subagent workflows that react to analysis results and spec events.
+> Experimental. The workflow automation surface is still evolving.
 
 ```bash
-# run the default workflow from config
 direc automate
-
-# explicit workflow
 direc automate --workflow openspec
 ```
 
-`direc automate` watches normalized events, runs analyzers first, then writes formalized subagent requests and results under `.direc/automation/`.
+`direc automate` watches workflow events, runs analyzers first, and writes automation requests and results under `.direc/automation/`.
 
-Automation artifacts are stored in:
-
-| Path                          | Purpose                             |
-| ----------------------------- | ----------------------------------- |
-| `.direc/automation/requests/` | Subagent request envelopes          |
-| `.direc/automation/results/`  | Subagent results                    |
-| `.direc/automation/latest/`   | Latest per-change automation status |
-
-The default transport uses a bundled command backend — runnable immediately after `direc init`. Replace `automation.transport` in your config to point at a different command, HTTP endpoint, or SDK adapter.
-
----
+Direc is meant to fit agent workflows that are driven by specs or change artifacts. The currently integrated workflow is OpenSpec.
 
 ## License
 
