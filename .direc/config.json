@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "generatedAt": "2026-03-26T11:45:46.007Z",
+  "generatedAt": "2026-03-26T15:22:54.992Z",
   "workflow": "direc",
-  "facets": ["js", "python", "css", "tailwind"],
+  "facets": ["js", "python", "css", "frontend", "tailwind"],
   "qualityRoutines": {
     "eslint": {
       "adapter": "eslint",
@@ -99,55 +99,59 @@
         "moduleRoles": [
           {
             "role": "cli-direc",
-            "match": ["packages/cli/direc/**"]
+            "match": ["packages/cli/direc"]
           },
           {
             "role": "adapter-direc",
-            "match": ["packages/adapters/direc/**"]
+            "match": ["packages/adapters/direc"]
           },
           {
             "role": "adapter-openspec",
-            "match": ["packages/adapters/openspec/**"]
+            "match": ["packages/adapters/openspec"]
           },
           {
             "role": "analysis-runtime",
-            "match": ["packages/core/analysis-runtime/**"]
+            "match": ["packages/core/analysis-runtime"]
           },
           {
             "role": "architecture-core",
-            "match": ["packages/core/architecture-drift/**"]
+            "match": ["packages/core/architecture-drift"]
           },
           {
             "role": "automation-runtime",
-            "match": ["packages/core/automation-runtime/**"]
+            "match": ["packages/core/automation-runtime"]
           },
           {
             "role": "engine",
-            "match": ["packages/core/direc-engine/**"]
+            "match": ["packages/core/direc-engine"]
           },
           {
             "role": "telemetry",
-            "match": ["packages/core/direc-telemetry/**"]
+            "match": ["packages/core/direc-telemetry"]
           },
           {
             "role": "workflow-runtime",
-            "match": ["packages/core/workflow-runtime/**"]
+            "match": ["packages/core/workflow-runtime"]
           },
           {
             "role": "agent-skills",
-            "match": ["packages/core/agent-skills/**", "packages/core/direc-skills/**"]
+            "match": ["packages/core/agent-skills"]
           },
           {
             "role": "facet-detect",
-            "match": ["packages/facets/detect/**"]
+            "match": ["packages/facets/detect"]
           },
           {
             "role": "plugin-js-architecture-drift",
-            "match": ["packages/plugins/js-architecture-drift/**"]
+            "match": ["packages/plugins/js-architecture-drift"]
           },
           {
             "role": "plugin-js-complexity",
-            "match": ["packages/plugins/js-complexity/**"]
+            "match": ["packages/plugins/js-complexity"]
+          },
+          {
+            "role": "plugin-direc-viz",
+            "match": ["packages/plugins/direc-viz"]
           }
         ],
         "roleBoundaryRules": [
@@ -155,10 +159,11 @@
             "sourceRole": "cli-direc",
             "onlyDependOnRoles": [
               "cli-direc",
-              "engine",
+              "agent-skills",
               "analysis-runtime",
               "automation-runtime",
-              "agent-skills"
+              "engine",
+              "plugin-direc-viz"
             ]
           },
           {
@@ -185,14 +190,14 @@
             "sourceRole": "engine",
             "onlyDependOnRoles": [
               "engine",
-              "analysis-runtime",
-              "automation-runtime",
-              "workflow-runtime",
               "adapter-direc",
               "adapter-openspec",
+              "analysis-runtime",
+              "automation-runtime",
               "facet-detect",
               "plugin-js-architecture-drift",
-              "plugin-js-complexity"
+              "plugin-js-complexity",
+              "workflow-runtime"
             ]
           },
           {
@@ -222,6 +227,10 @@
           {
             "sourceRole": "plugin-js-complexity",
             "onlyDependOnRoles": ["plugin-js-complexity", "analysis-runtime"]
+          },
+          {
+            "sourceRole": "plugin-direc-viz",
+            "onlyDependOnRoles": ["plugin-direc-viz", "analysis-runtime"]
           }
         ]
       }

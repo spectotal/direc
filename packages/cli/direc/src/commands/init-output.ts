@@ -41,6 +41,19 @@ export function formatInitSummary(
     nextStep?: string;
   } = {},
 ): string {
+  return `${buildInitSummaryLines(repositoryRoot, config, environment, configuredAnalyzerIds, options).join("\n")}\n`;
+}
+
+export function buildInitSummaryLines(
+  repositoryRoot: string,
+  config: InitConfig,
+  environment: InitEnvironment,
+  configuredAnalyzerIds: string[],
+  options: {
+    selectedAgents?: SupportedAgent[];
+    nextStep?: string;
+  } = {},
+): string[] {
   const lines = [`Initialized Direc workspace in ${repositoryRoot}`];
 
   lines.push(
@@ -57,7 +70,7 @@ export function formatInitSummary(
     lines.push(options.nextStep);
   }
 
-  return `${lines.join("\n")}\n`;
+  return lines;
 }
 
 function formatAutomationLine(config: InitConfig): string {

@@ -46,6 +46,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@clack/prompts": "^0.11.0",
     "commander": "^13.1.0",
     "@spectotal/direc-agent-skills": "workspace:*",
     "@spectotal/direc-analysis-runtime": "workspace:*",

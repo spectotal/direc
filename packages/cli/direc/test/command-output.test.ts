@@ -69,12 +69,12 @@ test("init output helpers preserve analyzer validation and summary formatting", 
     ["js-complexity"],
     {
       selectedAgents: ["codex"] as never,
-      nextStep: "Next step: run /direc-bound",
+      nextStep: "call /direc-bound at your ai agent",
     },
   );
 
   assert.match(output, /Enabled analyzers: js-complexity/);
   assert.match(output, /Automation: not configured/);
   assert.match(output, /Scaffolded agents: codex/);
-  assert.match(output, /Next step: run \/direc-bound/);
+  assert.match(output, /call \/direc-bound at your ai agent/);
 });

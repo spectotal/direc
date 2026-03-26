@@ -3,7 +3,12 @@ import { access, mkdtemp, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { formatNextStepNotice, getSupportedAgents, scaffoldInitBundles } from "../src/index.js";
+import {
+  DIREC_BOUND_BUNDLE,
+  formatNextStepNotice,
+  getSupportedAgents,
+  scaffoldInitBundles,
+} from "../src/index.js";
 
 test("scaffoldInitBundles writes only requested agent artifacts", async () => {
   const repositoryRoot = await mkdtemp(join(tmpdir(), "direc-agent-skills-"));
@@ -13,31 +18,33 @@ test("scaffoldInitBundles writes only requested agent artifacts", async () => {
   });
 
   assert.deepEqual(artifacts.map((artifact) => artifact.path).sort(), [
-    ".codex/prompts/direc-bound.md",
-    ".codex/skills/direc-bound-architecture/SKILL.md",
+    DIREC_BOUND_BUNDLE.artifactPaths.codex.commandPath,
+    DIREC_BOUND_BUNDLE.artifactPaths.codex.skillPath,
   ]);
 
   assert.equal(
-    await pathExists(join(repositoryRoot, ".claude", "commands", "direc-bound.md")),
+    await pathExists(join(repositoryRoot, DIREC_BOUND_BUNDLE.artifactPaths.claude.commandPath)),
     false,
   );
   assert.equal(
-    await pathExists(join(repositoryRoot, ".agent", "workflows", "direc-bound.md")),
+    await pathExists(
+      join(repositoryRoot, DIREC_BOUND_BUNDLE.artifactPaths.antigravity.commandPath),
+    ),
     false,
   );
 
   const prompt = await readFile(
-    join(repositoryRoot, ".codex", "prompts", "direc-bound.md"),
+    join(repositoryRoot, DIREC_BOUND_BUNDLE.artifactPaths.codex.commandPath),
     "utf8",
   );
   const skill = await readFile(
-    join(repositoryRoot, ".codex", "skills", "direc-bound-architecture", "SKILL.md"),
+    join(repositoryRoot, DIREC_BOUND_BUNDLE.artifactPaths.codex.skillPath),
     "utf8",
   );
 
-  assert.match(prompt, /\/direc-bound/);
+  assert.match(prompt, new RegExp(`/${DIREC_BOUND_BUNDLE.commandName}`));
   assert.match(prompt, /open a GitHub issue/i);
-  assert.match(skill, /name: direc-bound-architecture/);
+  assert.match(skill, new RegExp(`name: ${DIREC_BOUND_BUNDLE.skillName}`));
   assert.match(skill, /detected facets and enabled analyzers/);
 });
 
@@ -49,13 +56,22 @@ test("scaffoldInitBundles keeps canonical command bodies aligned across agents",
   });
 
   const antigravityBody = stripFrontmatter(
-    await readFile(join(repositoryRoot, ".agent", "workflows", "direc-bound.md"), "utf8"),
+    await readFile(
+      join(repositoryRoot, DIREC_BOUND_BUNDLE.artifactPaths.antigravity.commandPath),
+      "utf8",
+    ),
   );
   const claudeBody = stripFrontmatter(
-    await readFile(join(repositoryRoot, ".claude", "commands", "direc-bound.md"), "utf8"),
+    await readFile(
+      join(repositoryRoot, DIREC_BOUND_BUNDLE.artifactPaths.claude.commandPath),
+      "utf8",
+    ),
   );
   const codexBody = stripFrontmatter(
-    await readFile(join(repositoryRoot, ".codex", "prompts", "direc-bound.md"), "utf8"),
+    await readFile(
+      join(repositoryRoot, DIREC_BOUND_BUNDLE.artifactPaths.codex.commandPath),
+      "utf8",
+    ),
   );
 
   assert.equal(antigravityBody, claudeBody);
@@ -63,7 +79,7 @@ test("scaffoldInitBundles keeps canonical command bodies aligned across agents",
 });
 
 test("formatNextStepNotice returns direc-bound guidance", () => {
-  assert.equal(formatNextStepNotice("direc-bound", ["codex"]), "Next step: run /direc-bound");
+  assert.equal(formatNextStepNotice(DIREC_BOUND_BUNDLE.id), DIREC_BOUND_BUNDLE.nextStepNotice);
 });
 
 async function pathExists(filePath: string): Promise<boolean> {

@@ -2,6 +2,7 @@ import { dirname, resolve } from "node:path";
 import { ensureDirectory, writeFileSafe } from "./fs.js";
 import { renderDirecBoundArtifacts } from "./direc-bound.js";
 import {
+  DIREC_BOUND_BUNDLE,
   SCAFFOLD_BUNDLE_IDS,
   SUPPORTED_AGENTS,
   type ScaffoldBundleId,
@@ -10,7 +11,13 @@ import {
   type SupportedAgent,
 } from "./types.js";
 
-export type { ScaffoldBundleId, ScaffoldRequest, ScaffoldedArtifact, SupportedAgent };
+export {
+  DIREC_BOUND_BUNDLE,
+  type ScaffoldBundleId,
+  type ScaffoldRequest,
+  type ScaffoldedArtifact,
+  type SupportedAgent,
+};
 
 export function getSupportedAgents(): SupportedAgent[] {
   return [...SUPPORTED_AGENTS];
@@ -18,7 +25,7 @@ export function getSupportedAgents(): SupportedAgent[] {
 
 export async function scaffoldInitBundles(request: ScaffoldRequest): Promise<ScaffoldedArtifact[]> {
   const agents = normalizeSupportedAgents(request.agents);
-  const bundles = normalizeBundleIds(request.bundles ?? ["direc-bound"]);
+  const bundles = normalizeBundleIds(request.bundles ?? [DIREC_BOUND_BUNDLE.id]);
   const artifacts = bundles.flatMap((bundleId) => renderBundleArtifacts(bundleId, agents));
 
   for (const artifact of artifacts) {
@@ -36,8 +43,8 @@ export async function scaffoldInitBundles(request: ScaffoldRequest): Promise<Sca
 
 export function formatNextStepNotice(bundleId: ScaffoldBundleId): string {
   switch (bundleId) {
-    case "direc-bound":
-      return "Next step: run /direc-bound";
+    case DIREC_BOUND_BUNDLE.id:
+      return DIREC_BOUND_BUNDLE.nextStepNotice;
   }
 }
 
@@ -64,7 +71,7 @@ function renderBundleArtifacts(
   agents: SupportedAgent[],
 ): Array<ScaffoldedArtifact & { contents: string }> {
   switch (bundleId) {
-    case "direc-bound":
+    case DIREC_BOUND_BUNDLE.id:
       return agents.flatMap((agent) => renderDirecBoundArtifacts(agent));
   }
 }

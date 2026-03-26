@@ -5,11 +5,11 @@ import { join } from "node:path";
 import test from "node:test";
 import { WORKFLOW_IDS } from "@spectotal/direc-analysis-runtime";
 import { doctorCommand } from "../src/commands/doctor.js";
-import { parseAgentSelection } from "../src/commands/init-agents.js";
+import { normalizeSelectedAgents } from "../src/commands/init-agents.js";
 import { initCommand } from "../src/commands/init.js";
 
-test("parseAgentSelection accepts numbers and names", () => {
-  assert.deepEqual(parseAgentSelection("1, claude"), ["codex", "claude"]);
+test("normalizeSelectedAgents accepts supported names and preserves canonical order", () => {
+  assert.deepEqual(normalizeSelectedAgents(["claude", "codex"]), ["codex", "claude"]);
 });
 
 test(
@@ -50,7 +50,7 @@ test(
     assert.match(output, /Quality routines: typescript/);
     assert.match(output, /Automation: advisory, hybrid, command/);
     assert.match(output, /Scaffolded agents: codex/);
-    assert.match(output, /Next step: run \/direc-bound/);
+    assert.match(output, /\/direc-bound/);
     assert.deepEqual(config.facets, ["js"]);
     assert.equal(config.workflow, WORKFLOW_IDS.DIREC);
     assert.deepEqual(Object.keys(config.qualityRoutines ?? {}), ["typescript"]);
