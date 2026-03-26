@@ -4,6 +4,7 @@ import { automateCommand } from "./commands/automate.js";
 import { initCommand } from "./commands/init.js";
 import { runCommand } from "./commands/run.js";
 import { doctorCommand } from "./commands/doctor.js";
+import { vizCommand } from "./commands/viz.js";
 import { packageVersion } from "./lib/package-version.js";
 
 function collectValues(value: string, previous: string[]): string[] {
@@ -55,6 +56,13 @@ export function createCli(): Command {
     .description("Inspect the current environment for expected direc inputs.")
     .option("--extension <module>", "load an extension module", collectValues, [])
     .action(doctorCommand);
+
+  program
+    .command("viz")
+    .description("Generate an HTML visualization of bounded architecture and complexity data.")
+    .option("--out <path>", "output file path", "./direc-viz.html")
+    .option("--open", "open the generated file in the default browser")
+    .action(vizCommand);
 
   return program;
 }

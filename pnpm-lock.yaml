@@ -84,6 +84,9 @@ importers:
       "@spectotal/direc-engine":
         specifier: workspace:*
         version: link:../../core/direc-engine
+      "@spectotal/direc-viz":
+        specifier: workspace:*
+        version: link:../../plugins/direc-viz
       commander:
         specifier: ^13.1.0
         version: 13.1.0
@@ -250,6 +253,22 @@ importers:
       tsx:
         specifier: ^4.19.4
         version: 4.21.0
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
+  packages/plugins/direc-viz:
+    dependencies:
+      "@spectotal/direc-analysis-runtime":
+        specifier: workspace:*
+        version: link:../../core/analysis-runtime
+    devDependencies:
+      "@types/node":
+        specifier: ^24.0.0
+        version: 24.12.0
+      rimraf:
+        specifier: ^6.0.1
+        version: 6.1.3
       typescript:
         specifier: ^5.8.3
         version: 5.9.3
