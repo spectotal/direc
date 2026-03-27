@@ -20,9 +20,13 @@ import {
 import { consoleSink } from "@spectotal/direc-sink-console";
 import { gitDiffSource } from "@spectotal/direc-source-git-diff";
 import { openSpecSource } from "@spectotal/direc-source-openspec";
+import {
+  DEFAULT_REPOSITORY_SOURCE_EXCLUDE_PATHS,
+  repositorySource,
+} from "@spectotal/direc-source-repository";
 import { boundsEvaluatorNode } from "@spectotal/direc-tool-bounds-evaluator";
 import { clusterBuilderNode } from "@spectotal/direc-tool-cluster-builder";
-import { complexityNode } from "@spectotal/direc-tool-complexity";
+import { jsComplexityNode } from "@spectotal/direc-tool-js-complexity";
 import { graphMakerNode } from "@spectotal/direc-tool-graph-maker";
 import { specDocumentsNode } from "@spectotal/direc-tool-spec-documents";
 import { specConflictNode } from "@spectotal/direc-tool-spec-conflict";
@@ -86,9 +90,9 @@ export const analysisThresholdRule: FeedbackRule<{ blockOnError?: boolean }> = {
 
 export function createBuiltinRegistry(): PipelineRegistry {
   return {
-    sources: [gitDiffSource, openSpecSource],
+    sources: [repositorySource, gitDiffSource, openSpecSource],
     analysisNodes: [
-      complexityNode,
+      jsComplexityNode,
       graphMakerNode,
       clusterBuilderNode,
       boundsEvaluatorNode,
@@ -155,6 +159,15 @@ export function buildWorkspaceConfig(
     pipelines: [],
   };
 
+  config.sources.repository = {
+    id: "repository",
+    plugin: "repository",
+    enabled: true,
+    options: {
+      excludePaths: [...DEFAULT_REPOSITORY_SOURCE_EXCLUDE_PATHS],
+    },
+  };
+
   if (context.hasGit) {
     config.sources.diff = {
       id: "diff",
@@ -183,10 +196,10 @@ export function buildWorkspaceConfig(
   }
 
   if (facets.includes("js")) {
-    config.tools.complexity = {
-      id: "complexity",
+    config.tools.jsComplexity = {
+      id: "jsComplexity",
       kind: "builtin",
-      plugin: "complexity",
+      plugin: "js-complexity",
       enabled: true,
       options: {
         warningThreshold: 10,
@@ -234,13 +247,30 @@ export function buildWorkspaceConfig(
     enabled: true,
   };
 
+  if (config.sources.repository && config.tools.jsComplexity && config.tools.graph) {
+    config.pipelines.push({
+      id: "repository-quality",
+      description: "Inspect repository-wide scope with staged analysis and feedback.",
+      source: "repository",
+      analysis: {
+        extractors: ["jsComplexity", "graph"].filter((toolId) => Boolean(config.tools[toolId])),
+        derivers: ["cluster"].filter((toolId) => Boolean(config.tools[toolId])),
+        evaluators: ["bounds"].filter((toolId) => Boolean(config.tools[toolId])),
+      },
+      feedback: {
+        rules: [{ id: "thresholds", plugin: "analysis-thresholds" }],
+        sinks: ["console"],
+      },
+    });
+  }
+
   if (config.sources.diff) {
     config.pipelines.push({
       id: "diff-quality",
       description: "Inspect current git diff with staged analysis and feedback.",
       source: "diff",
       analysis: {
-        extractors: ["complexity", "graph"].filter((toolId) => Boolean(config.tools[toolId])),
+        extractors: ["jsComplexity", "graph"].filter((toolId) => Boolean(config.tools[toolId])),
         derivers: ["cluster"].filter((toolId) => Boolean(config.tools[toolId])),
         evaluators: ["bounds"].filter((toolId) => Boolean(config.tools[toolId])),
       },
@@ -257,7 +287,7 @@ export function buildWorkspaceConfig(
       description: "Evaluate completed OpenSpec tasks against staged code analysis.",
       source: "openspecTasks",
       analysis: {
-        extractors: ["complexity", "graph"].filter((toolId) => Boolean(config.tools[toolId])),
+        extractors: ["jsComplexity", "graph"].filter((toolId) => Boolean(config.tools[toolId])),
         derivers: ["cluster"].filter((toolId) => Boolean(config.tools[toolId])),
         evaluators: ["bounds"].filter((toolId) => Boolean(config.tools[toolId])),
       },

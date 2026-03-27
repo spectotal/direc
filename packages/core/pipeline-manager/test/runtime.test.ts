@@ -14,9 +14,13 @@ import type { FeedbackRule, FeedbackSink } from "@spectotal/direc-feedback-contr
 import type { SourcePlugin } from "@spectotal/direc-source-contracts";
 import { gitDiffSource } from "@spectotal/direc-source-git-diff";
 import { openSpecSource } from "@spectotal/direc-source-openspec";
+import {
+  DEFAULT_REPOSITORY_SOURCE_EXCLUDE_PATHS,
+  repositorySource,
+} from "@spectotal/direc-source-repository";
 import { boundsEvaluatorNode } from "@spectotal/direc-tool-bounds-evaluator";
 import { clusterBuilderNode } from "@spectotal/direc-tool-cluster-builder";
-import { complexityNode } from "@spectotal/direc-tool-complexity";
+import { jsComplexityNode } from "@spectotal/direc-tool-js-complexity";
 import { graphMakerNode } from "@spectotal/direc-tool-graph-maker";
 import { specDocumentsNode } from "@spectotal/direc-tool-spec-documents";
 import { specConflictNode } from "@spectotal/direc-tool-spec-conflict";
@@ -751,10 +755,10 @@ test("runPipeline executes the diff slice end to end with staged analysis", asyn
       },
     },
     tools: {
-      complexity: {
-        id: "complexity",
+      jsComplexity: {
+        id: "jsComplexity",
         kind: "builtin",
-        plugin: "complexity",
+        plugin: "js-complexity",
         enabled: true,
       },
       graph: {
@@ -788,7 +792,7 @@ test("runPipeline executes the diff slice end to end with staged analysis", asyn
         id: "diff-quality",
         source: "diff",
         analysis: {
-          extractors: ["complexity", "graph"],
+          extractors: ["jsComplexity", "graph"],
           derivers: ["cluster"],
           evaluators: ["bounds"],
         },
@@ -805,7 +809,7 @@ test("runPipeline executes the diff slice end to end with staged analysis", asyn
     config,
     registry: {
       sources: [gitDiffSource],
-      analysisNodes: [complexityNode, graphMakerNode, clusterBuilderNode, boundsEvaluatorNode],
+      analysisNodes: [jsComplexityNode, graphMakerNode, clusterBuilderNode, boundsEvaluatorNode],
       feedbackRules: [analysisThresholdRule],
       sinks: [recordingSink],
     },
@@ -832,6 +836,118 @@ test("runPipeline executes the diff slice end to end with staged analysis", asyn
   assert.ok(types.includes("evaluation.bounds-distance"));
   assert.ok(types.includes("feedback.verdict"));
   assert.deepEqual(delivered, ["feedback.notice", "feedback.verdict"]);
+});
+
+test("runPipeline executes the repository slice end to end with source-level exclusions", async () => {
+  const repositoryRoot = await mkdtemp(join(tmpdir(), "direc-repository-slice-"));
+  await mkdir(join(repositoryRoot, "src"), { recursive: true });
+  await mkdir(join(repositoryRoot, "test"), { recursive: true });
+  await writeFile(
+    join(repositoryRoot, "src", "index.ts"),
+    "import { helper } from './helper.js';\nexport function run(input: number) { if (input > 1 && helper()) { return input; } return 0; }\n",
+  );
+  await writeFile(
+    join(repositoryRoot, "src", "helper.ts"),
+    "export function helper() { return true; }\n",
+  );
+  await writeFile(
+    join(repositoryRoot, "test", "ignored.ts"),
+    "export function ignored() { return false; }\n",
+  );
+
+  const config: WorkspaceConfig = {
+    version: 1,
+    generatedAt: new Date().toISOString(),
+    facets: ["js"],
+    sources: {
+      repository: {
+        id: "repository",
+        plugin: "repository",
+        enabled: true,
+        options: {
+          excludePaths: [...DEFAULT_REPOSITORY_SOURCE_EXCLUDE_PATHS],
+        },
+      },
+    },
+    tools: {
+      jsComplexity: {
+        id: "jsComplexity",
+        kind: "builtin",
+        plugin: "js-complexity",
+        enabled: true,
+      },
+      graph: {
+        id: "graph",
+        kind: "builtin",
+        plugin: "graph-maker",
+        enabled: true,
+      },
+      cluster: {
+        id: "cluster",
+        kind: "builtin",
+        plugin: "cluster-builder",
+        enabled: true,
+      },
+      bounds: {
+        id: "bounds",
+        kind: "builtin",
+        plugin: "bounds-evaluator",
+        enabled: true,
+      },
+    },
+    sinks: {},
+    pipelines: [
+      {
+        id: "repository-quality",
+        source: "repository",
+        analysis: {
+          extractors: ["jsComplexity", "graph"],
+          derivers: ["cluster"],
+          evaluators: ["bounds"],
+        },
+        feedback: {
+          rules: [{ id: "thresholds", plugin: "analysis-thresholds" }],
+          sinks: [],
+        },
+      },
+    ],
+  };
+
+  const result = await runPipeline({
+    repositoryRoot,
+    config,
+    registry: {
+      sources: [repositorySource],
+      analysisNodes: [jsComplexityNode, graphMakerNode, clusterBuilderNode, boundsEvaluatorNode],
+      feedbackRules: [analysisThresholdRule],
+      sinks: [],
+    },
+    projectContext: {
+      repositoryRoot,
+      facets: [{ id: "js", evidence: ["fixture"] }],
+      sourceFiles: [
+        join(repositoryRoot, "src", "index.ts"),
+        join(repositoryRoot, "src", "helper.ts"),
+        join(repositoryRoot, "test", "ignored.ts"),
+      ],
+      hasGit: false,
+      hasOpenSpec: false,
+    },
+    pipelineId: "repository-quality",
+  });
+
+  const sourceArtifact = result.artifacts.find(
+    (artifact) => artifact.type === "source.repository.scope",
+  );
+  assert.ok(sourceArtifact);
+  assert.deepEqual(sourceArtifact?.scope.paths, [
+    join(repositoryRoot, "src", "helper.ts"),
+    join(repositoryRoot, "src", "index.ts"),
+  ]);
+  assert.ok(result.artifacts.some((artifact) => artifact.type === "metric.complexity"));
+  assert.ok(result.artifacts.some((artifact) => artifact.type === "structural.graph"));
+  assert.ok(result.artifacts.some((artifact) => artifact.type === "evaluation.bounds-distance"));
+  assert.ok(result.artifacts.some((artifact) => artifact.type === "feedback.verdict"));
 });
 
 test("runPipeline executes openspec task and spec pipelines against the same manager", async () => {
@@ -881,10 +997,10 @@ test("runPipeline executes openspec task and spec pipelines against the same man
       },
     },
     tools: {
-      complexity: {
-        id: "complexity",
+      jsComplexity: {
+        id: "jsComplexity",
         kind: "builtin",
-        plugin: "complexity",
+        plugin: "js-complexity",
         enabled: true,
       },
       graph: {
@@ -924,7 +1040,7 @@ test("runPipeline executes openspec task and spec pipelines against the same man
         id: "openspec-task-feedback",
         source: "openspecTasks",
         analysis: {
-          extractors: ["complexity", "graph"],
+          extractors: ["jsComplexity", "graph"],
           derivers: ["cluster"],
           evaluators: ["bounds"],
         },
@@ -951,7 +1067,7 @@ test("runPipeline executes openspec task and spec pipelines against the same man
   const registry = {
     sources: [openSpecSource],
     analysisNodes: [
-      complexityNode,
+      jsComplexityNode,
       graphMakerNode,
       clusterBuilderNode,
       boundsEvaluatorNode,

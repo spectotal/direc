@@ -4,3 +4,4 @@ coverage
 .husky/_/
 direc-viz.html
 pnpm-lock.yaml
+*.json

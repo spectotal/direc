@@ -1,7 +1,11 @@
 import { access, readFile } from "node:fs/promises";
 import { dirname, extname, resolve } from "node:path";
 import type { AnalysisNode } from "@spectotal/direc-analysis-contracts";
-import { collectScopedPaths, normalisePaths } from "@spectotal/direc-artifact-contracts";
+import {
+  collectScopedPaths,
+  normalisePaths,
+  type ArtifactEnvelope,
+} from "@spectotal/direc-artifact-contracts";
 import type { GraphArtifactPayload } from "./contracts.js";
 
 export type { GraphArtifactPayload, GraphEdge } from "./contracts.js";
@@ -14,7 +18,7 @@ export const graphMakerNode: AnalysisNode = {
   stage: "extractor",
   binding: "facet-bound",
   requires: {
-    anyOf: ["source.diff.scope", "source.openspec.task"],
+    anyOf: ["source.diff.scope", "source.openspec.task", "source.repository.scope"],
   },
   requiredFacets: ["js"],
   produces: ["structural.graph"],
@@ -22,9 +26,10 @@ export const graphMakerNode: AnalysisNode = {
     return context.facets.some((facet) => facet.id === "js");
   },
   async run(context) {
-    const scopedPaths = collectScopedPaths(context.inputArtifacts).filter(isJsPath);
-    const sourcePaths =
-      scopedPaths.length > 0 ? scopedPaths : context.projectContext.sourceFiles.filter(isJsPath);
+    const sourcePaths = resolveJsSourcePaths(
+      context.inputArtifacts,
+      context.projectContext.sourceFiles.filter(isJsPath),
+    );
     const nodes = normalisePaths(sourcePaths);
     const nodeSet = new Set(nodes);
     const edges: GraphArtifactPayload["edges"] = [];
@@ -68,6 +73,22 @@ export const graphMakerNode: AnalysisNode = {
     ];
   },
 };
+
+function resolveJsSourcePaths(
+  inputArtifacts: ArtifactEnvelope[],
+  fallbackSourcePaths: string[],
+): string[] {
+  const scopedPaths = collectScopedPaths(inputArtifacts).filter(isJsPath);
+  const hasExplicitPathScope = inputArtifacts.some(
+    (artifact) => artifact.scope.paths !== undefined,
+  );
+
+  if (hasExplicitPathScope) {
+    return normalisePaths(scopedPaths);
+  }
+
+  return normalisePaths(fallbackSourcePaths.filter(isJsPath));
+}
 
 function isJsPath(path: string): boolean {
   return JS_EXTENSIONS.includes(extname(path));

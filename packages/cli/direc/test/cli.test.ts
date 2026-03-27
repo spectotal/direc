@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
 import test from "node:test";
+import { DEFAULT_REPOSITORY_SOURCE_EXCLUDE_PATHS } from "@spectotal/direc-source-repository";
 import { initCommand, runCommand } from "../src/index.js";
 
 test("initCommand detects facets and materialises staged sources, tools, sinks, and pipelines", async () => {
@@ -18,28 +19,49 @@ test("initCommand detects facets and materialises staged sources, tools, sinks, 
   await writeFile(join(repositoryRoot, "openspec", "specs", "demo", "spec.md"), "# Demo\n");
 
   const result = await initCommand(repositoryRoot);
+  assert.ok(result.config.sources.repository);
   assert.ok(result.config.sources.openspecTasks);
   assert.ok(result.config.sources.openspecSpecs);
   assert.ok(result.config.sources.diff === undefined);
-  assert.ok(result.config.tools.complexity);
+  assert.deepEqual(result.config.sources.repository.options?.excludePaths, [
+    ...DEFAULT_REPOSITORY_SOURCE_EXCLUDE_PATHS,
+  ]);
+  assert.ok(result.config.tools.jsComplexity);
   assert.ok(result.config.tools.specDocuments);
   assert.ok(result.config.tools.specConflict);
   assert.ok(result.config.sinks.console);
   assert.deepEqual(
     result.config.pipelines.map((pipeline) => pipeline.id),
-    ["openspec-task-feedback", "openspec-spec-conflicts"],
+    ["repository-quality", "openspec-task-feedback", "openspec-spec-conflicts"],
   );
-  assert.deepEqual(result.config.pipelines[0]?.analysis.extractors, ["complexity", "graph"]);
-  assert.deepEqual(result.config.pipelines[0]?.analysis.derivers, ["cluster"]);
-  assert.deepEqual(result.config.pipelines[0]?.analysis.evaluators, ["bounds"]);
+  const repositoryPipeline = result.config.pipelines.find(
+    (pipeline) => pipeline.id === "repository-quality",
+  );
+  assert.deepEqual(repositoryPipeline?.analysis.extractors, ["jsComplexity", "graph"]);
+  assert.deepEqual(repositoryPipeline?.analysis.derivers, ["cluster"]);
+  assert.deepEqual(repositoryPipeline?.analysis.evaluators, ["bounds"]);
 
   const configOnDisk = JSON.parse(
     await readFile(join(repositoryRoot, ".direc", "config.json"), "utf8"),
   ) as {
-    pipelines: Array<{ analysis: { extractors: string[] } }>;
+    sources: {
+      repository: {
+        options: {
+          excludePaths: string[];
+        };
+      };
+    };
+    pipelines: Array<{ id: string; analysis: { extractors: string[] } }>;
   };
-  assert.equal(configOnDisk.pipelines.length, 2);
-  assert.deepEqual(configOnDisk.pipelines[1]?.analysis.extractors, ["specDocuments"]);
+  assert.equal(configOnDisk.pipelines.length, 3);
+  assert.deepEqual(configOnDisk.sources.repository.options.excludePaths, [
+    ...DEFAULT_REPOSITORY_SOURCE_EXCLUDE_PATHS,
+  ]);
+  assert.deepEqual(
+    configOnDisk.pipelines.find((pipeline) => pipeline.id === "openspec-spec-conflicts")?.analysis
+      .extractors,
+    ["specDocuments"],
+  );
 });
 
 test("runCommand loads config and executes the staged diff pipeline end to end", async () => {
@@ -64,8 +86,14 @@ test("runCommand loads config and executes the staged diff pipeline end to end",
   );
 
   const initResult = await initCommand(repositoryRoot);
+  assert.ok(initResult.config.sources.repository);
   assert.ok(initResult.config.sources.diff);
-  assert.deepEqual(initResult.config.pipelines[0]?.analysis.extractors, ["complexity", "graph"]);
+  assert.ok(initResult.config.pipelines.some((pipeline) => pipeline.id === "repository-quality"));
+  assert.deepEqual(
+    initResult.config.pipelines.find((pipeline) => pipeline.id === "diff-quality")?.analysis
+      .extractors,
+    ["jsComplexity", "graph"],
+  );
 
   const results = await runCommand(repositoryRoot, "diff-quality");
   assert.equal(results.length, 1);

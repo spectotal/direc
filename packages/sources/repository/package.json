@@ -1,7 +1,7 @@
 {
-  "name": "@spectotal/direc-tool-bounds-evaluator",
+  "name": "@spectotal/direc-source-repository",
   "version": "1.0.0-alpha.0",
-  "description": "Platform-agnostic boundary and metric evaluator for Direc pipelines.",
+  "description": "Repository-wide source plugin for Direc.",
   "type": "module",
   "main": "./dist/src/index.js",
   "types": "./dist/src/index.d.ts",
@@ -20,13 +20,12 @@
   },
   "scripts": {
     "build": "rm -rf dist && tsc -p tsconfig.json",
+    "test": "pnpm run build && node --test dist/test/**/*.test.js",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "license": "MIT",
   "dependencies": {
-    "@spectotal/direc-analysis-contracts": "workspace:*",
-    "@spectotal/direc-tool-cluster-builder": "workspace:*",
-    "@spectotal/direc-tool-js-complexity": "workspace:*",
-    "@spectotal/direc-tool-graph-maker": "workspace:*"
+    "@spectotal/direc-artifact-contracts": "workspace:*",
+    "@spectotal/direc-source-contracts": "workspace:*"
   }
 }

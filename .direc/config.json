@@ -1,8 +1,30 @@
 {
   "version": 1,
-  "generatedAt": "2026-03-27T13:24:15.877Z",
-  "facets": ["js", "openspec"],
+  "generatedAt": "2026-03-27T17:06:00.509Z",
+  "facets": [
+    "js",
+    "openspec"
+  ],
   "sources": {
+    "repository": {
+      "id": "repository",
+      "plugin": "repository",
+      "enabled": true,
+      "options": {
+        "excludePaths": [
+          "**/dist/**",
+          "**/test/**",
+          "**/tests/**",
+          "**/__tests__/**",
+          "**/fixtures/**",
+          "**/*.test.*",
+          "**/*.spec.*",
+          "**/*.d.ts",
+          "**/*.d.ts.map",
+          "scripts/**"
+        ]
+      }
+    },
     "diff": {
       "id": "diff",
       "plugin": "git-diff",
@@ -26,10 +48,10 @@
     }
   },
   "tools": {
-    "complexity": {
-      "id": "complexity",
+    "jsComplexity": {
+      "id": "jsComplexity",
       "kind": "builtin",
-      "plugin": "complexity",
+      "plugin": "js-complexity",
       "enabled": true,
       "options": {
         "warningThreshold": 10,
@@ -76,13 +98,20 @@
   },
   "pipelines": [
     {
-      "id": "diff-quality",
-      "description": "Inspect current git diff with staged analysis and feedback.",
-      "source": "diff",
+      "id": "repository-quality",
+      "description": "Inspect repository-wide scope with staged analysis and feedback.",
+      "source": "repository",
       "analysis": {
-        "extractors": ["complexity", "graph"],
-        "derivers": ["cluster"],
-        "evaluators": ["bounds"]
+        "extractors": [
+          "jsComplexity",
+          "graph"
+        ],
+        "derivers": [
+          "cluster"
+        ],
+        "evaluators": [
+          "bounds"
+        ]
       },
       "feedback": {
         "rules": [
@@ -91,7 +120,37 @@
             "plugin": "analysis-thresholds"
           }
         ],
-        "sinks": ["console"]
+        "sinks": [
+          "console"
+        ]
+      }
+    },
+    {
+      "id": "diff-quality",
+      "description": "Inspect current git diff with staged analysis and feedback.",
+      "source": "diff",
+      "analysis": {
+        "extractors": [
+          "jsComplexity",
+          "graph"
+        ],
+        "derivers": [
+          "cluster"
+        ],
+        "evaluators": [
+          "bounds"
+        ]
+      },
+      "feedback": {
+        "rules": [
+          {
+            "id": "thresholds",
+            "plugin": "analysis-thresholds"
+          }
+        ],
+        "sinks": [
+          "console"
+        ]
       }
     },
     {
@@ -99,9 +158,16 @@
       "description": "Evaluate completed OpenSpec tasks against staged code analysis.",
       "source": "openspecTasks",
       "analysis": {
-        "extractors": ["complexity", "graph"],
-        "derivers": ["cluster"],
-        "evaluators": ["bounds"]
+        "extractors": [
+          "jsComplexity",
+          "graph"
+        ],
+        "derivers": [
+          "cluster"
+        ],
+        "evaluators": [
+          "bounds"
+        ]
       },
       "feedback": {
         "rules": [
@@ -110,7 +176,9 @@
             "plugin": "analysis-thresholds"
           }
         ],
-        "sinks": ["console"]
+        "sinks": [
+          "console"
+        ]
       }
     },
     {
@@ -118,9 +186,13 @@
       "description": "Compare OpenSpec change specs through staged extraction and evaluation.",
       "source": "openspecSpecs",
       "analysis": {
-        "extractors": ["specDocuments"],
+        "extractors": [
+          "specDocuments"
+        ],
         "derivers": [],
-        "evaluators": ["specConflict"]
+        "evaluators": [
+          "specConflict"
+        ]
       },
       "feedback": {
         "rules": [
@@ -129,7 +201,9 @@
             "plugin": "analysis-thresholds"
           }
         ],
-        "sinks": ["console"]
+        "sinks": [
+          "console"
+        ]
       }
     }
   ]

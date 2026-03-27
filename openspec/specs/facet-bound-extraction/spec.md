@@ -8,13 +8,14 @@ Define the facet-dependent extraction tools that turn source artifacts into reus
 
 The JavaScript extraction stack SHALL consume source artifacts and emit normalized analysis artifacts for later stages.
 
-#### Scenario: Diff or task scope drives JS extractors
+#### Scenario: Repository, diff, or task scope drives JS extractors
 
-- **GIVEN** `source.diff.scope` or `source.openspec.task` artifacts in a repository with the `js` facet
+- **GIVEN** `source.repository.scope`, `source.diff.scope`, or `source.openspec.task` artifacts in a repository with the `js` facet
 - **WHEN** the staged analysis pipeline runs its extractor stage
-- **THEN** the `complexity` extractor SHALL emit `metric.complexity`
+- **THEN** the `js-complexity` extractor SHALL emit `metric.complexity`
 - **AND** the `graph-maker` extractor SHALL emit `structural.graph`
 - **AND** both extractors SHALL be treated as facet-bound tools that require the `js` facet
+- **AND** when the source provides an explicit path scope, both extractors SHALL stay within that scope rather than widening back to all detected project files
 
 ### Requirement: OpenSpec spec extraction is facet-bound and isolated from generic evaluation
 

@@ -1,5 +1,5 @@
 {
-  "name": "@spectotal/direc-tool-complexity",
+  "name": "@spectotal/direc-tool-js-complexity",
   "version": "1.0.0-alpha.0",
   "description": "Facet-bound JS complexity extractor for Direc pipelines.",
   "type": "module",
@@ -20,11 +20,14 @@
   },
   "scripts": {
     "build": "rm -rf dist && tsc -p tsconfig.json",
+    "test": "pnpm run build && node --test dist/test/**/*.test.js",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "license": "MIT",
   "dependencies": {
     "@spectotal/direc-analysis-contracts": "workspace:*",
-    "@spectotal/direc-artifact-contracts": "workspace:*"
+    "@spectotal/direc-artifact-contracts": "workspace:*",
+    "@typescript-eslint/typescript-estree": "^8.57.2",
+    "@typescript-eslint/visitor-keys": "^8.57.2"
   }
 }

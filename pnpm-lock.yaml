@@ -56,18 +56,21 @@ importers:
       '@spectotal/direc-source-openspec':
         specifier: workspace:*
         version: link:../../sources/openspec
+      '@spectotal/direc-source-repository':
+        specifier: workspace:*
+        version: link:../../sources/repository
       '@spectotal/direc-tool-bounds-evaluator':
         specifier: workspace:*
         version: link:../../tools/agnostic/bounds-evaluator
       '@spectotal/direc-tool-cluster-builder':
         specifier: workspace:*
         version: link:../../tools/agnostic/cluster-builder
-      '@spectotal/direc-tool-complexity':
-        specifier: workspace:*
-        version: link:../../tools/facet/complexity
       '@spectotal/direc-tool-graph-maker':
         specifier: workspace:*
         version: link:../../tools/facet/graph-maker
+      '@spectotal/direc-tool-js-complexity':
+        specifier: workspace:*
+        version: link:../../tools/facet/js-complexity
       '@spectotal/direc-tool-spec-conflict':
         specifier: workspace:*
         version: link:../../tools/agnostic/spec-conflict
@@ -110,18 +113,21 @@ importers:
       '@spectotal/direc-source-openspec':
         specifier: workspace:*
         version: link:../../sources/openspec
+      '@spectotal/direc-source-repository':
+        specifier: workspace:*
+        version: link:../../sources/repository
       '@spectotal/direc-tool-bounds-evaluator':
         specifier: workspace:*
         version: link:../../tools/agnostic/bounds-evaluator
       '@spectotal/direc-tool-cluster-builder':
         specifier: workspace:*
         version: link:../../tools/agnostic/cluster-builder
-      '@spectotal/direc-tool-complexity':
-        specifier: workspace:*
-        version: link:../../tools/facet/complexity
       '@spectotal/direc-tool-graph-maker':
         specifier: workspace:*
         version: link:../../tools/facet/graph-maker
+      '@spectotal/direc-tool-js-complexity':
+        specifier: workspace:*
+        version: link:../../tools/facet/js-complexity
       '@spectotal/direc-tool-spec-conflict':
         specifier: workspace:*
         version: link:../../tools/agnostic/spec-conflict
@@ -159,6 +165,15 @@ importers:
         specifier: workspace:*
         version: link:../../core/source-contracts
 
+  packages/sources/repository:
+    dependencies:
+      '@spectotal/direc-artifact-contracts':
+        specifier: workspace:*
+        version: link:../../core/artifact-contracts
+      '@spectotal/direc-source-contracts':
+        specifier: workspace:*
+        version: link:../../core/source-contracts
+
   packages/tools/agnostic/bounds-evaluator:
     dependencies:
       '@spectotal/direc-analysis-contracts':
@@ -167,12 +182,12 @@ importers:
       '@spectotal/direc-tool-cluster-builder':
         specifier: workspace:*
         version: link:../cluster-builder
-      '@spectotal/direc-tool-complexity':
-        specifier: workspace:*
-        version: link:../../facet/complexity
       '@spectotal/direc-tool-graph-maker':
         specifier: workspace:*
         version: link:../../facet/graph-maker
+      '@spectotal/direc-tool-js-complexity':
+        specifier: workspace:*
+        version: link:../../facet/js-complexity
 
   packages/tools/agnostic/cluster-builder:
     dependencies:
@@ -192,15 +207,6 @@ importers:
         specifier: workspace:*
         version: link:../../facet/spec-documents
 
-  packages/tools/facet/complexity:
-    dependencies:
-      '@spectotal/direc-analysis-contracts':
-        specifier: workspace:*
-        version: link:../../../core/analysis-contracts
-      '@spectotal/direc-artifact-contracts':
-        specifier: workspace:*
-        version: link:../../../core/artifact-contracts
-
   packages/tools/facet/graph-maker:
     dependencies:
       '@spectotal/direc-analysis-contracts':
@@ -209,6 +215,21 @@ importers:
       '@spectotal/direc-artifact-contracts':
         specifier: workspace:*
         version: link:../../../core/artifact-contracts
+
+  packages/tools/facet/js-complexity:
+    dependencies:
+      '@spectotal/direc-analysis-contracts':
+        specifier: workspace:*
+        version: link:../../../core/analysis-contracts
+      '@spectotal/direc-artifact-contracts':
+        specifier: workspace:*
+        version: link:../../../core/artifact-contracts
+      '@typescript-eslint/typescript-estree':
+        specifier: ^8.57.2
+        version: 8.57.2(typescript@5.9.3)
+      '@typescript-eslint/visitor-keys':
+        specifier: ^8.57.2
+        version: 8.57.2
 
   packages/tools/facet/spec-documents:
     dependencies:

@@ -38,8 +38,8 @@ pnpm --filter direc exec node ./bin/direc.js watch
 
 ## Built-in v1 Surface
 
-- Sources: `git-diff`, `openspec`
-- Facet-bound extractors: `complexity`, `graph-maker`, `spec-documents`
+- Sources: `repository`, `git-diff`, `openspec`
+- Facet-bound extractors: `js-complexity`, `graph-maker`, `spec-documents`
 - Agnostic derivers/evaluators: `cluster-builder`, `bounds-evaluator`, `spec-conflict`
 - Feedback sink: `console`
 

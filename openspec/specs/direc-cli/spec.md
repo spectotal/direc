@@ -16,6 +16,7 @@ The CLI SHALL detect repository context and write a concrete staged pipeline con
 - **AND** it SHALL write `.direc/config.json` with explicit `sources`, `tools`, `sinks`, and `pipelines`
 - **AND** each pipeline SHALL declare `analysis.extractors`, `analysis.derivers`, `analysis.evaluators`, `feedback.rules`, and `feedback.sinks`
 - **AND** JavaScript repositories SHALL enable the extractor and agnostic architecture stack
+- **AND** JavaScript repositories SHALL enable the `repository` source with source-level `excludePaths` and the `repository-quality` pipeline
 - **AND** repositories with OpenSpec SHALL enable the spec document extractor and spec conflict evaluator pipeline
 - **AND** repositories with Git SHALL enable the `diff` source and `diff-quality` pipeline
 

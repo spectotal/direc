@@ -1,6 +1,6 @@
 import type { AnalysisNode } from "@spectotal/direc-analysis-contracts";
 import type { BoundariesArtifactPayload } from "@spectotal/direc-tool-cluster-builder";
-import type { ComplexityArtifactPayload } from "@spectotal/direc-tool-complexity";
+import type { ComplexityArtifactPayload } from "@spectotal/direc-tool-js-complexity";
 import type { GraphArtifactPayload } from "@spectotal/direc-tool-graph-maker";
 import type { BoundsDistanceArtifactPayload } from "./contracts.js";
 
