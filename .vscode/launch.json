@@ -1,0 +1,106 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "direc: init (tsx)",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--import", "tsx", "--conditions=source"],
+      "program": "${workspaceFolder}/packages/cli/direc/src/dev.ts",
+      "args": ["init"],
+      "skipFiles": ["<node_internals>/**"],
+      "autoAttachChildProcesses": true,
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "name": "direc: run (tsx)",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--import", "tsx", "--conditions=source"],
+      "program": "${workspaceFolder}/packages/cli/direc/src/dev.ts",
+      "args": ["run", "${input:direcPipelineId}"],
+      "skipFiles": ["<node_internals>/**"],
+      "autoAttachChildProcesses": true,
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "name": "direc: watch (tsx)",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--import", "tsx", "--conditions=source"],
+      "program": "${workspaceFolder}/packages/cli/direc/src/dev.ts",
+      "args": ["watch", "${input:direcPipelineId}"],
+      "skipFiles": ["<node_internals>/**"],
+      "autoAttachChildProcesses": true,
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "name": "direc: init",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--enable-source-maps"],
+      "program": "${workspaceFolder}/packages/cli/direc/bin/direc.js",
+      "args": ["init"],
+      "preLaunchTask": "build workspace",
+      "outFiles": ["${workspaceFolder}/packages/**/dist/**/*.js"],
+      "resolveSourceMapLocations": ["${workspaceFolder}/**", "!**/node_modules/**"],
+      "skipFiles": ["<node_internals>/**"],
+      "autoAttachChildProcesses": true,
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "name": "direc: run",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--enable-source-maps"],
+      "program": "${workspaceFolder}/packages/cli/direc/bin/direc.js",
+      "args": ["run", "${input:direcPipelineId}"],
+      "preLaunchTask": "build workspace",
+      "outFiles": ["${workspaceFolder}/packages/**/dist/**/*.js"],
+      "resolveSourceMapLocations": ["${workspaceFolder}/**", "!**/node_modules/**"],
+      "skipFiles": ["<node_internals>/**"],
+      "autoAttachChildProcesses": true,
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "name": "direc: watch",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--enable-source-maps"],
+      "program": "${workspaceFolder}/packages/cli/direc/bin/direc.js",
+      "args": ["watch", "${input:direcPipelineId}"],
+      "preLaunchTask": "build workspace",
+      "outFiles": ["${workspaceFolder}/packages/**/dist/**/*.js"],
+      "resolveSourceMapLocations": ["${workspaceFolder}/**", "!**/node_modules/**"],
+      "skipFiles": ["<node_internals>/**"],
+      "autoAttachChildProcesses": true,
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "direcPipelineId",
+      "type": "promptString",
+      "description": "Optional pipeline id. Leave blank to target all configured pipelines.",
+      "default": ""
+    }
+  ]
+}

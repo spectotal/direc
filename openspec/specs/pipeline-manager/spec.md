@@ -1,23 +1,34 @@
 ## Purpose
 
-Define how Direc composes sources, analysis nodes, feedback rules, and sinks into persisted pipeline runs.
+Define how Direc composes sources, staged analysis nodes, feedback rules, and sinks into persisted pipeline runs.
 
 ## Requirements
 
-### Requirement: Pipeline manager executes configured pipelines as an artifact graph
+### Requirement: Pipeline manager executes pipelines in fixed stage order
 
-The system SHALL execute a configured pipeline as source emission, then eligible analysis nodes, then feedback rules, then subscribed sinks.
+The system SHALL execute pipelines as source, then extractors, then derivers, then evaluators, then feedback.
 
-#### Scenario: Eligible pipeline run
+#### Scenario: Eligible staged pipeline run
 
-- **GIVEN** an enabled pipeline with a detected source, enabled tools, a feedback rule, and a sink
+- **GIVEN** an enabled pipeline with a detected source, staged analysis tools, a feedback rule, and a sink
 - **WHEN** the pipeline manager runs that pipeline
 - **THEN** it SHALL run the source first and persist its seed artifacts
-- **AND** it SHALL run only analysis nodes whose selectors are satisfied by currently available artifacts
-- **AND** it SHALL topologically order analysis nodes by produced and consumed artifact types
-- **AND** it SHALL reject cycles between analysis nodes instead of running them in an arbitrary order
-- **AND** it SHALL evaluate feedback rules after analysis using the rule selector or default selector
+- **AND** it SHALL run extractors before derivers, derivers before evaluators, and feedback after evaluators
+- **AND** it SHALL topologically order tools only within each analysis stage by produced and required artifact types
 - **AND** it SHALL deliver only subscribed feedback artifact types to each sink
+
+### Requirement: Pipeline manager validates staged analysis contracts
+
+The system SHALL reject pipelines that violate the extractor or agnostic-stage rules.
+
+#### Scenario: Invalid stage contract is rejected
+
+- **GIVEN** a configured analysis tool with the wrong stage or binding
+- **WHEN** the pipeline is planned
+- **THEN** the pipeline manager SHALL reject facet-bound tools with no `requiredFacets`
+- **AND** it SHALL reject agnostic tools that declare `requiredFacets`
+- **AND** it SHALL reject derivers or evaluators that require `source.*`
+- **AND** it SHALL reject tools whose required artifact types cannot be produced by the source or an earlier stage in the same pipeline
 
 ### Requirement: Pipeline manager persists run data under `.direc`
 
@@ -48,15 +59,3 @@ The system SHALL support continuous execution when the configured source exposes
 - **GIVEN** a pipeline whose source plugin does not support watch mode
 - **WHEN** watch mode starts
 - **THEN** the pipeline manager SHALL fail with a clear error
-
-### Requirement: Command-backed tools use the same analysis-node contract
-
-The system SHALL treat command-backed analysis tools as first-class analysis nodes.
-
-#### Scenario: Command-backed tool returns artifacts
-
-- **GIVEN** a tool configuration with `kind: command`
-- **WHEN** the pipeline manager executes that tool
-- **THEN** it SHALL send JSON input on stdin containing run metadata, options, and input artifacts
-- **AND** it SHALL read JSON from stdout containing an `artifacts` array
-- **AND** it SHALL reject non-zero exit codes, timeouts, invalid JSON, or artifact types outside the tool's declared `produces` list

@@ -18,6 +18,7 @@ import { boundsEvaluatorNode } from "@spectotal/direc-tool-bounds-evaluator";
 import { clusterBuilderNode } from "@spectotal/direc-tool-cluster-builder";
 import { complexityNode } from "@spectotal/direc-tool-complexity";
 import { graphMakerNode } from "@spectotal/direc-tool-graph-maker";
+import { specDocumentsNode } from "@spectotal/direc-tool-spec-documents";
 import { specConflictNode } from "@spectotal/direc-tool-spec-conflict";
 import {
   createCommandAnalysisNode,
@@ -84,7 +85,7 @@ const analysisThresholdRule: FeedbackRule<{ blockOnError?: boolean }> = {
   },
 };
 
-test("runPipeline persists artifacts, latest pointers, and sink deliveries with fake plugins", async () => {
+test("runPipeline persists artifacts, latest pointers, and sink deliveries with staged fake plugins", async () => {
   const repositoryRoot = await mkdtemp(join(tmpdir(), "direc-pipeline-fake-"));
   const results: string[] = [];
   const projectContext: ProjectContext = {
@@ -128,9 +129,12 @@ test("runPipeline persists artifacts, latest pointers, and sink deliveries with 
   const fakeNode: AnalysisNode = {
     id: "fake-node",
     displayName: "Fake Node",
-    selector: {
+    stage: "extractor",
+    binding: "facet-bound",
+    requires: {
       anyOf: ["source.fake"],
     },
+    requiredFacets: ["js"],
     produces: ["metric.complexity"],
     detect: () => true,
     async run(context) {
@@ -188,9 +192,15 @@ test("runPipeline persists artifacts, latest pointers, and sink deliveries with 
       {
         id: "fake-pipeline",
         source: "fake",
-        tools: ["fake"],
-        rules: [{ id: "thresholds", plugin: "analysis-thresholds" }],
-        sinks: ["record"],
+        analysis: {
+          extractors: ["fake"],
+          derivers: [],
+          evaluators: [],
+        },
+        feedback: {
+          rules: [{ id: "thresholds", plugin: "analysis-thresholds" }],
+          sinks: ["record"],
+        },
       },
     ],
   };
@@ -250,11 +260,13 @@ test("runPipeline persists artifacts, latest pointers, and sink deliveries with 
   });
 });
 
-test("planPipelineExecution rejects cyclic analysis graphs", async () => {
+test("planPipelineExecution rejects cyclic stage graphs", async () => {
   const cycleA: AnalysisNode = {
     id: "cycle-a",
     displayName: "Cycle A",
-    selector: {
+    stage: "deriver",
+    binding: "agnostic",
+    requires: {
       allOf: ["analysis.b"],
     },
     produces: ["analysis.a"],
@@ -266,7 +278,9 @@ test("planPipelineExecution rejects cyclic analysis graphs", async () => {
   const cycleB: AnalysisNode = {
     id: "cycle-b",
     displayName: "Cycle B",
-    selector: {
+    stage: "deriver",
+    binding: "agnostic",
+    requires: {
       allOf: ["analysis.a"],
     },
     produces: ["analysis.b"],
@@ -309,9 +323,15 @@ test("planPipelineExecution rejects cyclic analysis graphs", async () => {
             {
               id: "cyclic",
               source: "fake",
-              tools: ["a", "b"],
-              rules: [],
-              sinks: [],
+              analysis: {
+                extractors: [],
+                derivers: ["a", "b"],
+                evaluators: [],
+              },
+              feedback: {
+                rules: [],
+                sinks: [],
+              },
             },
           ],
         },
@@ -344,15 +364,289 @@ test("planPipelineExecution rejects cyclic analysis graphs", async () => {
   );
 });
 
+test("planPipelineExecution rejects invalid staged tool contracts", async () => {
+  const sourceDependentDeriver: AnalysisNode = {
+    id: "bad-deriver",
+    displayName: "Bad Deriver",
+    stage: "deriver",
+    binding: "agnostic",
+    requires: {
+      allOf: ["source.fake"],
+    },
+    produces: ["analysis.bad"],
+    detect: () => true,
+    async run() {
+      return [];
+    },
+  };
+  const facetlessExtractor: AnalysisNode = {
+    id: "facetless-extractor",
+    displayName: "Facetless Extractor",
+    stage: "extractor",
+    binding: "facet-bound",
+    requires: {
+      anyOf: ["source.fake"],
+    },
+    produces: ["analysis.bad"],
+    detect: () => true,
+    async run() {
+      return [];
+    },
+  };
+  const facetedAgnostic: AnalysisNode = {
+    id: "faceted-agnostic",
+    displayName: "Faceted Agnostic",
+    stage: "evaluator",
+    binding: "agnostic",
+    requires: {
+      allOf: ["analysis.ready"],
+    },
+    requiredFacets: ["js"],
+    produces: ["evaluation.bad"],
+    detect: () => true,
+    async run() {
+      return [];
+    },
+  };
+
+  const baseConfig: WorkspaceConfig = {
+    version: 1,
+    generatedAt: new Date().toISOString(),
+    facets: ["js"],
+    sources: {
+      fake: {
+        id: "fake",
+        plugin: "fake-source",
+        enabled: true,
+      },
+    },
+    tools: {},
+    sinks: {},
+    pipelines: [],
+  };
+  const baseRegistry = {
+    sources: [
+      {
+        id: "fake-source",
+        displayName: "Fake Source",
+        seedArtifactTypes: ["source.fake"],
+        detect: () => true,
+        async run() {
+          return [];
+        },
+      },
+    ],
+    analysisNodes: [] as AnalysisNode[],
+    feedbackRules: [],
+    sinks: [],
+  };
+  const projectContext: ProjectContext = {
+    repositoryRoot: "/tmp/staged-contracts",
+    facets: [{ id: "js", evidence: ["fixture"] }],
+    sourceFiles: [],
+    hasGit: false,
+    hasOpenSpec: false,
+  };
+
+  assert.throws(
+    () =>
+      planPipelineExecution({
+        config: {
+          ...baseConfig,
+          tools: {
+            bad: {
+              id: "bad",
+              kind: "builtin",
+              plugin: "bad-deriver",
+              enabled: true,
+            },
+          },
+          pipelines: [
+            {
+              id: "invalid-deriver",
+              source: "fake",
+              analysis: {
+                extractors: [],
+                derivers: ["bad"],
+                evaluators: [],
+              },
+              feedback: {
+                rules: [],
+                sinks: [],
+              },
+            },
+          ],
+        },
+        registry: {
+          ...baseRegistry,
+          analysisNodes: [sourceDependentDeriver],
+        },
+        projectContext,
+        pipelineId: "invalid-deriver",
+      }),
+    /may not require source artifacts/,
+  );
+
+  assert.throws(
+    () =>
+      planPipelineExecution({
+        config: {
+          ...baseConfig,
+          tools: {
+            bad: {
+              id: "bad",
+              kind: "builtin",
+              plugin: "facetless-extractor",
+              enabled: true,
+            },
+          },
+          pipelines: [
+            {
+              id: "facetless",
+              source: "fake",
+              analysis: {
+                extractors: ["bad"],
+                derivers: [],
+                evaluators: [],
+              },
+              feedback: {
+                rules: [],
+                sinks: [],
+              },
+            },
+          ],
+        },
+        registry: {
+          ...baseRegistry,
+          analysisNodes: [facetlessExtractor],
+        },
+        projectContext,
+        pipelineId: "facetless",
+      }),
+    /must declare requiredFacets/,
+  );
+
+  assert.throws(
+    () =>
+      planPipelineExecution({
+        config: {
+          ...baseConfig,
+          tools: {
+            bad: {
+              id: "bad",
+              kind: "builtin",
+              plugin: "faceted-agnostic",
+              enabled: true,
+            },
+          },
+          pipelines: [
+            {
+              id: "faceted-agnostic",
+              source: "fake",
+              analysis: {
+                extractors: [],
+                derivers: [],
+                evaluators: ["bad"],
+              },
+              feedback: {
+                rules: [],
+                sinks: [],
+              },
+            },
+          ],
+        },
+        registry: {
+          ...baseRegistry,
+          analysisNodes: [facetedAgnostic],
+        },
+        projectContext,
+        pipelineId: "faceted-agnostic",
+      }),
+    /may not declare requiredFacets/,
+  );
+});
+
+test("planPipelineExecution rejects missing upstream artifact producers", async () => {
+  assert.throws(
+    () =>
+      planPipelineExecution({
+        config: {
+          version: 1,
+          generatedAt: new Date().toISOString(),
+          facets: ["js"],
+          sources: {
+            fake: {
+              id: "fake",
+              plugin: "fake-source",
+              enabled: true,
+            },
+          },
+          tools: {
+            bounds: {
+              id: "bounds",
+              kind: "builtin",
+              plugin: "bounds-evaluator",
+              enabled: true,
+            },
+          },
+          sinks: {},
+          pipelines: [
+            {
+              id: "missing-upstream",
+              source: "fake",
+              analysis: {
+                extractors: [],
+                derivers: [],
+                evaluators: ["bounds"],
+              },
+              feedback: {
+                rules: [],
+                sinks: [],
+              },
+            },
+          ],
+        },
+        registry: {
+          sources: [
+            {
+              id: "fake-source",
+              displayName: "Fake Source",
+              seedArtifactTypes: ["source.fake"],
+              detect: () => true,
+              async run() {
+                return [];
+              },
+            },
+          ],
+          analysisNodes: [boundsEvaluatorNode],
+          feedbackRules: [],
+          sinks: [],
+        },
+        projectContext: {
+          repositoryRoot: "/tmp/missing-upstream",
+          facets: [{ id: "js", evidence: ["fixture"] }],
+          sourceFiles: [],
+          hasGit: false,
+          hasOpenSpec: false,
+        },
+        pipelineId: "missing-upstream",
+      }),
+    /unsatisfied inputs/,
+  );
+});
+
 test("createCommandAnalysisNode normalises command-backed tool output", async () => {
   const repositoryRoot = await mkdtemp(join(tmpdir(), "direc-command-node-"));
   const node = createCommandAnalysisNode({
     id: "cmd",
     kind: "command",
     enabled: true,
-    selector: {
+    stage: "extractor",
+    binding: "facet-bound",
+    requires: {
       anyOf: ["source.fake"],
     },
+    requiredFacets: ["fixture"],
     produces: ["analysis.command"],
     command: {
       command: process.execPath,
@@ -372,9 +666,12 @@ test("createCommandAnalysisNode normalises command-backed tool output", async ()
       id: "cmd",
       kind: "command",
       enabled: true,
-      selector: {
+      stage: "extractor",
+      binding: "facet-bound",
+      requires: {
         anyOf: ["source.fake"],
       },
+      requiredFacets: ["fixture"],
       produces: ["analysis.command"],
       command: {
         command: process.execPath,
@@ -411,7 +708,7 @@ test("createCommandAnalysisNode normalises command-backed tool output", async ()
   assert.equal(outputs[0]?.type, "analysis.command");
 });
 
-test("runPipeline executes the diff slice end to end", async () => {
+test("runPipeline executes the diff slice end to end with staged analysis", async () => {
   const repositoryRoot = await mkdtemp(join(tmpdir(), "direc-diff-slice-"));
   await mkdir(join(repositoryRoot, "packages", "app", "src"), { recursive: true });
   await writeFile(
@@ -490,9 +787,15 @@ test("runPipeline executes the diff slice end to end", async () => {
       {
         id: "diff-quality",
         source: "diff",
-        tools: ["complexity", "graph", "cluster", "bounds"],
-        rules: [{ id: "thresholds", plugin: "analysis-thresholds" }],
-        sinks: ["record"],
+        analysis: {
+          extractors: ["complexity", "graph"],
+          derivers: ["cluster"],
+          evaluators: ["bounds"],
+        },
+        feedback: {
+          rules: [{ id: "thresholds", plugin: "analysis-thresholds" }],
+          sinks: ["record"],
+        },
       },
     ],
   };
@@ -590,6 +893,24 @@ test("runPipeline executes openspec task and spec pipelines against the same man
         plugin: "graph-maker",
         enabled: true,
       },
+      cluster: {
+        id: "cluster",
+        kind: "builtin",
+        plugin: "cluster-builder",
+        enabled: true,
+      },
+      bounds: {
+        id: "bounds",
+        kind: "builtin",
+        plugin: "bounds-evaluator",
+        enabled: true,
+      },
+      specDocuments: {
+        id: "specDocuments",
+        kind: "builtin",
+        plugin: "spec-documents",
+        enabled: true,
+      },
       specConflict: {
         id: "specConflict",
         kind: "builtin",
@@ -602,22 +923,41 @@ test("runPipeline executes openspec task and spec pipelines against the same man
       {
         id: "openspec-task-feedback",
         source: "openspecTasks",
-        tools: ["complexity", "graph"],
-        rules: [{ id: "thresholds", plugin: "analysis-thresholds" }],
-        sinks: [],
+        analysis: {
+          extractors: ["complexity", "graph"],
+          derivers: ["cluster"],
+          evaluators: ["bounds"],
+        },
+        feedback: {
+          rules: [{ id: "thresholds", plugin: "analysis-thresholds" }],
+          sinks: [],
+        },
       },
       {
         id: "openspec-spec-conflicts",
         source: "openspecSpecs",
-        tools: ["specConflict"],
-        rules: [{ id: "thresholds", plugin: "analysis-thresholds" }],
-        sinks: [],
+        analysis: {
+          extractors: ["specDocuments"],
+          derivers: [],
+          evaluators: ["specConflict"],
+        },
+        feedback: {
+          rules: [{ id: "thresholds", plugin: "analysis-thresholds" }],
+          sinks: [],
+        },
       },
     ],
   };
   const registry = {
     sources: [openSpecSource],
-    analysisNodes: [complexityNode, graphMakerNode, specConflictNode],
+    analysisNodes: [
+      complexityNode,
+      graphMakerNode,
+      clusterBuilderNode,
+      boundsEvaluatorNode,
+      specDocumentsNode,
+      specConflictNode,
+    ],
     feedbackRules: [analysisThresholdRule],
     sinks: [],
   };
@@ -648,9 +988,14 @@ test("runPipeline executes openspec task and spec pipelines against the same man
   });
 
   assert.ok(taskResult.artifacts.some((artifact) => artifact.type === "source.openspec.task"));
-  assert.ok(taskResult.artifacts.some((artifact) => artifact.type === "metric.complexity"));
+  assert.ok(
+    taskResult.artifacts.some((artifact) => artifact.type === "evaluation.bounds-distance"),
+  );
   assert.ok(
     specResult.artifacts.some((artifact) => artifact.type === "source.openspec.spec-change"),
+  );
+  assert.ok(
+    specResult.artifacts.some((artifact) => artifact.type === "analysis.spec-document-pair"),
   );
   assert.ok(specResult.artifacts.some((artifact) => artifact.type === "evaluation.spec-conflict"));
   const conflict = specResult.artifacts.find(

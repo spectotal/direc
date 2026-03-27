@@ -83,6 +83,7 @@ async function loadGitPaths(repositoryRoot: string, diffSpec?: string): Promise<
       .split(/\r?\n/u)
       .map((line) => line.trimEnd())
       .filter((line) => line.length > 0)
+      .filter((line) => !line.slice(0, 2).includes("D"))
       .map((line) => {
         const raw = line.slice(3).trim();
         const renamed = raw.includes(" -> ") ? (raw.split(" -> ").at(-1) ?? raw) : raw;

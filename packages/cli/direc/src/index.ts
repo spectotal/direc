@@ -24,6 +24,7 @@ import { boundsEvaluatorNode } from "@spectotal/direc-tool-bounds-evaluator";
 import { clusterBuilderNode } from "@spectotal/direc-tool-cluster-builder";
 import { complexityNode } from "@spectotal/direc-tool-complexity";
 import { graphMakerNode } from "@spectotal/direc-tool-graph-maker";
+import { specDocumentsNode } from "@spectotal/direc-tool-spec-documents";
 import { specConflictNode } from "@spectotal/direc-tool-spec-conflict";
 
 const execFileAsync = promisify(execFile);
@@ -91,6 +92,7 @@ export function createBuiltinRegistry(): PipelineRegistry {
       graphMakerNode,
       clusterBuilderNode,
       boundsEvaluatorNode,
+      specDocumentsNode,
       specConflictNode,
     ],
     feedbackRules: [analysisThresholdRule],
@@ -112,7 +114,6 @@ export async function detectProjectContext(repositoryRoot: string): Promise<Proj
     if (entryName === "pyproject.toml" || extension === ".py") {
       appendFacet(facets, "python", filePath);
     }
-
     if (entryName === "openspec" && filePath.endsWith("/openspec")) {
       hasOpenSpec = true;
       appendFacet(facets, "openspec", filePath);
@@ -213,6 +214,12 @@ export function buildWorkspaceConfig(
   }
 
   if (context.hasOpenSpec) {
+    config.tools.specDocuments = {
+      id: "specDocuments",
+      kind: "builtin",
+      plugin: "spec-documents",
+      enabled: true,
+    };
     config.tools.specConflict = {
       id: "specConflict",
       kind: "builtin",
@@ -230,37 +237,51 @@ export function buildWorkspaceConfig(
   if (config.sources.diff) {
     config.pipelines.push({
       id: "diff-quality",
-      description: "Inspect current git diff and derive architecture feedback.",
+      description: "Inspect current git diff with staged analysis and feedback.",
       source: "diff",
-      tools: ["complexity", "graph", "cluster", "bounds"].filter((toolId) =>
-        Boolean(config.tools[toolId]),
-      ),
-      rules: [{ id: "thresholds", plugin: "analysis-thresholds" }],
-      sinks: ["console"],
+      analysis: {
+        extractors: ["complexity", "graph"].filter((toolId) => Boolean(config.tools[toolId])),
+        derivers: ["cluster"].filter((toolId) => Boolean(config.tools[toolId])),
+        evaluators: ["bounds"].filter((toolId) => Boolean(config.tools[toolId])),
+      },
+      feedback: {
+        rules: [{ id: "thresholds", plugin: "analysis-thresholds" }],
+        sinks: ["console"],
+      },
     });
   }
 
   if (config.sources.openspecTasks) {
     config.pipelines.push({
       id: "openspec-task-feedback",
-      description: "Evaluate completed OpenSpec tasks against the current codebase.",
+      description: "Evaluate completed OpenSpec tasks against staged code analysis.",
       source: "openspecTasks",
-      tools: ["complexity", "graph", "cluster", "bounds"].filter((toolId) =>
-        Boolean(config.tools[toolId]),
-      ),
-      rules: [{ id: "thresholds", plugin: "analysis-thresholds" }],
-      sinks: ["console"],
+      analysis: {
+        extractors: ["complexity", "graph"].filter((toolId) => Boolean(config.tools[toolId])),
+        derivers: ["cluster"].filter((toolId) => Boolean(config.tools[toolId])),
+        evaluators: ["bounds"].filter((toolId) => Boolean(config.tools[toolId])),
+      },
+      feedback: {
+        rules: [{ id: "thresholds", plugin: "analysis-thresholds" }],
+        sinks: ["console"],
+      },
     });
   }
 
   if (config.sources.openspecSpecs) {
     config.pipelines.push({
       id: "openspec-spec-conflicts",
-      description: "Compare change spec artifacts against stable OpenSpec specs.",
+      description: "Compare OpenSpec change specs through staged extraction and evaluation.",
       source: "openspecSpecs",
-      tools: ["specConflict"].filter((toolId) => Boolean(config.tools[toolId])),
-      rules: [{ id: "thresholds", plugin: "analysis-thresholds" }],
-      sinks: ["console"],
+      analysis: {
+        extractors: ["specDocuments"].filter((toolId) => Boolean(config.tools[toolId])),
+        derivers: [],
+        evaluators: ["specConflict"].filter((toolId) => Boolean(config.tools[toolId])),
+      },
+      feedback: {
+        rules: [{ id: "thresholds", plugin: "analysis-thresholds" }],
+        sinks: ["console"],
+      },
     });
   }
 

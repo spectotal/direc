@@ -4,12 +4,14 @@ import { dirname, join, resolve } from "node:path";
 import { spawn } from "node:child_process";
 import type {
   AnalysisNode,
+  AnalysisStage,
   CommandToolConfig,
   ToolConfig,
 } from "@spectotal/direc-analysis-contracts";
 import type {
   ArtifactEnvelope,
   ArtifactSeed,
+  ArtifactSelector,
   FeedbackNoticePayload,
   FeedbackVerdictPayload,
   ProjectContext,
@@ -23,13 +25,23 @@ import type {
 } from "@spectotal/direc-feedback-contracts";
 import type { SourceConfig, SourcePlugin } from "@spectotal/direc-source-contracts";
 
+export interface PipelineAnalysisDefinition {
+  extractors: string[];
+  derivers: string[];
+  evaluators: string[];
+}
+
+export interface PipelineFeedbackDefinition {
+  rules: FeedbackRuleDefinition[];
+  sinks: string[];
+}
+
 export interface PipelineDefinition {
   id: string;
   description?: string;
   source: string;
-  tools: string[];
-  rules: FeedbackRuleDefinition[];
-  sinks: string[];
+  analysis: PipelineAnalysisDefinition;
+  feedback: PipelineFeedbackDefinition;
 }
 
 export interface WorkspaceConfig {
@@ -49,14 +61,16 @@ export interface PipelineRegistry {
   sinks: FeedbackSink[];
 }
 
+export interface ResolvedAnalysisStep {
+  config: ToolConfig;
+  node: AnalysisNode;
+}
+
 export interface PipelinePlan {
   pipeline: PipelineDefinition;
   sourceConfig: SourceConfig;
   sourcePlugin: SourcePlugin;
-  tools: Array<{
-    config: ToolConfig;
-    node: AnalysisNode;
-  }>;
+  analysis: Record<AnalysisStage, ResolvedAnalysisStep[]>;
   rules: Array<{
     definition: FeedbackRuleDefinition;
     rule: FeedbackRule;
@@ -116,6 +130,7 @@ export interface WatchPipelineOptions extends RunPipelineOptions {
 }
 
 const DIREC_DIR = ".direc";
+const ANALYSIS_STAGES: AnalysisStage[] = ["extractor", "deriver", "evaluator"];
 
 export async function ensureDirecLayout(repositoryRoot: string): Promise<void> {
   await Promise.all([
@@ -190,41 +205,45 @@ export function planPipelineExecution(options: {
     throw new Error(`Source plugin ${sourceConfig.plugin} is not applicable in this repository.`);
   }
 
-  const tools = pipeline.tools
-    .map((toolId) => {
-      const config = options.config.tools[toolId];
-      if (!config || !config.enabled) {
-        return null;
-      }
+  const availableArtifactTypes = new Set(sourcePlugin.seedArtifactTypes);
+  const analysis: Record<AnalysisStage, ResolvedAnalysisStep[]> = {
+    extractor: resolveStageTools({
+      stage: "extractor",
+      toolIds: pipeline.analysis.extractors,
+      config: options.config,
+      nodeMap,
+      projectContext: options.projectContext,
+      availableArtifactTypes,
+    }),
+    deriver: [],
+    evaluator: [],
+  };
+  analysis.deriver = resolveStageTools({
+    stage: "deriver",
+    toolIds: pipeline.analysis.derivers,
+    config: options.config,
+    nodeMap,
+    projectContext: options.projectContext,
+    availableArtifactTypes,
+  });
+  analysis.evaluator = resolveStageTools({
+    stage: "evaluator",
+    toolIds: pipeline.analysis.evaluators,
+    config: options.config,
+    nodeMap,
+    projectContext: options.projectContext,
+    availableArtifactTypes,
+  });
 
-      if (config.kind === "command") {
-        return {
-          config,
-          node: createCommandAnalysisNode(config),
-        };
-      }
-
-      const plugin = nodeMap.get(config.plugin);
-      if (!plugin) {
-        throw new Error(`No analysis node registered for ${config.plugin}.`);
-      }
-      if (!plugin.detect(options.projectContext)) {
-        return null;
-      }
-
-      return {
-        config,
-        node: plugin,
-      };
-    })
-    .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
-
-  const orderedTools = topologicallySortTools(tools);
-
-  const rules = pipeline.rules.map((definition) => {
+  const rules = pipeline.feedback.rules.map((definition) => {
     const rule = ruleMap.get(definition.plugin);
     if (!rule) {
       throw new Error(`No feedback rule registered for ${definition.plugin}.`);
+    }
+
+    const selector = definition.selector ?? rule.defaultSelector;
+    if (collectSelectorTypes(selector).some(isSourceArtifactType)) {
+      throw new Error(`Feedback rule ${definition.id} may not consume source artifacts.`);
     }
 
     return {
@@ -233,7 +252,7 @@ export function planPipelineExecution(options: {
     };
   });
 
-  const sinks = pipeline.sinks
+  const sinks = pipeline.feedback.sinks
     .map((sinkId) => {
       const config = options.config.sinks[sinkId];
       if (!config || !config.enabled) {
@@ -259,7 +278,7 @@ export function planPipelineExecution(options: {
     pipeline,
     sourceConfig,
     sourcePlugin,
-    tools: orderedTools,
+    analysis,
     rules,
     sinks,
   };
@@ -294,41 +313,43 @@ export async function runPipeline(options: RunPipelineOptions): Promise<Pipeline
     })),
   );
 
-  for (const step of plan.tools) {
-    const inputArtifacts = filterArtifactsForSelector(artifacts, step.node.selector);
-    if (!satisfiesSelector(inputArtifacts, step.node.selector)) {
-      continue;
-    }
+  for (const stage of ANALYSIS_STAGES) {
+    for (const step of plan.analysis[stage]) {
+      const inputArtifacts = filterArtifactsForAnalysisStep(artifacts, step.node);
+      if (!satisfiesSelector(inputArtifacts, step.node.requires)) {
+        continue;
+      }
 
-    const context = {
-      repositoryRoot: options.repositoryRoot,
-      runId,
-      pipelineId: plan.pipeline.id,
-      sourceId: plan.sourceConfig.id,
-      toolConfig: step.config,
-      projectContext: options.projectContext,
-      inputArtifacts,
-      options: extractOptions(step.config),
-      now,
-    };
-
-    if (step.node.isApplicable && !step.node.isApplicable(context)) {
-      continue;
-    }
-
-    const outputSeeds = await step.node.run(context);
-    artifacts.push(
-      ...(await persistArtifactSeeds({
+      const context = {
         repositoryRoot: options.repositoryRoot,
         runId,
         pipelineId: plan.pipeline.id,
         sourceId: plan.sourceConfig.id,
-        producerId: step.node.id,
-        seeds: outputSeeds,
-        inputArtifactIds: inputArtifacts.map((artifact) => artifact.id),
+        toolConfig: step.config,
+        projectContext: options.projectContext,
+        inputArtifacts,
+        options: extractOptions(step.config),
         now,
-      })),
-    );
+      };
+
+      if (step.node.isApplicable && !step.node.isApplicable(context)) {
+        continue;
+      }
+
+      const outputSeeds = await step.node.run(context);
+      artifacts.push(
+        ...(await persistArtifactSeeds({
+          repositoryRoot: options.repositoryRoot,
+          runId,
+          pipelineId: plan.pipeline.id,
+          sourceId: plan.sourceConfig.id,
+          producerId: step.node.id,
+          seeds: outputSeeds,
+          inputArtifactIds: inputArtifacts.map((artifact) => artifact.id),
+          now,
+        })),
+      );
+    }
   }
 
   for (const entry of plan.rules) {
@@ -483,7 +504,11 @@ export function createCommandAnalysisNode(config: CommandToolConfig): AnalysisNo
   return {
     id: `command:${config.id}`,
     displayName: `Command ${config.id}`,
-    selector: config.selector,
+    stage: config.stage,
+    binding: config.binding,
+    requires: config.requires,
+    optionalInputs: config.optionalInputs,
+    requiredFacets: config.requiredFacets,
     produces: config.produces,
     detect: () => true,
     async run(context) {
@@ -516,98 +541,230 @@ export function createCommandAnalysisNode(config: CommandToolConfig): AnalysisNo
   };
 }
 
-function filterArtifactsForSelector(
-  artifacts: ArtifactEnvelope[],
-  selector: { allOf?: string[]; anyOf?: string[] },
-): ArtifactEnvelope[] {
-  const wanted = new Set([...(selector.allOf ?? []), ...(selector.anyOf ?? [])]);
-  return artifacts.filter((artifact) => wanted.has(artifact.type));
-}
+function resolveStageTools(options: {
+  stage: AnalysisStage;
+  toolIds: string[];
+  config: WorkspaceConfig;
+  nodeMap: Map<string, AnalysisNode>;
+  projectContext: ProjectContext;
+  availableArtifactTypes: Set<string>;
+}): ResolvedAnalysisStep[] {
+  const resolved = options.toolIds
+    .map((toolId) => resolveAnalysisStep({ ...options, toolId }))
+    .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+  const ordered = orderStageTools({
+    stage: options.stage,
+    steps: resolved,
+    availableArtifactTypes: options.availableArtifactTypes,
+  });
 
-function topologicallySortTools(
-  tools: Array<{
-    config: ToolConfig;
-    node: AnalysisNode;
-  }>,
-): Array<{
-  config: ToolConfig;
-  node: AnalysisNode;
-}> {
-  const producerIdsByType = new Map<string, string[]>();
-  const toolMap = new Map<string, { config: ToolConfig; node: AnalysisNode }>();
-
-  for (const step of tools) {
-    toolMap.set(step.config.id, step);
+  for (const step of ordered) {
     for (const type of step.node.produces) {
-      const current = producerIdsByType.get(type) ?? [];
-      current.push(step.config.id);
-      producerIdsByType.set(type, current);
+      options.availableArtifactTypes.add(type);
     }
-  }
-
-  const dependencies = new Map<string, Set<string>>();
-  const dependents = new Map<string, Set<string>>();
-
-  for (const step of tools) {
-    dependencies.set(step.config.id, new Set());
-    dependents.set(step.config.id, new Set());
-  }
-
-  for (const step of tools) {
-    const types = new Set([
-      ...(step.node.selector.allOf ?? []),
-      ...(step.node.selector.anyOf ?? []),
-    ]);
-    for (const type of types) {
-      for (const producerId of producerIdsByType.get(type) ?? []) {
-        if (producerId === step.config.id) {
-          continue;
-        }
-
-        dependencies.get(step.config.id)?.add(producerId);
-        dependents.get(producerId)?.add(step.config.id);
-      }
-    }
-  }
-
-  const ready = [...dependencies.entries()]
-    .filter(([, deps]) => deps.size === 0)
-    .map(([id]) => id)
-    .sort();
-  const ordered: Array<{ config: ToolConfig; node: AnalysisNode }> = [];
-
-  while (ready.length > 0) {
-    const id = ready.shift();
-    if (!id) {
-      break;
-    }
-
-    const step = toolMap.get(id);
-    if (!step) {
-      continue;
-    }
-
-    ordered.push(step);
-
-    for (const dependent of dependents.get(id) ?? []) {
-      const remaining = dependencies.get(dependent);
-      remaining?.delete(id);
-      if (remaining && remaining.size === 0) {
-        ready.push(dependent);
-        ready.sort();
-      }
-    }
-  }
-
-  if (ordered.length !== tools.length) {
-    const unresolved = [...dependencies.entries()]
-      .filter(([, deps]) => deps.size > 0)
-      .map(([id]) => id)
-      .sort();
-    throw new Error(`Cycle detected between analysis nodes: ${unresolved.join(", ")}`);
   }
 
   return ordered;
+}
+
+function resolveAnalysisStep(options: {
+  stage: AnalysisStage;
+  toolId: string;
+  config: WorkspaceConfig;
+  nodeMap: Map<string, AnalysisNode>;
+  projectContext: ProjectContext;
+}): ResolvedAnalysisStep | null {
+  const config = options.config.tools[options.toolId];
+  if (!config) {
+    throw new Error(`Pipeline references missing tool ${options.toolId}.`);
+  }
+  if (!config.enabled) {
+    return null;
+  }
+
+  const node =
+    config.kind === "command"
+      ? createCommandAnalysisNode(config)
+      : (options.nodeMap.get(config.plugin) ?? null);
+
+  if (!node) {
+    throw new Error(
+      `No analysis node registered for ${config.kind === "command" ? config.id : config.plugin}.`,
+    );
+  }
+
+  validateAnalysisNode(node, options.stage, options.toolId);
+
+  if (node.binding === "facet-bound" && !hasRequiredFacets(options.projectContext, node)) {
+    return null;
+  }
+  if (!node.detect(options.projectContext)) {
+    return null;
+  }
+
+  return {
+    config,
+    node,
+  };
+}
+
+function validateAnalysisNode(
+  node: AnalysisNode,
+  expectedStage: AnalysisStage,
+  toolId: string,
+): void {
+  if (node.stage !== expectedStage) {
+    throw new Error(`Tool ${toolId} declares stage ${node.stage}, expected ${expectedStage}.`);
+  }
+
+  if (expectedStage === "extractor" && node.binding !== "facet-bound") {
+    throw new Error(`Extractor ${toolId} must be facet-bound.`);
+  }
+  if (expectedStage !== "extractor" && node.binding !== "agnostic") {
+    throw new Error(`${expectedStage} ${toolId} must be platform-agnostic.`);
+  }
+
+  if (node.binding === "facet-bound" && !node.requiredFacets?.length) {
+    throw new Error(`Facet-bound tool ${toolId} must declare requiredFacets.`);
+  }
+  if (node.binding === "agnostic" && (node.requiredFacets?.length ?? 0) > 0) {
+    throw new Error(`Agnostic tool ${toolId} may not declare requiredFacets.`);
+  }
+  if (
+    expectedStage !== "extractor" &&
+    collectSelectorTypes(node.requires).some(isSourceArtifactType)
+  ) {
+    throw new Error(`${expectedStage} ${toolId} may not require source artifacts.`);
+  }
+}
+
+function hasRequiredFacets(context: ProjectContext, node: AnalysisNode): boolean {
+  const requiredFacets = node.requiredFacets ?? [];
+  const availableFacets = new Set(context.facets.map((facet) => facet.id));
+  return requiredFacets.every((facet) => availableFacets.has(facet));
+}
+
+function orderStageTools(options: {
+  stage: AnalysisStage;
+  steps: ResolvedAnalysisStep[];
+  availableArtifactTypes: Set<string>;
+}): ResolvedAnalysisStep[] {
+  const ordered: ResolvedAnalysisStep[] = [];
+  const available = new Set(options.availableArtifactTypes);
+  const unresolved = [...options.steps];
+
+  while (unresolved.length > 0) {
+    let progress = false;
+
+    for (let index = 0; index < unresolved.length; ) {
+      const step = unresolved[index];
+      if (!step) {
+        break;
+      }
+
+      if (selectorSatisfiedByTypes(step.node.requires, available)) {
+        ordered.push(step);
+        unresolved.splice(index, 1);
+        for (const type of step.node.produces) {
+          available.add(type);
+        }
+        progress = true;
+        continue;
+      }
+
+      index += 1;
+    }
+
+    if (progress) {
+      continue;
+    }
+
+    const pendingProducedTypes = new Set(unresolved.flatMap((step) => step.node.produces));
+    const missingInputs = unresolved
+      .flatMap((step) => describeMissingInputs(step, available, pendingProducedTypes))
+      .filter((message, index, all) => all.indexOf(message) === index);
+
+    if (missingInputs.length > 0) {
+      throw new Error(`Stage ${options.stage} has unsatisfied inputs: ${missingInputs.join("; ")}`);
+    }
+
+    throw new Error(
+      `Cycle detected between ${options.stage} analysis nodes: ${unresolved
+        .map((step) => step.config.id)
+        .join(", ")}`,
+    );
+  }
+
+  return ordered;
+}
+
+function describeMissingInputs(
+  step: ResolvedAnalysisStep,
+  availableArtifactTypes: Set<string>,
+  pendingProducedTypes: Set<string>,
+): string[] {
+  const missing: string[] = [];
+
+  for (const type of step.node.requires.allOf ?? []) {
+    if (!availableArtifactTypes.has(type) && !pendingProducedTypes.has(type)) {
+      missing.push(`${step.config.id} requires ${type}`);
+    }
+  }
+
+  const anyOf = step.node.requires.anyOf ?? [];
+  if (
+    anyOf.length > 0 &&
+    !anyOf.some((type) => availableArtifactTypes.has(type) || pendingProducedTypes.has(type))
+  ) {
+    missing.push(`${step.config.id} requires one of ${anyOf.join(", ")}`);
+  }
+
+  return missing;
+}
+
+function selectorSatisfiedByTypes(
+  selector: ArtifactSelector,
+  availableArtifactTypes: Set<string>,
+): boolean {
+  const allOf = selector.allOf ?? [];
+  const anyOf = selector.anyOf ?? [];
+
+  if (allOf.some((type) => !availableArtifactTypes.has(type))) {
+    return false;
+  }
+
+  if (anyOf.length > 0 && !anyOf.some((type) => availableArtifactTypes.has(type))) {
+    return false;
+  }
+
+  return true;
+}
+
+function collectSelectorTypes(selector: ArtifactSelector): string[] {
+  return [...new Set([...(selector.allOf ?? []), ...(selector.anyOf ?? [])])];
+}
+
+function isSourceArtifactType(type: string): boolean {
+  return type.startsWith("source.");
+}
+
+function filterArtifactsForAnalysisStep(
+  artifacts: ArtifactEnvelope[],
+  node: AnalysisNode,
+): ArtifactEnvelope[] {
+  const selectedTypes = new Set([
+    ...collectSelectorTypes(node.requires),
+    ...(node.optionalInputs ?? []),
+  ]);
+  return artifacts.filter((artifact) => selectedTypes.has(artifact.type));
+}
+
+function filterArtifactsForSelector(
+  artifacts: ArtifactEnvelope[],
+  selector: ArtifactSelector,
+): ArtifactEnvelope[] {
+  const wanted = new Set(collectSelectorTypes(selector));
+  return artifacts.filter((artifact) => wanted.has(artifact.type));
 }
 
 async function persistArtifactSeeds(options: {

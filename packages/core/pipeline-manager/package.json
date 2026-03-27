@@ -11,6 +11,7 @@
   "exports": {
     ".": {
       "types": "./dist/src/index.d.ts",
+      "source": "./src/index.ts",
       "import": "./dist/src/index.js"
     }
   },
@@ -36,6 +37,7 @@
     "@spectotal/direc-tool-cluster-builder": "workspace:*",
     "@spectotal/direc-tool-complexity": "workspace:*",
     "@spectotal/direc-tool-graph-maker": "workspace:*",
+    "@spectotal/direc-tool-spec-documents": "workspace:*",
     "@spectotal/direc-tool-spec-conflict": "workspace:*"
   }
 }

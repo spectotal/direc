@@ -1,0 +1,136 @@
+{
+  "version": 1,
+  "generatedAt": "2026-03-27T13:24:15.877Z",
+  "facets": ["js", "openspec"],
+  "sources": {
+    "diff": {
+      "id": "diff",
+      "plugin": "git-diff",
+      "enabled": true
+    },
+    "openspecTasks": {
+      "id": "openspecTasks",
+      "plugin": "openspec",
+      "enabled": true,
+      "options": {
+        "mode": "tasks"
+      }
+    },
+    "openspecSpecs": {
+      "id": "openspecSpecs",
+      "plugin": "openspec",
+      "enabled": true,
+      "options": {
+        "mode": "spec-change"
+      }
+    }
+  },
+  "tools": {
+    "complexity": {
+      "id": "complexity",
+      "kind": "builtin",
+      "plugin": "complexity",
+      "enabled": true,
+      "options": {
+        "warningThreshold": 10,
+        "errorThreshold": 20
+      }
+    },
+    "graph": {
+      "id": "graph",
+      "kind": "builtin",
+      "plugin": "graph-maker",
+      "enabled": true
+    },
+    "cluster": {
+      "id": "cluster",
+      "kind": "builtin",
+      "plugin": "cluster-builder",
+      "enabled": true
+    },
+    "bounds": {
+      "id": "bounds",
+      "kind": "builtin",
+      "plugin": "bounds-evaluator",
+      "enabled": true
+    },
+    "specDocuments": {
+      "id": "specDocuments",
+      "kind": "builtin",
+      "plugin": "spec-documents",
+      "enabled": true
+    },
+    "specConflict": {
+      "id": "specConflict",
+      "kind": "builtin",
+      "plugin": "spec-conflict",
+      "enabled": true
+    }
+  },
+  "sinks": {
+    "console": {
+      "id": "console",
+      "plugin": "console",
+      "enabled": true
+    }
+  },
+  "pipelines": [
+    {
+      "id": "diff-quality",
+      "description": "Inspect current git diff with staged analysis and feedback.",
+      "source": "diff",
+      "analysis": {
+        "extractors": ["complexity", "graph"],
+        "derivers": ["cluster"],
+        "evaluators": ["bounds"]
+      },
+      "feedback": {
+        "rules": [
+          {
+            "id": "thresholds",
+            "plugin": "analysis-thresholds"
+          }
+        ],
+        "sinks": ["console"]
+      }
+    },
+    {
+      "id": "openspec-task-feedback",
+      "description": "Evaluate completed OpenSpec tasks against staged code analysis.",
+      "source": "openspecTasks",
+      "analysis": {
+        "extractors": ["complexity", "graph"],
+        "derivers": ["cluster"],
+        "evaluators": ["bounds"]
+      },
+      "feedback": {
+        "rules": [
+          {
+            "id": "thresholds",
+            "plugin": "analysis-thresholds"
+          }
+        ],
+        "sinks": ["console"]
+      }
+    },
+    {
+      "id": "openspec-spec-conflicts",
+      "description": "Compare OpenSpec change specs through staged extraction and evaluation.",
+      "source": "openspecSpecs",
+      "analysis": {
+        "extractors": ["specDocuments"],
+        "derivers": [],
+        "evaluators": ["specConflict"]
+      },
+      "feedback": {
+        "rules": [
+          {
+            "id": "thresholds",
+            "plugin": "analysis-thresholds"
+          }
+        ],
+        "sinks": ["console"]
+      }
+    }
+  ]
+}
