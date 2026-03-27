@@ -1,0 +1,6 @@
+packages:
+  - "packages/cli/*"
+  - "packages/core/*"
+  - "packages/sources/*"
+  - "packages/tools/*"
+  - "packages/sinks/*"

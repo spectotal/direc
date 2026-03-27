@@ -1,0 +1,13 @@
+node_modules
+dist
+coverage
+*.log
+.eslintcache
+.husky/_/
+.DS_Store
+.direc/runs/
+.direc/latest/
+.direc/cache/
+.agent
+.claude
+.codex

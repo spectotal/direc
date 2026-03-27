@@ -1,0 +1,45 @@
+schema: spec-driven
+
+context: |
+  Direc is a pipeline-driven architecture workspace for agentic development.
+  This branch is a clean-break rewrite around explicit source, analysis, and feedback concerns,
+  with a pipeline manager composing them into runnable pipelines.
+
+  Tech stack: TypeScript, Node.js, pnpm workspace monorepo.
+
+  Generated runtime state lives under .direc/:
+  - .direc/config.json for editable pipeline config
+  - .direc/runs/<runId>/ for manifests and persisted artifact payloads
+  - .direc/latest/<pipelineId>.json for latest successful run pointers
+  - .direc/cache/ for optional runtime caches
+
+  Use the new vocabulary consistently:
+  - source
+  - analysis node or tool
+  - feedback rule or sink
+  - pipeline
+  - artifact
+  - run manifest
+
+  Avoid legacy workflow/analyzer/automation terminology unless documenting migration.
+  Keep capabilities aligned to concrete runtime surfaces or package groups under
+  packages/core, packages/sources, packages/tools, packages/sinks, and packages/cli.
+  Main specs under openspec/specs describe the current committed behavior of the clean-break runtime.
+
+rules:
+  proposal:
+    - State which source, analysis, feedback, or pipeline-manager capabilities are affected.
+    - Name new or changed artifact types, pipeline ids, commands, and .direc layout changes explicitly.
+    - Call out whether the change preserves current behavior or intentionally introduces a clean break.
+  design:
+    - Map changes to concrete package boundaries in the monorepo.
+    - Describe the artifact flow as source -> analysis -> feedback -> sink.
+    - Include persistence implications when changing run manifests, artifact envelopes, or latest pointers.
+  tasks:
+    - Break work into independently testable slices.
+    - Include spec updates, implementation updates, and verification tasks when behavior changes.
+    - Name the exact pipeline ids, plugins, tools, or commands being added or modified.
+  spec:
+    - Use Purpose and Requirements sections with Requirement and Scenario headings.
+    - Write requirements against current or committed behavior, not vague aspirations.
+    - Mention concrete artifact types, pipeline ids, file layout, and command names when they are part of the contract.

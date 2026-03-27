@@ -1,0 +1,27 @@
+# ADR 0001: Pipeline-Driven Clean Break
+
+## Status
+
+Accepted.
+
+## Context
+
+The previous Direc implementation mixed workflow events, analysis persistence, and automation handoff concerns in one runtime path. That produced a useful snapshot store, but it made it difficult to reason about feedback as a first-class concern and it blurred the package boundaries around workflow-specific behavior.
+
+## Decision
+
+Direc is rewritten around four runtime concepts:
+
+1. `source`: emits seed artifacts such as `source.diff.scope`, `source.openspec.task`, and `source.openspec.spec-change`
+2. `analysis`: consumes artifacts and produces derived artifacts such as `metric.complexity`, `structural.graph`, or `evaluation.bounds-distance`
+3. `feedback`: derives `feedback.notice` and `feedback.verdict` artifacts from analysis outputs and delivers them through sinks
+4. `pipeline-manager`: resolves the configured source, analysis nodes, feedback rules, and sinks into a concrete DAG execution
+
+The rewrite keeps `.direc/` as the workspace directory, but the internal layout changes to run manifests, persisted artifact payloads, latest run pointers, and optional caches.
+
+## Consequences
+
+- The public config is a clean break from the previous `workflow` and `automation` model.
+- Built-in tools and command-backed tools now share the same analysis-node contract.
+- Sources no longer talk directly to sinks; feedback is derived from artifacts.
+- The CLI collapses runtime entrypoints into `init`, `run`, and `watch`.
