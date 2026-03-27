@@ -15,7 +15,7 @@ The JavaScript extraction stack SHALL consume source artifacts and emit normaliz
 - **THEN** the `js-complexity` extractor SHALL emit `metric.complexity`
 - **AND** the `graph-maker` extractor SHALL emit `structural.graph`
 - **AND** both extractors SHALL be treated as facet-bound tools that require the `js` facet
-- **AND** when the source provides an explicit path scope, both extractors SHALL stay within that scope rather than widening back to all detected project files
+- **AND** when the source provides an explicit scope, both extractors SHALL stay within that source-owned scope rather than widening back to all detected project files
 
 ### Requirement: OpenSpec spec extraction is facet-bound and isolated from generic evaluation
 

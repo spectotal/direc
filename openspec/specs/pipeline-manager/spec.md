@@ -32,16 +32,16 @@ The system SHALL reject pipelines that violate the extractor or agnostic-stage r
 
 ### Requirement: Pipeline manager persists run data under `.direc`
 
-The system SHALL persist run artifacts and latest-run pointers for every successful pipeline run.
+The system SHALL persist both run-scoped history and direct-access latest snapshots for every successful pipeline run.
 
 #### Scenario: Successful run writes manifest and payloads
 
 - **GIVEN** a successful pipeline run
 - **WHEN** the run finishes
 - **THEN** it SHALL write `.direc/runs/<runId>/manifest.json`
-- **AND** it SHALL write artifact payload files under `.direc/runs/<runId>/artifacts/`
-- **AND** it SHALL write `.direc/latest/<pipelineId>.json`
-- **AND** each persisted artifact envelope SHALL include `id`, `type`, `producerId`, `runId`, `pipelineId`, `sourceId`, `scope`, `inputArtifactIds`, `timestamp`, and `payloadPath`
+- **AND** it SHALL write `.direc/latest/<pipelineId>/manifest.json`
+- **AND** both manifests SHALL contain full persisted artifact data inline
+- **AND** each persisted artifact envelope SHALL include `id`, `type`, `producerId`, `runId`, `pipelineId`, `sourceId`, `scope`, `inputArtifactIds`, `timestamp`, and `payload`
 
 ### Requirement: Pipeline manager supports watch-based reruns
 

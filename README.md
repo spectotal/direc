@@ -15,9 +15,8 @@ The runtime is composed by a generic pipeline manager. Sources emit seed artifac
 Direc keeps its generated workspace under `.direc/`.
 
 - `.direc/config.json`: explicit editable pipeline config created by `direc init`
-- `.direc/runs/<runId>/manifest.json`: run manifest
-- `.direc/runs/<runId>/artifacts/*.json`: persisted artifact payloads
-- `.direc/latest/<pipelineId>.json`: latest successful run pointer
+- `.direc/runs/<runId>/manifest.json`: immutable historical manifest with full artifact data inline
+- `.direc/latest/<pipelineId>/manifest.json`: latest manifest snapshot for direct access
 - `.direc/cache/`: optional runtime caches
 
 ## Commands

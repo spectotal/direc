@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { dirname, join, resolve } from "node:path";
 import { spawn } from "node:child_process";
@@ -12,8 +12,6 @@ import type {
   ArtifactEnvelope,
   ArtifactSeed,
   ArtifactSelector,
-  FeedbackNoticePayload,
-  FeedbackVerdictPayload,
   ProjectContext,
 } from "@spectotal/direc-artifact-contracts";
 import { satisfiesSelector, selectArtifactsByType } from "@spectotal/direc-artifact-contracts";
@@ -94,18 +92,11 @@ export interface RunManifest {
   startedAt: string;
   finishedAt: string;
   artifactCount: number;
-  artifacts: Array<Omit<ArtifactEnvelope, "payload">>;
+  artifacts: ArtifactEnvelope[];
   deliveries: SinkDeliveryRecord[];
 }
 
-export interface LatestRunRecord {
-  pipelineId: string;
-  runId: string;
-  manifestPath: string;
-  updatedAt: string;
-  noticeCount: number;
-  verdicts: FeedbackVerdictPayload[];
-}
+export type LatestRunRecord = RunManifest;
 
 export interface PipelineRunResult {
   manifest: RunManifest;
@@ -164,7 +155,8 @@ export async function readLatestRunRecord(
     repositoryRoot,
     DIREC_DIR,
     "latest",
-    `${sanitiseSegment(pipelineId)}.json`,
+    sanitiseSegment(pipelineId),
+    "manifest.json",
   );
 
   try {
@@ -422,7 +414,7 @@ export async function runPipeline(options: RunPipelineOptions): Promise<Pipeline
     startedAt,
     finishedAt,
     artifactCount: artifacts.length,
-    artifacts: artifacts.map(stripPayload),
+    artifacts,
     deliveries,
   };
 
@@ -430,24 +422,18 @@ export async function runPipeline(options: RunPipelineOptions): Promise<Pipeline
   const manifestPath = join(runDirectory, "manifest.json");
   await writeJsonFile(manifestPath, manifest);
 
-  const latestRecord: LatestRunRecord = {
-    pipelineId: plan.pipeline.id,
-    runId,
-    manifestPath,
-    updatedAt: finishedAt,
-    noticeCount: selectArtifactsByType<FeedbackNoticePayload>(artifacts, ["feedback.notice"])
-      .length,
-    verdicts: selectArtifactsByType<FeedbackVerdictPayload>(artifacts, ["feedback.verdict"]).map(
-      (artifact) => artifact.payload,
-    ),
-  };
   const latestPath = join(
     options.repositoryRoot,
     DIREC_DIR,
     "latest",
-    `${sanitiseSegment(plan.pipeline.id)}.json`,
+    sanitiseSegment(plan.pipeline.id),
+    "manifest.json",
   );
-  await writeJsonFile(latestPath, latestRecord);
+  await writeLatestRunSnapshot({
+    repositoryRoot: options.repositoryRoot,
+    pipelineId: plan.pipeline.id,
+    manifest,
+  });
 
   return {
     manifest,
@@ -777,15 +763,10 @@ async function persistArtifactSeeds(options: {
   inputArtifactIds: string[];
   now: () => Date;
 }): Promise<ArtifactEnvelope[]> {
-  const runDirectory = join(options.repositoryRoot, DIREC_DIR, "runs", options.runId);
-  const artifactDirectory = join(runDirectory, "artifacts");
-  await ensureDirectory(artifactDirectory);
-
   const persisted: ArtifactEnvelope[] = [];
 
   for (const seed of options.seeds) {
     const id = `${sanitiseSegment(seed.type)}-${randomUUID()}`;
-    const payloadPath = join("artifacts", `${id}.json`);
     const envelope: ArtifactEnvelope = {
       id,
       type: seed.type,
@@ -796,15 +777,28 @@ async function persistArtifactSeeds(options: {
       scope: seed.scope,
       inputArtifactIds: options.inputArtifactIds,
       timestamp: options.now().toISOString(),
-      payloadPath,
       payload: seed.payload,
       metadata: seed.metadata,
     };
-    await writeJsonFile(join(runDirectory, payloadPath), seed.payload);
     persisted.push(envelope);
   }
 
   return persisted;
+}
+
+async function writeLatestRunSnapshot(options: {
+  repositoryRoot: string;
+  pipelineId: string;
+  manifest: RunManifest;
+}): Promise<void> {
+  const latestDirectory = join(
+    options.repositoryRoot,
+    DIREC_DIR,
+    "latest",
+    sanitiseSegment(options.pipelineId),
+  );
+  await rm(latestDirectory, { recursive: true, force: true });
+  await writeJsonFile(join(latestDirectory, "manifest.json"), options.manifest);
 }
 
 async function runCommandNode(
@@ -885,12 +879,6 @@ function mapById<T extends { id: string }>(entries: T[]): Map<string, T> {
     map.set(entry.id, entry);
   }
   return map;
-}
-
-function stripPayload(artifact: ArtifactEnvelope): Omit<ArtifactEnvelope, "payload"> {
-  const clone = { ...artifact };
-  delete clone.payload;
-  return clone;
 }
 
 function createRunId(now: () => Date): string {

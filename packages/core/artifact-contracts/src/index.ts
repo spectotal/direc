@@ -41,7 +41,6 @@ export interface ArtifactEnvelope<TPayload = unknown> extends ArtifactSeed<TPayl
   sourceId: string;
   inputArtifactIds: string[];
   timestamp: string;
-  payloadPath: string;
 }
 
 export type FeedbackSeverity = "info" | "warning" | "error";

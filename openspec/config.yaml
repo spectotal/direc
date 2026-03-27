@@ -9,8 +9,8 @@ context: |
 
   Generated runtime state lives under .direc/:
   - .direc/config.json for editable pipeline config
-  - .direc/runs/<runId>/ for manifests and persisted artifact payloads
-  - .direc/latest/<pipelineId>.json for latest successful run pointers
+  - .direc/runs/<runId>/ for historical manifests
+  - .direc/latest/<pipelineId>/ for latest manifest snapshots per pipeline
   - .direc/cache/ for optional runtime caches
 
   Use the new vocabulary consistently:
@@ -42,4 +42,5 @@ rules:
   spec:
     - Use Purpose and Requirements sections with Requirement and Scenario headings.
     - Write requirements against current or committed behavior, not vague aspirations.
+    - Prefer behavioral and conceptual contracts over option-by-option argument detail unless a specific argument name is itself part of the public contract.
     - Mention concrete artifact types, pipeline ids, file layout, and command names when they are part of the contract.

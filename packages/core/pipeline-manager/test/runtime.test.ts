@@ -89,7 +89,7 @@ const analysisThresholdRule: FeedbackRule<{ blockOnError?: boolean }> = {
   },
 };
 
-test("runPipeline persists artifacts, latest pointers, and sink deliveries with staged fake plugins", async () => {
+test("runPipeline persists run and latest manifests, mirrored artifacts, and sink deliveries with staged fake plugins", async () => {
   const repositoryRoot = await mkdtemp(join(tmpdir(), "direc-pipeline-fake-"));
   const results: string[] = [];
   const projectContext: ProjectContext = {
@@ -230,12 +230,44 @@ test("runPipeline persists artifacts, latest pointers, and sink deliveries with 
   assert.deepEqual(results, ["feedback.notice", "feedback.verdict"]);
   const latest = await readLatestRunRecord(repositoryRoot, "fake-pipeline");
   assert.ok(latest);
-  assert.equal(latest?.noticeCount, 1);
+  assert.equal(latest?.artifactCount, 4);
+  assert.equal(latest?.runId, result.manifest.runId);
 
   const manifestDisk = JSON.parse(await readFile(result.manifestPath, "utf8")) as {
     artifactCount: number;
   };
   assert.equal(manifestDisk.artifactCount, 4);
+
+  const latestManifestDisk = JSON.parse(await readFile(result.latestPath, "utf8")) as {
+    artifactCount: number;
+    pipelineId: string;
+    artifacts: Array<{
+      type: string;
+      payload: {
+        paths?: string[];
+      };
+    }>;
+  };
+  assert.equal(latestManifestDisk.pipelineId, "fake-pipeline");
+  assert.equal(latestManifestDisk.artifactCount, 4);
+
+  const latestSourceArtifact = latest?.artifacts.find(
+    (artifact) => artifact.type === "source.fake",
+  );
+  assert.ok(latestSourceArtifact);
+  assert.deepEqual(latestSourceArtifact?.payload, {
+    paths: [join(repositoryRoot, "src", "feature.ts")],
+  });
+  assert.deepEqual(
+    latestManifestDisk.artifacts.find((artifact) => artifact.type === "source.fake")?.payload.paths,
+    [join(repositoryRoot, "src", "feature.ts")],
+  );
+  await assert.rejects(
+    readFile(join(repositoryRoot, ".direc", "latest", "fake-pipeline", "artifacts"), "utf8"),
+  );
+  await assert.rejects(
+    readFile(join(repositoryRoot, ".direc", "runs", result.manifest.runId, "artifacts"), "utf8"),
+  );
 
   await new Promise<void>(async (resolve, reject) => {
     let observed = 0;
@@ -701,7 +733,6 @@ test("createCommandAnalysisNode normalises command-backed tool output", async ()
         },
         inputArtifactIds: [],
         timestamp: new Date().toISOString(),
-        payloadPath: "artifacts/seed-1.json",
         payload: {},
       },
     ],

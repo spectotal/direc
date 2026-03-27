@@ -4,41 +4,41 @@ Define how Direc turns repository-wide file state into a source artifact for who
 
 ## Requirements
 
-### Requirement: Repository source emits filtered repository scope
+### Requirement: Repository source emits a curated repository analysis scope
 
-The `repository` source SHALL emit one repository-wide scope artifact after applying source-level exclusions.
+The `repository` source SHALL emit one repository-wide source artifact that represents the current analysis scope for the repository.
 
 #### Scenario: Repository paths become `source.repository.scope`
 
 - **GIVEN** a `repository` source
 - **WHEN** the source runs
 - **THEN** it SHALL emit one `source.repository.scope` artifact
-- **AND** the artifact scope SHALL include filtered absolute repository paths
-- **AND** the payload SHALL include both the filtered paths and the configured `excludePaths`
+- **AND** the artifact scope SHALL contain the repository paths that are in scope for whole-repo analysis
+- **AND** downstream extractors SHALL be able to treat that scope as the authoritative repository input
 
-### Requirement: Repository source exclusions are source-owned
+### Requirement: Repository source owns repository-scope curation
 
-The `repository` source SHALL filter excluded paths before any extractor-specific facet filtering.
+The `repository` source SHALL decide which repository files participate in whole-repo analysis before any facet-specific extractor filtering happens.
 
-#### Scenario: Source-level exclusions remove tests, fixtures, and generated output
+#### Scenario: Repository source excludes paths outside the intended analysis surface
 
-- **GIVEN** a `repository` source with configured `excludePaths`
-- **WHEN** matching files exist under excluded paths or names
-- **THEN** those files SHALL not appear in `source.repository.scope`
-- **AND** operational directories such as `.git`, `node_modules`, `dist`, `.direc`, and `coverage` SHALL remain excluded regardless of config
+- **GIVEN** a repository that contains both analysis-relevant files and files that should not shape whole-repo analysis
+- **WHEN** the repository source builds its scope
+- **THEN** it SHALL omit paths outside the intended analysis surface
+- **AND** extractors SHALL operate within that curated source scope rather than widening it again
 
 ### Requirement: Repository source supports polling watch mode
 
-The `repository` source SHALL rerun when the filtered repository path set or file mtimes change.
+The `repository` source SHALL support watch mode for repository-wide analysis.
 
 #### Scenario: Included path changes trigger rerun
 
 - **GIVEN** a watchable `repository` source
-- **WHEN** a non-excluded repository file is added or modified between polling intervals
-- **THEN** the source SHALL trigger its change callback once for the new filtered repository signature
+- **WHEN** the repository analysis scope changes in a way that could affect downstream analysis
+- **THEN** the source SHALL trigger its change callback once for the new repository signature
 
-#### Scenario: Excluded path changes do not trigger rerun
+#### Scenario: Out-of-scope changes do not retrigger repository analysis
 
 - **GIVEN** a watchable `repository` source
-- **WHEN** only excluded files change between polling intervals
+- **WHEN** only out-of-scope repository files change between polling intervals
 - **THEN** the source SHALL not trigger its change callback

@@ -120,7 +120,6 @@ test("js-complexity respects explicit empty path scopes without falling back to 
         },
         inputArtifactIds: [],
         timestamp: new Date().toISOString(),
-        payloadPath: "artifacts/seed-1.json",
         payload: {
           paths: [],
         },
