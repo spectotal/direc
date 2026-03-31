@@ -14,18 +14,18 @@ The `repository` source SHALL emit one repository-wide source artifact that repr
 - **WHEN** the source runs
 - **THEN** it SHALL emit one `source.repository.scope` artifact
 - **AND** the artifact scope SHALL contain the repository paths that are in scope for whole-repo analysis
-- **AND** downstream extractors SHALL be able to treat that scope as the authoritative repository input
+- **AND** downstream facet tools SHALL be able to treat that scope as the authoritative repository input
 
 ### Requirement: Repository source owns repository-scope curation
 
-The `repository` source SHALL decide which repository files participate in whole-repo analysis before any facet-specific extractor filtering happens.
+The `repository` source SHALL decide which repository files participate in whole-repo analysis before any facet-specific analysis filtering happens.
 
 #### Scenario: Repository source excludes paths outside the intended analysis surface
 
 - **GIVEN** a repository that contains both analysis-relevant files and files that should not shape whole-repo analysis
 - **WHEN** the repository source builds its scope
 - **THEN** it SHALL omit paths outside the intended analysis surface
-- **AND** extractors SHALL operate within that curated source scope rather than widening it again
+- **AND** facet tools SHALL operate within that curated source scope rather than widening it again
 
 ### Requirement: Repository source supports polling watch mode
 

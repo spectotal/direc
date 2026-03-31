@@ -18,7 +18,6 @@ export type {
 export const clusterBuilderNode: AnalysisNode = {
   id: "cluster-builder",
   displayName: "Cluster Builder",
-  stage: "deriver",
   binding: "agnostic",
   requires: {
     allOf: ["structural.graph"],

@@ -1,34 +1,38 @@
 ## Purpose
 
-Define how Direc composes sources, staged analysis nodes, feedback rules, and sinks into persisted pipeline runs.
+Define how Direc composes sources, `facet` and `agnostic` analysis nodes, feedback rules, and sinks into persisted pipeline runs.
 
 ## Requirements
 
-### Requirement: Pipeline manager executes pipelines in fixed stage order
+### Requirement: Pipeline manager executes pipelines in fixed analysis order
 
-The system SHALL execute pipelines as source, then extractors, then derivers, then evaluators, then feedback.
+The system SHALL execute pipelines as source, then `facet`, then `agnostic`, then feedback.
 
-#### Scenario: Eligible staged pipeline run
+#### Scenario: Eligible two-bucket pipeline run
 
-- **GIVEN** an enabled pipeline with a detected source, staged analysis tools, a feedback rule, and a sink
+- **GIVEN** an enabled pipeline with a detected source, `facet` and `agnostic` analysis tools, a feedback rule, and a sink
 - **WHEN** the pipeline manager runs that pipeline
 - **THEN** it SHALL run the source first and persist its seed artifacts
-- **AND** it SHALL run extractors before derivers, derivers before evaluators, and feedback after evaluators
-- **AND** it SHALL topologically order tools only within each analysis stage by produced and required artifact types
+- **AND** it SHALL run `facet` before `agnostic`, and feedback after `agnostic`
+- **AND** it SHALL run `facet` tools in declaration order
+- **AND** it SHALL topologically order tools only within the `agnostic` bucket by produced and required artifact types
 - **AND** it SHALL deliver only subscribed feedback artifact types to each sink
 
-### Requirement: Pipeline manager validates staged analysis contracts
+### Requirement: Pipeline manager validates analysis bucket contracts
 
-The system SHALL reject pipelines that violate the extractor or agnostic-stage rules.
+The system SHALL reject pipelines that violate the `facet` or `agnostic` input rules.
 
-#### Scenario: Invalid stage contract is rejected
+#### Scenario: Invalid analysis contract is rejected
 
-- **GIVEN** a configured analysis tool with the wrong stage or binding
+- **GIVEN** a configured analysis tool with the wrong bucket inputs or binding
 - **WHEN** the pipeline is planned
-- **THEN** the pipeline manager SHALL reject facet-bound tools with no `requiredFacets`
+- **THEN** the pipeline manager SHALL reject `facet` tools with no `requiredFacets`
+- **AND** it SHALL reject `facet` tools that do not require at least one `source.*` artifact
+- **AND** it SHALL reject `facet` tools whose required or optional inputs include any non-`source.*` artifact
 - **AND** it SHALL reject agnostic tools that declare `requiredFacets`
-- **AND** it SHALL reject derivers or evaluators that require `source.*`
-- **AND** it SHALL reject tools whose required artifact types cannot be produced by the source or an earlier stage in the same pipeline
+- **AND** it SHALL reject agnostic tools whose required or optional inputs include any `source.*` artifact
+- **AND** it SHALL reject `facet` tools whose required artifact types cannot be produced by the source
+- **AND** it SHALL reject agnostic tools whose required artifact types cannot be produced by the source, a `facet` tool, or an earlier agnostic tool in the same pipeline
 
 ### Requirement: Pipeline manager persists run data under `.direc`
 

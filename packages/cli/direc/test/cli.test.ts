@@ -7,7 +7,7 @@ import test from "node:test";
 import { DEFAULT_REPOSITORY_SOURCE_EXCLUDE_PATHS } from "@spectotal/direc-source-repository";
 import { initCommand, runCommand } from "../src/index.js";
 
-test("initCommand detects facets and materialises staged sources, tools, sinks, and pipelines", async () => {
+test("initCommand detects facets and materialises facet and agnostic sources, tools, sinks, and pipelines", async () => {
   const repositoryRoot = await mkdtemp(join(tmpdir(), "direc-cli-init-"));
   await mkdir(join(repositoryRoot, "src"), { recursive: true });
   await mkdir(join(repositoryRoot, "openspec", "specs", "demo"), { recursive: true });
@@ -37,9 +37,8 @@ test("initCommand detects facets and materialises staged sources, tools, sinks, 
   const repositoryPipeline = result.config.pipelines.find(
     (pipeline) => pipeline.id === "repository-quality",
   );
-  assert.deepEqual(repositoryPipeline?.analysis.extractors, ["jsComplexity", "graph"]);
-  assert.deepEqual(repositoryPipeline?.analysis.derivers, ["cluster"]);
-  assert.deepEqual(repositoryPipeline?.analysis.evaluators, ["bounds"]);
+  assert.deepEqual(repositoryPipeline?.analysis.facet, ["jsComplexity", "graph"]);
+  assert.deepEqual(repositoryPipeline?.analysis.agnostic, ["cluster", "bounds"]);
 
   const configOnDisk = JSON.parse(
     await readFile(join(repositoryRoot, ".direc", "config.json"), "utf8"),
@@ -51,7 +50,7 @@ test("initCommand detects facets and materialises staged sources, tools, sinks, 
         };
       };
     };
-    pipelines: Array<{ id: string; analysis: { extractors: string[] } }>;
+    pipelines: Array<{ id: string; analysis: { facet: string[]; agnostic: string[] } }>;
   };
   assert.equal(configOnDisk.pipelines.length, 3);
   assert.deepEqual(configOnDisk.sources.repository.options.excludePaths, [
@@ -59,12 +58,17 @@ test("initCommand detects facets and materialises staged sources, tools, sinks, 
   ]);
   assert.deepEqual(
     configOnDisk.pipelines.find((pipeline) => pipeline.id === "openspec-spec-conflicts")?.analysis
-      .extractors,
+      .facet,
     ["specDocuments"],
+  );
+  assert.deepEqual(
+    configOnDisk.pipelines.find((pipeline) => pipeline.id === "repository-quality")?.analysis
+      .agnostic,
+    ["cluster", "bounds"],
   );
 });
 
-test("runCommand loads config and executes the staged diff pipeline end to end", async () => {
+test("runCommand loads config and executes the facet and agnostic diff pipeline end to end", async () => {
   const repositoryRoot = await mkdtemp(join(tmpdir(), "direc-cli-run-"));
   await mkdir(join(repositoryRoot, "src"), { recursive: true });
   await writeFile(
@@ -90,9 +94,13 @@ test("runCommand loads config and executes the staged diff pipeline end to end",
   assert.ok(initResult.config.sources.diff);
   assert.ok(initResult.config.pipelines.some((pipeline) => pipeline.id === "repository-quality"));
   assert.deepEqual(
-    initResult.config.pipelines.find((pipeline) => pipeline.id === "diff-quality")?.analysis
-      .extractors,
+    initResult.config.pipelines.find((pipeline) => pipeline.id === "diff-quality")?.analysis.facet,
     ["jsComplexity", "graph"],
+  );
+  assert.deepEqual(
+    initResult.config.pipelines.find((pipeline) => pipeline.id === "diff-quality")?.analysis
+      .agnostic,
+    ["cluster", "bounds"],
   );
 
   const results = await runCommand(repositoryRoot, "diff-quality");

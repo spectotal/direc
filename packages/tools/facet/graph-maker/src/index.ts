@@ -15,8 +15,7 @@ const JS_EXTENSIONS = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"];
 export const graphMakerNode: AnalysisNode = {
   id: "graph-maker",
   displayName: "Graph Maker",
-  stage: "extractor",
-  binding: "facet-bound",
+  binding: "facet",
   requires: {
     anyOf: ["source.diff.scope", "source.openspec.task", "source.repository.scope"],
   },

@@ -51,8 +51,7 @@ export function createJsComplexityNode(
   return {
     id: "js-complexity",
     displayName: "JS Complexity",
-    stage: "extractor",
-    binding: "facet-bound",
+    binding: "facet",
     requires: {
       anyOf: ["source.diff.scope", "source.openspec.task", "source.repository.scope"],
     },

@@ -250,12 +250,11 @@ export function buildWorkspaceConfig(
   if (config.sources.repository && config.tools.jsComplexity && config.tools.graph) {
     config.pipelines.push({
       id: "repository-quality",
-      description: "Inspect repository-wide scope with staged analysis and feedback.",
+      description: "Inspect repository-wide scope with facet and agnostic analysis.",
       source: "repository",
       analysis: {
-        extractors: ["jsComplexity", "graph"].filter((toolId) => Boolean(config.tools[toolId])),
-        derivers: ["cluster"].filter((toolId) => Boolean(config.tools[toolId])),
-        evaluators: ["bounds"].filter((toolId) => Boolean(config.tools[toolId])),
+        facet: ["jsComplexity", "graph"].filter((toolId) => Boolean(config.tools[toolId])),
+        agnostic: ["cluster", "bounds"].filter((toolId) => Boolean(config.tools[toolId])),
       },
       feedback: {
         rules: [{ id: "thresholds", plugin: "analysis-thresholds" }],
@@ -267,12 +266,11 @@ export function buildWorkspaceConfig(
   if (config.sources.diff) {
     config.pipelines.push({
       id: "diff-quality",
-      description: "Inspect current git diff with staged analysis and feedback.",
+      description: "Inspect current git diff with facet and agnostic analysis.",
       source: "diff",
       analysis: {
-        extractors: ["jsComplexity", "graph"].filter((toolId) => Boolean(config.tools[toolId])),
-        derivers: ["cluster"].filter((toolId) => Boolean(config.tools[toolId])),
-        evaluators: ["bounds"].filter((toolId) => Boolean(config.tools[toolId])),
+        facet: ["jsComplexity", "graph"].filter((toolId) => Boolean(config.tools[toolId])),
+        agnostic: ["cluster", "bounds"].filter((toolId) => Boolean(config.tools[toolId])),
       },
       feedback: {
         rules: [{ id: "thresholds", plugin: "analysis-thresholds" }],
@@ -284,12 +282,11 @@ export function buildWorkspaceConfig(
   if (config.sources.openspecTasks) {
     config.pipelines.push({
       id: "openspec-task-feedback",
-      description: "Evaluate completed OpenSpec tasks against staged code analysis.",
+      description: "Evaluate completed OpenSpec tasks against facet and agnostic code analysis.",
       source: "openspecTasks",
       analysis: {
-        extractors: ["jsComplexity", "graph"].filter((toolId) => Boolean(config.tools[toolId])),
-        derivers: ["cluster"].filter((toolId) => Boolean(config.tools[toolId])),
-        evaluators: ["bounds"].filter((toolId) => Boolean(config.tools[toolId])),
+        facet: ["jsComplexity", "graph"].filter((toolId) => Boolean(config.tools[toolId])),
+        agnostic: ["cluster", "bounds"].filter((toolId) => Boolean(config.tools[toolId])),
       },
       feedback: {
         rules: [{ id: "thresholds", plugin: "analysis-thresholds" }],
@@ -301,12 +298,11 @@ export function buildWorkspaceConfig(
   if (config.sources.openspecSpecs) {
     config.pipelines.push({
       id: "openspec-spec-conflicts",
-      description: "Compare OpenSpec change specs through staged extraction and evaluation.",
+      description: "Compare OpenSpec change specs through facet and agnostic analysis.",
       source: "openspecSpecs",
       analysis: {
-        extractors: ["specDocuments"].filter((toolId) => Boolean(config.tools[toolId])),
-        derivers: [],
-        evaluators: ["specConflict"].filter((toolId) => Boolean(config.tools[toolId])),
+        facet: ["specDocuments"].filter((toolId) => Boolean(config.tools[toolId])),
+        agnostic: ["specConflict"].filter((toolId) => Boolean(config.tools[toolId])),
       },
       feedback: {
         rules: [{ id: "thresholds", plugin: "analysis-thresholds" }],

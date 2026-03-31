@@ -89,7 +89,7 @@ const analysisThresholdRule: FeedbackRule<{ blockOnError?: boolean }> = {
   },
 };
 
-test("runPipeline persists run and latest manifests, mirrored artifacts, and sink deliveries with staged fake plugins", async () => {
+test("runPipeline persists run and latest manifests, mirrored artifacts, and sink deliveries with facet and agnostic plugins", async () => {
   const repositoryRoot = await mkdtemp(join(tmpdir(), "direc-pipeline-fake-"));
   const results: string[] = [];
   const projectContext: ProjectContext = {
@@ -133,8 +133,7 @@ test("runPipeline persists run and latest manifests, mirrored artifacts, and sin
   const fakeNode: AnalysisNode = {
     id: "fake-node",
     displayName: "Fake Node",
-    stage: "extractor",
-    binding: "facet-bound",
+    binding: "facet",
     requires: {
       anyOf: ["source.fake"],
     },
@@ -197,9 +196,8 @@ test("runPipeline persists run and latest manifests, mirrored artifacts, and sin
         id: "fake-pipeline",
         source: "fake",
         analysis: {
-          extractors: ["fake"],
-          derivers: [],
-          evaluators: [],
+          facet: ["fake"],
+          agnostic: [],
         },
         feedback: {
           rules: [{ id: "thresholds", plugin: "analysis-thresholds" }],
@@ -296,11 +294,10 @@ test("runPipeline persists run and latest manifests, mirrored artifacts, and sin
   });
 });
 
-test("planPipelineExecution rejects cyclic stage graphs", async () => {
+test("planPipelineExecution rejects cyclic agnostic graphs", async () => {
   const cycleA: AnalysisNode = {
     id: "cycle-a",
     displayName: "Cycle A",
-    stage: "deriver",
     binding: "agnostic",
     requires: {
       allOf: ["analysis.b"],
@@ -314,7 +311,6 @@ test("planPipelineExecution rejects cyclic stage graphs", async () => {
   const cycleB: AnalysisNode = {
     id: "cycle-b",
     displayName: "Cycle B",
-    stage: "deriver",
     binding: "agnostic",
     requires: {
       allOf: ["analysis.a"],
@@ -360,9 +356,8 @@ test("planPipelineExecution rejects cyclic stage graphs", async () => {
               id: "cyclic",
               source: "fake",
               analysis: {
-                extractors: [],
-                derivers: ["a", "b"],
-                evaluators: [],
+                facet: [],
+                agnostic: ["a", "b"],
               },
               feedback: {
                 rules: [],
@@ -400,11 +395,10 @@ test("planPipelineExecution rejects cyclic stage graphs", async () => {
   );
 });
 
-test("planPipelineExecution rejects invalid staged tool contracts", async () => {
-  const sourceDependentDeriver: AnalysisNode = {
-    id: "bad-deriver",
-    displayName: "Bad Deriver",
-    stage: "deriver",
+test("planPipelineExecution rejects invalid facet and agnostic tool contracts", async () => {
+  const sourceDependentAgnostic: AnalysisNode = {
+    id: "bad-agnostic",
+    displayName: "Bad Agnostic",
     binding: "agnostic",
     requires: {
       allOf: ["source.fake"],
@@ -415,11 +409,10 @@ test("planPipelineExecution rejects invalid staged tool contracts", async () => 
       return [];
     },
   };
-  const facetlessExtractor: AnalysisNode = {
-    id: "facetless-extractor",
-    displayName: "Facetless Extractor",
-    stage: "extractor",
-    binding: "facet-bound",
+  const facetlessTool: AnalysisNode = {
+    id: "facetless-tool",
+    displayName: "Facetless Tool",
+    binding: "facet",
     requires: {
       anyOf: ["source.fake"],
     },
@@ -432,7 +425,6 @@ test("planPipelineExecution rejects invalid staged tool contracts", async () => 
   const facetedAgnostic: AnalysisNode = {
     id: "faceted-agnostic",
     displayName: "Faceted Agnostic",
-    stage: "evaluator",
     binding: "agnostic",
     requires: {
       allOf: ["analysis.ready"],
@@ -477,7 +469,7 @@ test("planPipelineExecution rejects invalid staged tool contracts", async () => 
     sinks: [],
   };
   const projectContext: ProjectContext = {
-    repositoryRoot: "/tmp/staged-contracts",
+    repositoryRoot: "/tmp/analysis-contracts",
     facets: [{ id: "js", evidence: ["fixture"] }],
     sourceFiles: [],
     hasGit: false,
@@ -493,18 +485,17 @@ test("planPipelineExecution rejects invalid staged tool contracts", async () => 
             bad: {
               id: "bad",
               kind: "builtin",
-              plugin: "bad-deriver",
+              plugin: "bad-agnostic",
               enabled: true,
             },
           },
           pipelines: [
             {
-              id: "invalid-deriver",
+              id: "invalid-agnostic",
               source: "fake",
               analysis: {
-                extractors: [],
-                derivers: ["bad"],
-                evaluators: [],
+                facet: [],
+                agnostic: ["bad"],
               },
               feedback: {
                 rules: [],
@@ -515,10 +506,10 @@ test("planPipelineExecution rejects invalid staged tool contracts", async () => 
         },
         registry: {
           ...baseRegistry,
-          analysisNodes: [sourceDependentDeriver],
+          analysisNodes: [sourceDependentAgnostic],
         },
         projectContext,
-        pipelineId: "invalid-deriver",
+        pipelineId: "invalid-agnostic",
       }),
     /may not require source artifacts/,
   );
@@ -532,7 +523,7 @@ test("planPipelineExecution rejects invalid staged tool contracts", async () => 
             bad: {
               id: "bad",
               kind: "builtin",
-              plugin: "facetless-extractor",
+              plugin: "facetless-tool",
               enabled: true,
             },
           },
@@ -541,9 +532,8 @@ test("planPipelineExecution rejects invalid staged tool contracts", async () => 
               id: "facetless",
               source: "fake",
               analysis: {
-                extractors: ["bad"],
-                derivers: [],
-                evaluators: [],
+                facet: ["bad"],
+                agnostic: [],
               },
               feedback: {
                 rules: [],
@@ -554,7 +544,7 @@ test("planPipelineExecution rejects invalid staged tool contracts", async () => 
         },
         registry: {
           ...baseRegistry,
-          analysisNodes: [facetlessExtractor],
+          analysisNodes: [facetlessTool],
         },
         projectContext,
         pipelineId: "facetless",
@@ -580,9 +570,8 @@ test("planPipelineExecution rejects invalid staged tool contracts", async () => 
               id: "faceted-agnostic",
               source: "fake",
               analysis: {
-                extractors: [],
-                derivers: [],
-                evaluators: ["bad"],
+                facet: [],
+                agnostic: ["bad"],
               },
               feedback: {
                 rules: [],
@@ -599,6 +588,120 @@ test("planPipelineExecution rejects invalid staged tool contracts", async () => 
         pipelineId: "faceted-agnostic",
       }),
     /may not declare requiredFacets/,
+  );
+
+  assert.throws(
+    () =>
+      planPipelineExecution({
+        config: {
+          ...baseConfig,
+          tools: {
+            bad: {
+              id: "bad",
+              kind: "builtin",
+              plugin: "facet-without-source",
+              enabled: true,
+            },
+          },
+          pipelines: [
+            {
+              id: "facet-without-source",
+              source: "fake",
+              analysis: {
+                facet: ["bad"],
+                agnostic: [],
+              },
+              feedback: {
+                rules: [],
+                sinks: [],
+              },
+            },
+          ],
+        },
+        registry: {
+          ...baseRegistry,
+          analysisNodes: [facetWithoutSource],
+        },
+        projectContext,
+        pipelineId: "facet-without-source",
+      }),
+    /must require at least one source artifact/,
+  );
+
+  assert.throws(
+    () =>
+      planPipelineExecution({
+        config: {
+          ...baseConfig,
+          tools: {
+            bad: {
+              id: "bad",
+              kind: "builtin",
+              plugin: "facet-with-optional-analysis",
+              enabled: true,
+            },
+          },
+          pipelines: [
+            {
+              id: "facet-with-optional-analysis",
+              source: "fake",
+              analysis: {
+                facet: ["bad"],
+                agnostic: [],
+              },
+              feedback: {
+                rules: [],
+                sinks: [],
+              },
+            },
+          ],
+        },
+        registry: {
+          ...baseRegistry,
+          analysisNodes: [facetWithOptionalAnalysisInput],
+        },
+        projectContext,
+        pipelineId: "facet-with-optional-analysis",
+      }),
+    /may declare only source optional inputs/,
+  );
+
+  assert.throws(
+    () =>
+      planPipelineExecution({
+        config: {
+          ...baseConfig,
+          tools: {
+            bad: {
+              id: "bad",
+              kind: "builtin",
+              plugin: "agnostic-with-optional-source",
+              enabled: true,
+            },
+          },
+          pipelines: [
+            {
+              id: "agnostic-with-optional-source",
+              source: "fake",
+              analysis: {
+                facet: [],
+                agnostic: ["bad"],
+              },
+              feedback: {
+                rules: [],
+                sinks: [],
+              },
+            },
+          ],
+        },
+        registry: {
+          ...baseRegistry,
+          analysisNodes: [agnosticWithOptionalSource],
+        },
+        projectContext,
+        pipelineId: "agnostic-with-optional-source",
+      }),
+    /may not declare source optional inputs/,
   );
 });
 
@@ -631,9 +734,8 @@ test("planPipelineExecution rejects missing upstream artifact producers", async 
               id: "missing-upstream",
               source: "fake",
               analysis: {
-                extractors: [],
-                derivers: [],
-                evaluators: ["bounds"],
+                facet: [],
+                agnostic: ["bounds"],
               },
               feedback: {
                 rules: [],
@@ -677,8 +779,7 @@ test("createCommandAnalysisNode normalises command-backed tool output", async ()
     id: "cmd",
     kind: "command",
     enabled: true,
-    stage: "extractor",
-    binding: "facet-bound",
+    binding: "facet",
     requires: {
       anyOf: ["source.fake"],
     },
@@ -702,8 +803,7 @@ test("createCommandAnalysisNode normalises command-backed tool output", async ()
       id: "cmd",
       kind: "command",
       enabled: true,
-      stage: "extractor",
-      binding: "facet-bound",
+      binding: "facet",
       requires: {
         anyOf: ["source.fake"],
       },
@@ -743,7 +843,7 @@ test("createCommandAnalysisNode normalises command-backed tool output", async ()
   assert.equal(outputs[0]?.type, "analysis.command");
 });
 
-test("runPipeline executes the diff slice end to end with staged analysis", async () => {
+test("runPipeline executes the diff slice end to end with facet and agnostic analysis", async () => {
   const repositoryRoot = await mkdtemp(join(tmpdir(), "direc-diff-slice-"));
   await mkdir(join(repositoryRoot, "packages", "app", "src"), { recursive: true });
   await writeFile(
@@ -823,9 +923,8 @@ test("runPipeline executes the diff slice end to end with staged analysis", asyn
         id: "diff-quality",
         source: "diff",
         analysis: {
-          extractors: ["jsComplexity", "graph"],
-          derivers: ["cluster"],
-          evaluators: ["bounds"],
+          facet: ["jsComplexity", "graph"],
+          agnostic: ["cluster", "bounds"],
         },
         feedback: {
           rules: [{ id: "thresholds", plugin: "analysis-thresholds" }],
@@ -932,9 +1031,8 @@ test("runPipeline executes the repository slice end to end with source-level exc
         id: "repository-quality",
         source: "repository",
         analysis: {
-          extractors: ["jsComplexity", "graph"],
-          derivers: ["cluster"],
-          evaluators: ["bounds"],
+          facet: ["jsComplexity", "graph"],
+          agnostic: ["cluster", "bounds"],
         },
         feedback: {
           rules: [{ id: "thresholds", plugin: "analysis-thresholds" }],
@@ -1071,9 +1169,8 @@ test("runPipeline executes openspec task and spec pipelines against the same man
         id: "openspec-task-feedback",
         source: "openspecTasks",
         analysis: {
-          extractors: ["jsComplexity", "graph"],
-          derivers: ["cluster"],
-          evaluators: ["bounds"],
+          facet: ["jsComplexity", "graph"],
+          agnostic: ["cluster", "bounds"],
         },
         feedback: {
           rules: [{ id: "thresholds", plugin: "analysis-thresholds" }],
@@ -1084,9 +1181,8 @@ test("runPipeline executes openspec task and spec pipelines against the same man
         id: "openspec-spec-conflicts",
         source: "openspecSpecs",
         analysis: {
-          extractors: ["specDocuments"],
-          derivers: [],
-          evaluators: ["specConflict"],
+          facet: ["specDocuments"],
+          agnostic: ["specConflict"],
         },
         feedback: {
           rules: [{ id: "thresholds", plugin: "analysis-thresholds" }],
@@ -1167,3 +1263,46 @@ async function git(repositoryRoot: string, args: string[]): Promise<void> {
     });
   });
 }
+const facetWithoutSource: AnalysisNode = {
+  id: "facet-without-source",
+  displayName: "Facet Without Source",
+  binding: "facet",
+  requires: {
+    allOf: ["analysis.ready"],
+  },
+  requiredFacets: ["js"],
+  produces: ["analysis.bad"],
+  detect: () => true,
+  async run() {
+    return [];
+  },
+};
+const facetWithOptionalAnalysisInput: AnalysisNode = {
+  id: "facet-with-optional-analysis",
+  displayName: "Facet With Optional Analysis",
+  binding: "facet",
+  requires: {
+    anyOf: ["source.fake"],
+  },
+  optionalInputs: ["analysis.ready"],
+  requiredFacets: ["js"],
+  produces: ["analysis.bad"],
+  detect: () => true,
+  async run() {
+    return [];
+  },
+};
+const agnosticWithOptionalSource: AnalysisNode = {
+  id: "agnostic-with-optional-source",
+  displayName: "Agnostic With Optional Source",
+  binding: "agnostic",
+  requires: {
+    allOf: ["analysis.ready"],
+  },
+  optionalInputs: ["source.fake"],
+  produces: ["evaluation.bad"],
+  detect: () => true,
+  async run() {
+    return [];
+  },
+};

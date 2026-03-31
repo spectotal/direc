@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-03-27T17:06:00.509Z",
+  "generatedAt": "2026-03-31T14:15:27.883Z",
   "facets": [
     "js",
     "openspec"
@@ -99,17 +99,15 @@
   "pipelines": [
     {
       "id": "repository-quality",
-      "description": "Inspect repository-wide scope with staged analysis and feedback.",
+      "description": "Inspect repository-wide scope with facet and agnostic analysis.",
       "source": "repository",
       "analysis": {
-        "extractors": [
+        "facet": [
           "jsComplexity",
           "graph"
         ],
-        "derivers": [
-          "cluster"
-        ],
-        "evaluators": [
+        "agnostic": [
+          "cluster",
           "bounds"
         ]
       },
@@ -127,17 +125,15 @@
     },
     {
       "id": "diff-quality",
-      "description": "Inspect current git diff with staged analysis and feedback.",
+      "description": "Inspect current git diff with facet and agnostic analysis.",
       "source": "diff",
       "analysis": {
-        "extractors": [
+        "facet": [
           "jsComplexity",
           "graph"
         ],
-        "derivers": [
-          "cluster"
-        ],
-        "evaluators": [
+        "agnostic": [
+          "cluster",
           "bounds"
         ]
       },
@@ -155,17 +151,15 @@
     },
     {
       "id": "openspec-task-feedback",
-      "description": "Evaluate completed OpenSpec tasks against staged code analysis.",
+      "description": "Evaluate completed OpenSpec tasks against facet and agnostic code analysis.",
       "source": "openspecTasks",
       "analysis": {
-        "extractors": [
+        "facet": [
           "jsComplexity",
           "graph"
         ],
-        "derivers": [
-          "cluster"
-        ],
-        "evaluators": [
+        "agnostic": [
+          "cluster",
           "bounds"
         ]
       },
@@ -183,14 +177,13 @@
     },
     {
       "id": "openspec-spec-conflicts",
-      "description": "Compare OpenSpec change specs through staged extraction and evaluation.",
+      "description": "Compare OpenSpec change specs through facet and agnostic analysis.",
       "source": "openspecSpecs",
       "analysis": {
-        "extractors": [
+        "facet": [
           "specDocuments"
         ],
-        "derivers": [],
-        "evaluators": [
+        "agnostic": [
           "specConflict"
         ]
       },

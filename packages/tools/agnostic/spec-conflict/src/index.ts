@@ -7,7 +7,6 @@ export type { SpecConflictArtifactPayload, SpecConflictFinding } from "./contrac
 export const specConflictNode: AnalysisNode = {
   id: "spec-conflict",
   displayName: "Spec Conflict",
-  stage: "evaluator",
   binding: "agnostic",
   requires: {
     allOf: ["analysis.spec-document-pair"],

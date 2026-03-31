@@ -9,7 +9,6 @@ export type { BoundsDistanceArtifactPayload } from "./contracts.js";
 export const boundsEvaluatorNode: AnalysisNode = {
   id: "bounds-evaluator",
   displayName: "Bounds Evaluator",
-  stage: "evaluator",
   binding: "agnostic",
   requires: {
     allOf: ["structural.graph", "structural.boundaries"],

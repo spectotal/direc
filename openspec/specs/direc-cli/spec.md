@@ -1,23 +1,23 @@
 ## Purpose
 
-Define the CLI surface that bootstraps Direc configuration and runs staged pipelines.
+Define the CLI surface that bootstraps Direc configuration and runs two-bucket analysis pipelines.
 
 ## Requirements
 
-### Requirement: `direc init` materializes staged workspace configuration from detected context
+### Requirement: `direc init` materializes two-bucket workspace configuration from detected context
 
-The CLI SHALL detect repository context and write a concrete staged pipeline configuration to `.direc/config.json`.
+The CLI SHALL detect repository context and write a concrete two-bucket pipeline configuration to `.direc/config.json`.
 
-#### Scenario: Repository facets bootstrap staged built-in config
+#### Scenario: Repository facets bootstrap built-in analysis config
 
 - **GIVEN** a repository with detectable facets or source signals
 - **WHEN** `direc init` runs
 - **THEN** it SHALL detect facets from repository evidence and detect whether Git and OpenSpec are present
 - **AND** it SHALL write `.direc/config.json` with explicit `sources`, `tools`, `sinks`, and `pipelines`
-- **AND** each pipeline SHALL declare `analysis.extractors`, `analysis.derivers`, `analysis.evaluators`, `feedback.rules`, and `feedback.sinks`
-- **AND** JavaScript repositories SHALL enable the extractor and agnostic architecture stack
+- **AND** each pipeline SHALL declare `analysis.facet`, `analysis.agnostic`, `feedback.rules`, and `feedback.sinks`
+- **AND** JavaScript repositories SHALL enable the `facet` and `agnostic` architecture stack
 - **AND** JavaScript repositories SHALL enable the `repository` source and the `repository-quality` pipeline for whole-repo analysis
-- **AND** repositories with OpenSpec SHALL enable the spec document extractor and spec conflict evaluator pipeline
+- **AND** repositories with OpenSpec SHALL enable the spec document facet tool and spec conflict agnostic pipeline
 - **AND** repositories with Git SHALL enable the `diff` source and `diff-quality` pipeline
 
 ### Requirement: `direc run` executes one or more configured pipelines

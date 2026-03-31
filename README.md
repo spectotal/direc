@@ -5,10 +5,10 @@ Direc is a pipeline-driven architecture workspace for agentic development.
 This branch is a clean-break rewrite built around three explicit concerns:
 
 - `source`: where change signals come from
-- `analysis`: staged tools that produce typed artifacts from those signals
+- `analysis`: `facet` and `agnostic` tools that produce typed artifacts from those signals
 - `feedback`: rules and sinks that turn analysis artifacts into notices and verdicts
 
-The runtime is composed by a generic pipeline manager. Sources emit seed artifacts, facet-bound extractors turn them into reusable analysis artifacts, agnostic derivers and evaluators build on those artifacts, feedback rules derive `feedback.notice` and `feedback.verdict`, and sinks deliver the result to humans or agents.
+The runtime is composed by a generic pipeline manager. Sources emit seed artifacts, facet tools consume only `source.*` artifacts to produce reusable analysis artifacts, agnostic tools build only on prior analysis artifacts, feedback rules derive `feedback.notice` and `feedback.verdict`, and sinks deliver the result to humans or agents.
 
 ## Workspace Layout
 
@@ -29,7 +29,7 @@ pnpm --filter direc exec node ./bin/direc.js run
 pnpm --filter direc exec node ./bin/direc.js watch
 ```
 
-`direc init` detects local facets and materializes explicit sources, tools, sinks, and staged pipelines into `.direc/config.json`.
+`direc init` detects local facets and materializes explicit sources, tools, sinks, and two-bucket pipelines into `.direc/config.json`.
 
 `direc run` executes one pipeline or all configured pipelines.
 
@@ -38,8 +38,8 @@ pnpm --filter direc exec node ./bin/direc.js watch
 ## Built-in v1 Surface
 
 - Sources: `repository`, `git-diff`, `openspec`
-- Facet-bound extractors: `js-complexity`, `graph-maker`, `spec-documents`
-- Agnostic derivers/evaluators: `cluster-builder`, `bounds-evaluator`, `spec-conflict`
+- Facet tools: `js-complexity`, `graph-maker`, `spec-documents`
+- Agnostic tools: `cluster-builder`, `bounds-evaluator`, `spec-conflict`
 - Feedback sink: `console`
 
-The generic pipeline core also supports command-backed analysis nodes through the same staged contract used by in-process tools.
+The generic pipeline core also supports command-backed analysis nodes through the same two-bucket contract used by in-process tools.

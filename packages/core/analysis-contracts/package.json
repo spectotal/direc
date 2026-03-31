@@ -22,6 +22,13 @@
     "build": "rm -rf dist && tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
+  "lint-staged": {
+    "**/*.{js,mjs,cjs,ts}": [
+      "eslint --fix --max-warnings=0",
+      "prettier --write --ignore-unknown"
+    ],
+    "**/*.{md,yaml,yml}": "prettier --write --ignore-unknown"
+  },
   "license": "MIT",
   "dependencies": {
     "@spectotal/direc-artifact-contracts": "workspace:*"

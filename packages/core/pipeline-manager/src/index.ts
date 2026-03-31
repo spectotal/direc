@@ -3,8 +3,8 @@ import { randomUUID } from "node:crypto";
 import { dirname, join, resolve } from "node:path";
 import { spawn } from "node:child_process";
 import type {
+  AnalysisBinding,
   AnalysisNode,
-  AnalysisStage,
   CommandToolConfig,
   ToolConfig,
 } from "@spectotal/direc-analysis-contracts";
@@ -24,9 +24,8 @@ import type {
 import type { SourceConfig, SourcePlugin } from "@spectotal/direc-source-contracts";
 
 export interface PipelineAnalysisDefinition {
-  extractors: string[];
-  derivers: string[];
-  evaluators: string[];
+  facet: string[];
+  agnostic: string[];
 }
 
 export interface PipelineFeedbackDefinition {
@@ -68,7 +67,7 @@ export interface PipelinePlan {
   pipeline: PipelineDefinition;
   sourceConfig: SourceConfig;
   sourcePlugin: SourcePlugin;
-  analysis: Record<AnalysisStage, ResolvedAnalysisStep[]>;
+  analysis: Record<AnalysisBinding, ResolvedAnalysisStep[]>;
   rules: Array<{
     definition: FeedbackRuleDefinition;
     rule: FeedbackRule;
@@ -121,7 +120,7 @@ export interface WatchPipelineOptions extends RunPipelineOptions {
 }
 
 const DIREC_DIR = ".direc";
-const ANALYSIS_STAGES: AnalysisStage[] = ["extractor", "deriver", "evaluator"];
+const ANALYSIS_BINDINGS: AnalysisBinding[] = ["facet", "agnostic"];
 
 export async function ensureDirecLayout(repositoryRoot: string): Promise<void> {
   await Promise.all([
@@ -197,30 +196,25 @@ export function planPipelineExecution(options: {
     throw new Error(`Source plugin ${sourceConfig.plugin} is not applicable in this repository.`);
   }
 
-  const availableArtifactTypes = new Set(sourcePlugin.seedArtifactTypes);
-  const analysis: Record<AnalysisStage, ResolvedAnalysisStep[]> = {
-    extractor: resolveStageTools({
-      stage: "extractor",
-      toolIds: pipeline.analysis.extractors,
+  const sourceArtifactTypes = new Set(sourcePlugin.seedArtifactTypes);
+  const availableArtifactTypes = new Set(sourceArtifactTypes);
+  const analysis: Record<AnalysisBinding, ResolvedAnalysisStep[]> = {
+    facet: resolveFacetTools({
+      toolIds: pipeline.analysis.facet,
       config: options.config,
       nodeMap,
       projectContext: options.projectContext,
-      availableArtifactTypes,
+      sourceArtifactTypes,
     }),
-    deriver: [],
-    evaluator: [],
+    agnostic: [],
   };
-  analysis.deriver = resolveStageTools({
-    stage: "deriver",
-    toolIds: pipeline.analysis.derivers,
-    config: options.config,
-    nodeMap,
-    projectContext: options.projectContext,
-    availableArtifactTypes,
-  });
-  analysis.evaluator = resolveStageTools({
-    stage: "evaluator",
-    toolIds: pipeline.analysis.evaluators,
+  for (const step of analysis.facet) {
+    for (const type of step.node.produces) {
+      availableArtifactTypes.add(type);
+    }
+  }
+  analysis.agnostic = resolveAgnosticTools({
+    toolIds: pipeline.analysis.agnostic,
     config: options.config,
     nodeMap,
     projectContext: options.projectContext,
@@ -305,8 +299,8 @@ export async function runPipeline(options: RunPipelineOptions): Promise<Pipeline
     })),
   );
 
-  for (const stage of ANALYSIS_STAGES) {
-    for (const step of plan.analysis[stage]) {
+  for (const binding of ANALYSIS_BINDINGS) {
+    for (const step of plan.analysis[binding]) {
       const inputArtifacts = filterArtifactsForAnalysisStep(artifacts, step.node);
       if (!satisfiesSelector(inputArtifacts, step.node.requires)) {
         continue;
@@ -490,7 +484,6 @@ export function createCommandAnalysisNode(config: CommandToolConfig): AnalysisNo
   return {
     id: `command:${config.id}`,
     displayName: `Command ${config.id}`,
-    stage: config.stage,
     binding: config.binding,
     requires: config.requires,
     optionalInputs: config.optionalInputs,
@@ -527,8 +520,28 @@ export function createCommandAnalysisNode(config: CommandToolConfig): AnalysisNo
   };
 }
 
-function resolveStageTools(options: {
-  stage: AnalysisStage;
+function resolveFacetTools(options: {
+  toolIds: string[];
+  config: WorkspaceConfig;
+  nodeMap: Map<string, AnalysisNode>;
+  projectContext: ProjectContext;
+  sourceArtifactTypes: Set<string>;
+}): ResolvedAnalysisStep[] {
+  const resolved = options.toolIds
+    .map((toolId) => resolveAnalysisStep({ ...options, binding: "facet", toolId }))
+    .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+  const missingInputs = resolved
+    .flatMap((step) => describeMissingInputs(step, options.sourceArtifactTypes, new Set()))
+    .filter((message, index, all) => all.indexOf(message) === index);
+
+  if (missingInputs.length > 0) {
+    throw new Error(`Facet analysis has unsatisfied inputs: ${missingInputs.join("; ")}`);
+  }
+
+  return resolved;
+}
+
+function resolveAgnosticTools(options: {
   toolIds: string[];
   config: WorkspaceConfig;
   nodeMap: Map<string, AnalysisNode>;
@@ -536,25 +549,17 @@ function resolveStageTools(options: {
   availableArtifactTypes: Set<string>;
 }): ResolvedAnalysisStep[] {
   const resolved = options.toolIds
-    .map((toolId) => resolveAnalysisStep({ ...options, toolId }))
+    .map((toolId) => resolveAnalysisStep({ ...options, binding: "agnostic", toolId }))
     .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
-  const ordered = orderStageTools({
-    stage: options.stage,
+
+  return orderAgnosticTools({
     steps: resolved,
     availableArtifactTypes: options.availableArtifactTypes,
   });
-
-  for (const step of ordered) {
-    for (const type of step.node.produces) {
-      options.availableArtifactTypes.add(type);
-    }
-  }
-
-  return ordered;
 }
 
 function resolveAnalysisStep(options: {
-  stage: AnalysisStage;
+  binding: AnalysisBinding;
   toolId: string;
   config: WorkspaceConfig;
   nodeMap: Map<string, AnalysisNode>;
@@ -579,9 +584,9 @@ function resolveAnalysisStep(options: {
     );
   }
 
-  validateAnalysisNode(node, options.stage, options.toolId);
+  validateAnalysisNode(node, options.binding, options.toolId);
 
-  if (node.binding === "facet-bound" && !hasRequiredFacets(options.projectContext, node)) {
+  if (node.binding === "facet" && !hasRequiredFacets(options.projectContext, node)) {
     return null;
   }
   if (!node.detect(options.projectContext)) {
@@ -596,31 +601,42 @@ function resolveAnalysisStep(options: {
 
 function validateAnalysisNode(
   node: AnalysisNode,
-  expectedStage: AnalysisStage,
+  expectedBinding: AnalysisBinding,
   toolId: string,
 ): void {
-  if (node.stage !== expectedStage) {
-    throw new Error(`Tool ${toolId} declares stage ${node.stage}, expected ${expectedStage}.`);
+  if (node.binding !== expectedBinding) {
+    throw new Error(
+      `Tool ${toolId} declares binding ${node.binding}, expected ${expectedBinding}.`,
+    );
   }
 
-  if (expectedStage === "extractor" && node.binding !== "facet-bound") {
-    throw new Error(`Extractor ${toolId} must be facet-bound.`);
-  }
-  if (expectedStage !== "extractor" && node.binding !== "agnostic") {
-    throw new Error(`${expectedStage} ${toolId} must be platform-agnostic.`);
+  const requiredTypes = collectSelectorTypes(node.requires);
+  const optionalTypes = node.optionalInputs ?? [];
+
+  if (node.binding === "facet") {
+    if (!node.requiredFacets?.length) {
+      throw new Error(`Facet tool ${toolId} must declare requiredFacets.`);
+    }
+    if (!requiredTypes.some(isSourceArtifactType)) {
+      throw new Error(`Facet tool ${toolId} must require at least one source artifact.`);
+    }
+    if (requiredTypes.some((type) => !isSourceArtifactType(type))) {
+      throw new Error(`Facet tool ${toolId} may require only source artifacts.`);
+    }
+    if (optionalTypes.some((type) => !isSourceArtifactType(type))) {
+      throw new Error(`Facet tool ${toolId} may declare only source optional inputs.`);
+    }
+    return;
   }
 
-  if (node.binding === "facet-bound" && !node.requiredFacets?.length) {
-    throw new Error(`Facet-bound tool ${toolId} must declare requiredFacets.`);
-  }
-  if (node.binding === "agnostic" && (node.requiredFacets?.length ?? 0) > 0) {
+  if ((node.requiredFacets?.length ?? 0) > 0) {
     throw new Error(`Agnostic tool ${toolId} may not declare requiredFacets.`);
   }
-  if (
-    expectedStage !== "extractor" &&
-    collectSelectorTypes(node.requires).some(isSourceArtifactType)
-  ) {
-    throw new Error(`${expectedStage} ${toolId} may not require source artifacts.`);
+  if (requiredTypes.some(isSourceArtifactType)) {
+    throw new Error(`Agnostic tool ${toolId} may not require source artifacts.`);
+  }
+  if (optionalTypes.some(isSourceArtifactType)) {
+    throw new Error(`Agnostic tool ${toolId} may not declare source optional inputs.`);
   }
 }
 
@@ -630,8 +646,7 @@ function hasRequiredFacets(context: ProjectContext, node: AnalysisNode): boolean
   return requiredFacets.every((facet) => availableFacets.has(facet));
 }
 
-function orderStageTools(options: {
-  stage: AnalysisStage;
+function orderAgnosticTools(options: {
   steps: ResolvedAnalysisStep[];
   availableArtifactTypes: Set<string>;
 }): ResolvedAnalysisStep[] {
@@ -671,11 +686,11 @@ function orderStageTools(options: {
       .filter((message, index, all) => all.indexOf(message) === index);
 
     if (missingInputs.length > 0) {
-      throw new Error(`Stage ${options.stage} has unsatisfied inputs: ${missingInputs.join("; ")}`);
+      throw new Error(`Agnostic analysis has unsatisfied inputs: ${missingInputs.join("; ")}`);
     }
 
     throw new Error(
-      `Cycle detected between ${options.stage} analysis nodes: ${unresolved
+      `Cycle detected between agnostic analysis nodes: ${unresolved
         .map((step) => step.config.id)
         .join(", ")}`,
     );

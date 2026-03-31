@@ -7,8 +7,7 @@ export type { SpecDocumentPairArtifactPayload } from "./contracts.js";
 export const specDocumentsNode: AnalysisNode = {
   id: "spec-documents",
   displayName: "Spec Documents",
-  stage: "extractor",
-  binding: "facet-bound",
+  binding: "facet",
   requires: {
     anyOf: ["source.openspec.spec-change"],
   },
