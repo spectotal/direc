@@ -41,10 +41,25 @@ export interface PipelineDefinition {
   feedback: PipelineFeedbackDefinition;
 }
 
+export type SkillProviderId = "codex" | "claude" | "antigravity";
+export type SkillsInstallMode = "installed" | "bundle-only";
+
+export interface SkillsProviderWorkspaceConfig {
+  id: SkillProviderId;
+  bundleDir: string;
+  installTarget?: string;
+  installMode: SkillsInstallMode;
+}
+
+export interface SkillsWorkspaceConfig {
+  providers: SkillsProviderWorkspaceConfig[];
+}
+
 export interface WorkspaceConfig {
   version: 1;
   generatedAt: string;
   facets: string[];
+  skills?: SkillsWorkspaceConfig;
   sources: Record<string, SourceConfig>;
   tools: Record<string, ToolConfig>;
   sinks: Record<string, SinkConfig>;

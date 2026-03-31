@@ -20,6 +20,26 @@ The CLI SHALL detect repository context and write a concrete two-bucket pipeline
 - **AND** repositories with OpenSpec SHALL enable the spec document facet tool and spec conflict agnostic pipeline
 - **AND** repositories with Git SHALL enable the `diff` source and `diff-quality` pipeline
 
+### Requirement: `direc init` bootstraps provider skill bundles
+
+The CLI SHALL bootstrap provider skill bundles as part of workspace initialization.
+
+#### Scenario: Interactive init selects provider bundles
+
+- **GIVEN** `direc init` runs in an interactive terminal without a provider flag
+- **WHEN** the bootstrap prompts for agent providers
+- **THEN** it SHALL accept one or more of `codex`, `claude`, and `antigravity`
+- **AND** it SHALL write the selected provider bundle configuration into `.direc/config.json`
+- **AND** it SHALL render skill bundles under `.direc/skills/<provider>/`
+- **AND** it SHALL install Codex bundles to `.codex/skills` unless the user overrides the target
+- **AND** it SHALL allow Claude or Antigravity bundles to remain bundle-only when no install target is provided
+
+#### Scenario: Non-interactive init requires explicit providers
+
+- **GIVEN** `direc init` runs without interactive terminal input
+- **WHEN** no provider flag is provided
+- **THEN** it SHALL fail with a clear error requesting explicit providers
+
 ### Requirement: `direc run` executes one or more configured pipelines
 
 The CLI SHALL execute the selected pipeline or all configured pipelines from the current workspace.

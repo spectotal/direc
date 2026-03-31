@@ -1,5 +1,6 @@
 import { access, readdir } from "node:fs/promises";
 import { execFile } from "node:child_process";
+import { createInterface } from "node:readline/promises";
 import { promisify } from "node:util";
 import { extname, join, resolve } from "node:path";
 import type {
@@ -15,9 +16,13 @@ import {
   watchPipeline,
   writeWorkspaceConfig,
   type PipelineRegistry,
+  type SkillProviderId,
+  type SkillsProviderWorkspaceConfig,
+  type SkillsWorkspaceConfig,
   type WorkspaceConfig,
 } from "@spectotal/direc-pipeline-manager";
 import { consoleSink } from "@spectotal/direc-sink-console";
+import { syncSkills, type SyncSkillsResult } from "@spectotal/direc-skills-manager";
 import { gitDiffSource } from "@spectotal/direc-source-git-diff";
 import { openSpecSource } from "@spectotal/direc-source-openspec";
 import {
@@ -33,6 +38,28 @@ import { specConflictNode } from "@spectotal/direc-tool-spec-conflict";
 
 const execFileAsync = promisify(execFile);
 const JS_EXTENSIONS = new Set([".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx"]);
+const DEFAULT_CODEX_SKILLS_INSTALL_TARGET = ".codex/skills";
+const SUPPORTED_SKILL_PROVIDERS: SkillProviderId[] = ["codex", "claude", "antigravity"];
+
+export interface BuildWorkspaceConfigOptions {
+  now?: () => Date;
+  skills?: SkillsWorkspaceConfig;
+}
+
+export interface InitCommandOptions {
+  providers?: SkillProviderId[];
+  installTargets?: Partial<Record<SkillProviderId, string>>;
+  interactive?: boolean;
+  prompt?: (question: string) => Promise<string>;
+  now?: () => Date;
+}
+
+export interface InitCommandResult {
+  config: WorkspaceConfig;
+  context: ProjectContext;
+  configPath: string;
+  skills: SyncSkillsResult;
+}
 
 export const analysisThresholdRule: FeedbackRule<{ blockOnError?: boolean }> = {
   id: "analysis-thresholds",
@@ -146,13 +173,15 @@ export async function detectProjectContext(repositoryRoot: string): Promise<Proj
 
 export function buildWorkspaceConfig(
   context: ProjectContext,
-  now: () => Date = () => new Date(),
+  options: BuildWorkspaceConfigOptions = {},
 ): WorkspaceConfig {
+  const now = options.now ?? (() => new Date());
   const facets = context.facets.map((facet) => facet.id);
   const config: WorkspaceConfig = {
     version: 1,
     generatedAt: now().toISOString(),
     facets,
+    skills: options.skills,
     sources: {},
     tools: {},
     sinks: {},
@@ -318,15 +347,36 @@ export async function initCommand(repositoryRoot: string): Promise<{
   config: WorkspaceConfig;
   context: ProjectContext;
   configPath: string;
-}> {
+  skills: SyncSkillsResult;
+}>;
+export async function initCommand(
+  repositoryRoot: string,
+  options: InitCommandOptions,
+): Promise<InitCommandResult>;
+export async function initCommand(
+  repositoryRoot: string,
+  options: InitCommandOptions = {},
+): Promise<InitCommandResult> {
   const context = await detectProjectContext(repositoryRoot);
-  const config = buildWorkspaceConfig(context);
+  const skillsConfig = await resolveSkillsConfig(options);
+  const config = buildWorkspaceConfig(context, {
+    now: options.now,
+    skills: skillsConfig,
+  });
   const configPath = await writeWorkspaceConfig(repositoryRoot, config);
+  const skills = await syncSkills({
+    repositoryRoot,
+    config: {
+      providers: skillsConfig.providers,
+    },
+    now: options.now,
+  });
 
   return {
     config,
     context,
     configPath,
+    skills,
   };
 }
 
@@ -400,12 +450,26 @@ export async function watchCommand(
 }
 
 export async function main(argv: string[] = process.argv.slice(2)): Promise<void> {
-  const [command, pipelineId] = argv;
+  const [command, ...args] = argv;
   const repositoryRoot = process.cwd();
 
   switch (command) {
     case "init": {
-      const result = await initCommand(repositoryRoot);
+      const initOptions = parseInitArgs(args);
+      const promptSession =
+        initOptions.providers === undefined && process.stdin.isTTY && process.stdout.isTTY
+          ? createPromptSession()
+          : undefined;
+      let result: InitCommandResult;
+      try {
+        result = await initCommand(repositoryRoot, {
+          ...initOptions,
+          interactive: promptSession !== undefined,
+          prompt: promptSession?.prompt,
+        });
+      } finally {
+        promptSession?.close();
+      }
       process.stdout.write(`wrote ${result.configPath}\n`);
       process.stdout.write(
         `facets: ${result.context.facets.map((facet) => facet.id).join(", ") || "none"}\n`,
@@ -413,9 +477,17 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
       process.stdout.write(
         `pipelines: ${result.config.pipelines.map((pipeline) => pipeline.id).join(", ") || "none"}\n`,
       );
+      process.stdout.write(
+        `skills: ${
+          result.config.skills?.providers
+            .map((provider) => `${provider.id}:${provider.installMode}`)
+            .join(", ") || "none"
+        }\n`,
+      );
       return;
     }
     case "run": {
+      const pipelineId = args[0];
       const results = await runCommand(repositoryRoot, pipelineId);
       for (const result of results) {
         const noticeCount = result.artifacts.filter(
@@ -431,6 +503,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
       return;
     }
     case "watch": {
+      const pipelineId = args[0];
       const handle = await watchCommand(repositoryRoot, pipelineId);
       process.stdout.write("watching pipelines, press Ctrl+C to stop\n");
       await new Promise<void>((resolve) => {
@@ -442,9 +515,193 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
       return;
     }
     default: {
-      process.stdout.write("usage: direc <init|run|watch> [pipeline-id]\n");
+      process.stdout.write(
+        "usage: direc init [--providers list] [--install-target provider=path]\n",
+      );
+      process.stdout.write("       direc run [pipeline-id]\n");
+      process.stdout.write("       direc watch [pipeline-id]\n");
     }
   }
+}
+
+async function resolveSkillsConfig(options: InitCommandOptions): Promise<SkillsWorkspaceConfig> {
+  const providers =
+    options.providers && options.providers.length > 0
+      ? uniqueProviders(options.providers)
+      : options.interactive && options.prompt
+        ? await promptForProviders(options.prompt)
+        : null;
+
+  if (!providers || providers.length === 0) {
+    throw new Error("direc init requires --providers in non-interactive mode.");
+  }
+
+  const providerConfigs: SkillsProviderWorkspaceConfig[] = [];
+  for (const provider of providers) {
+    providerConfigs.push(
+      options.interactive && options.prompt
+        ? await promptForProviderConfig(provider, options.prompt)
+        : buildProviderConfig(provider, options.installTargets ?? {}),
+    );
+  }
+
+  return {
+    providers: providerConfigs,
+  };
+}
+
+async function promptForProviders(
+  prompt: NonNullable<InitCommandOptions["prompt"]>,
+): Promise<SkillProviderId[]> {
+  while (true) {
+    const answer = await prompt(
+      `providers (comma-separated: ${SUPPORTED_SKILL_PROVIDERS.join(", ")}): `,
+    );
+    const providers = parseProviderList(answer);
+    if (providers.length > 0) {
+      return providers;
+    }
+  }
+}
+
+async function promptForProviderConfig(
+  provider: SkillProviderId,
+  prompt: NonNullable<InitCommandOptions["prompt"]>,
+): Promise<SkillsProviderWorkspaceConfig> {
+  if (provider === "codex") {
+    const answer = await prompt(
+      `install target for codex [${DEFAULT_CODEX_SKILLS_INSTALL_TARGET}]: `,
+    );
+    const installTarget = answer.trim() || DEFAULT_CODEX_SKILLS_INSTALL_TARGET;
+    return {
+      id: provider,
+      bundleDir: bundleDirForProvider(provider),
+      installTarget,
+      installMode: "installed",
+    };
+  }
+
+  const answer = await prompt(`install target for ${provider} (leave blank for bundle-only): `);
+  const installTarget = answer.trim();
+  return {
+    id: provider,
+    bundleDir: bundleDirForProvider(provider),
+    installTarget: installTarget || undefined,
+    installMode: installTarget ? "installed" : "bundle-only",
+  };
+}
+
+function buildProviderConfig(
+  provider: SkillProviderId,
+  installTargets: Partial<Record<SkillProviderId, string>>,
+): SkillsProviderWorkspaceConfig {
+  if (provider === "codex") {
+    return {
+      id: provider,
+      bundleDir: bundleDirForProvider(provider),
+      installTarget: installTargets.codex?.trim() || DEFAULT_CODEX_SKILLS_INSTALL_TARGET,
+      installMode: "installed",
+    };
+  }
+
+  const installTarget = installTargets[provider]?.trim();
+  return {
+    id: provider,
+    bundleDir: bundleDirForProvider(provider),
+    installTarget: installTarget || undefined,
+    installMode: installTarget ? "installed" : "bundle-only",
+  };
+}
+
+function bundleDirForProvider(provider: SkillProviderId): string {
+  return `.direc/skills/${provider}`;
+}
+
+function parseInitArgs(args: string[]): Pick<InitCommandOptions, "providers" | "installTargets"> {
+  let providers: SkillProviderId[] | undefined;
+  const installTargets: Partial<Record<SkillProviderId, string>> = {};
+
+  for (let index = 0; index < args.length; index += 1) {
+    const argument = args[index];
+    if (!argument) {
+      continue;
+    }
+
+    const [flag, inlineValue] = argument.split("=", 2);
+    switch (flag) {
+      case "--providers": {
+        const value = inlineValue ?? args[index + 1];
+        if (inlineValue === undefined) {
+          index += 1;
+        }
+        if (!value) {
+          throw new Error("--providers requires a comma-separated value.");
+        }
+        providers = parseProviderList(value);
+        break;
+      }
+      case "--install-target": {
+        const value = inlineValue ?? args[index + 1];
+        if (inlineValue === undefined) {
+          index += 1;
+        }
+        if (!value) {
+          throw new Error("--install-target requires provider=path.");
+        }
+        const separator = value.indexOf("=");
+        if (separator <= 0 || separator === value.length - 1) {
+          throw new Error("--install-target requires provider=path.");
+        }
+        const provider = normalizeProviderId(value.slice(0, separator));
+        installTargets[provider] = value.slice(separator + 1);
+        break;
+      }
+      default:
+        throw new Error(`Unknown init option: ${argument}`);
+    }
+  }
+
+  return {
+    providers,
+    installTargets,
+  };
+}
+
+function parseProviderList(value: string): SkillProviderId[] {
+  const parsed = value
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0)
+    .map(normalizeProviderId);
+
+  return uniqueProviders(parsed);
+}
+
+function normalizeProviderId(value: string): SkillProviderId {
+  if (value === "codex" || value === "claude" || value === "antigravity") {
+    return value;
+  }
+
+  throw new Error(`Unsupported skills provider: ${value}`);
+}
+
+function uniqueProviders(providers: SkillProviderId[]): SkillProviderId[] {
+  return [...new Set(providers)];
+}
+
+function createPromptSession(): {
+  prompt: (question: string) => Promise<string>;
+  close: () => void;
+} {
+  const rl = createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  return {
+    prompt: (question: string) => rl.question(question),
+    close: () => rl.close(),
+  };
 }
 
 async function walkRepository(

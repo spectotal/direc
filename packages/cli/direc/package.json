@@ -41,6 +41,7 @@
     "@spectotal/direc-feedback-contracts": "workspace:*",
     "@spectotal/direc-pipeline-manager": "workspace:*",
     "@spectotal/direc-sink-console": "workspace:*",
+    "@spectotal/direc-skills-manager": "workspace:*",
     "@spectotal/direc-source-git-diff": "workspace:*",
     "@spectotal/direc-source-openspec": "workspace:*",
     "@spectotal/direc-source-repository": "workspace:*",

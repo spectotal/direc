@@ -17,6 +17,7 @@ Direc keeps its generated workspace under `.direc/`.
 - `.direc/config.json`: explicit editable pipeline config created by `direc init`
 - `.direc/runs/<runId>/manifest.json`: immutable historical manifest with full artifact data inline
 - `.direc/latest/<pipelineId>/manifest.json`: latest manifest snapshot for direct access
+- `.direc/skills/<provider>/<skillId>/`: rendered provider skill bundles created by `direc init`
 - `.direc/cache/`: optional runtime caches
 
 ## Commands
@@ -30,6 +31,7 @@ pnpm --filter direc exec node ./bin/direc.js watch
 ```
 
 `direc init` detects local facets and materializes explicit sources, tools, sinks, and two-bucket pipelines into `.direc/config.json`.
+It also bootstraps provider skill bundles for the selected agent providers and installs them when an install target is available.
 
 `direc run` executes one pipeline or all configured pipelines.
 
@@ -41,5 +43,16 @@ pnpm --filter direc exec node ./bin/direc.js watch
 - Facet tools: `js-complexity`, `graph-maker`, `spec-documents`
 - Agnostic tools: `cluster-builder`, `bounds-evaluator`, `spec-conflict`
 - Feedback sink: `console`
+
+## Skills Bootstrap
+
+`direc init` is also the first-run bootstrap for repo-local skills.
+
+- In interactive terminals it prompts for one or more providers: `codex`, `claude`, `antigravity`
+- It writes the selected provider bundle/install state into `.direc/config.json`
+- It renders provider bundles under `.direc/skills/<provider>/`
+- The bundled template currently managed by Direc is `chat-complexity-gate`
+- Codex defaults to installing generated skills into `.codex/skills`
+- Claude and Antigravity render bundle-only by default unless an explicit install target is provided
 
 The generic pipeline core also supports command-backed analysis nodes through the same two-bucket contract used by in-process tools.

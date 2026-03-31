@@ -1,10 +1,30 @@
 {
   "version": 1,
-  "generatedAt": "2026-03-31T14:15:27.883Z",
+  "generatedAt": "2026-03-31T16:36:18.036Z",
   "facets": [
     "js",
     "openspec"
   ],
+  "skills": {
+    "providers": [
+      {
+        "id": "codex",
+        "bundleDir": ".direc/skills/codex",
+        "installTarget": ".codex/skills",
+        "installMode": "installed"
+      },
+      {
+        "id": "claude",
+        "bundleDir": ".direc/skills/claude",
+        "installMode": "bundle-only"
+      },
+      {
+        "id": "antigravity",
+        "bundleDir": ".direc/skills/antigravity",
+        "installMode": "bundle-only"
+      }
+    ]
+  },
   "sources": {
     "repository": {
       "id": "repository",

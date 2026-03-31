@@ -53,6 +53,9 @@ importers:
       '@spectotal/direc-sink-console':
         specifier: workspace:*
         version: link:../../sinks/console
+      '@spectotal/direc-skills-manager':
+        specifier: workspace:*
+        version: link:../../core/skills-manager
       '@spectotal/direc-source-git-diff':
         specifier: workspace:*
         version: link:../../sources/git-diff
@@ -137,6 +140,8 @@ importers:
       '@spectotal/direc-tool-spec-documents':
         specifier: workspace:*
         version: link:../../tools/facet/spec-documents
+
+  packages/core/skills-manager: {}
 
   packages/core/source-contracts:
     dependencies:

@@ -18,11 +18,21 @@ test("initCommand detects facets and materialises facet and agnostic sources, to
   await writeFile(join(repositoryRoot, "src", "index.ts"), "export const value = 1;\n");
   await writeFile(join(repositoryRoot, "openspec", "specs", "demo", "spec.md"), "# Demo\n");
 
-  const result = await initCommand(repositoryRoot);
+  const result = await initCommand(repositoryRoot, {
+    providers: ["codex"],
+  });
   assert.ok(result.config.sources.repository);
   assert.ok(result.config.sources.openspecTasks);
   assert.ok(result.config.sources.openspecSpecs);
   assert.ok(result.config.sources.diff === undefined);
+  assert.deepEqual(result.config.skills?.providers, [
+    {
+      id: "codex",
+      bundleDir: ".direc/skills/codex",
+      installTarget: ".codex/skills",
+      installMode: "installed",
+    },
+  ]);
   assert.deepEqual(result.config.sources.repository.options?.excludePaths, [
     ...DEFAULT_REPOSITORY_SOURCE_EXCLUDE_PATHS,
   ]);
@@ -66,6 +76,11 @@ test("initCommand detects facets and materialises facet and agnostic sources, to
       .agnostic,
     ["cluster", "bounds"],
   );
+  const codexSkill = await readFile(
+    join(repositoryRoot, ".codex", "skills", "chat-complexity-gate", "SKILL.md"),
+    "utf8",
+  );
+  assert.match(codexSkill, /Chat Complexity Gate/);
 });
 
 test("runCommand loads config and executes the facet and agnostic diff pipeline end to end", async () => {
@@ -89,7 +104,9 @@ test("runCommand loads config and executes the facet and agnostic diff pipeline 
     "export function run(v:number){ if (v > 1) { return v; } if (v > 5) { return v + 1; } return 0; }\n",
   );
 
-  const initResult = await initCommand(repositoryRoot);
+  const initResult = await initCommand(repositoryRoot, {
+    providers: ["codex"],
+  });
   assert.ok(initResult.config.sources.repository);
   assert.ok(initResult.config.sources.diff);
   assert.ok(initResult.config.pipelines.some((pipeline) => pipeline.id === "repository-quality"));
@@ -108,6 +125,58 @@ test("runCommand loads config and executes the facet and agnostic diff pipeline 
   assert.ok(results[0]?.artifacts.some((artifact) => artifact.type === "feedback.verdict"));
   assert.ok(
     results[0]?.artifacts.some((artifact) => artifact.type === "evaluation.bounds-distance"),
+  );
+});
+
+test("initCommand prompts for providers and supports bundle-only non-codex installs", async () => {
+  const repositoryRoot = await mkdtemp(join(tmpdir(), "direc-cli-init-prompt-"));
+  await mkdir(join(repositoryRoot, "src"), { recursive: true });
+  await writeFile(
+    join(repositoryRoot, "package.json"),
+    JSON.stringify({ name: "fixture" }, null, 2),
+  );
+  await writeFile(join(repositoryRoot, "src", "index.ts"), "export const value = 1;\n");
+
+  const answers = ["claude,antigravity", "", "/tmp/antigravity-prompts"];
+  const result = await initCommand(repositoryRoot, {
+    interactive: true,
+    prompt: async () => answers.shift() ?? "",
+  });
+
+  assert.deepEqual(result.config.skills?.providers, [
+    {
+      id: "claude",
+      bundleDir: ".direc/skills/claude",
+      installTarget: undefined,
+      installMode: "bundle-only",
+    },
+    {
+      id: "antigravity",
+      bundleDir: ".direc/skills/antigravity",
+      installTarget: "/tmp/antigravity-prompts",
+      installMode: "installed",
+    },
+  ]);
+
+  const claudeInstructions = await readFile(
+    join(repositoryRoot, ".direc", "skills", "claude", "chat-complexity-gate", "INSTRUCTIONS.md"),
+    "utf8",
+  );
+  assert.match(claudeInstructions, /js-complexity/);
+});
+
+test("initCommand requires providers in non-interactive mode", async () => {
+  const repositoryRoot = await mkdtemp(join(tmpdir(), "direc-cli-init-noninteractive-"));
+  await mkdir(join(repositoryRoot, "src"), { recursive: true });
+  await writeFile(
+    join(repositoryRoot, "package.json"),
+    JSON.stringify({ name: "fixture" }, null, 2),
+  );
+  await writeFile(join(repositoryRoot, "src", "index.ts"), "export const value = 1;\n");
+
+  await assert.rejects(
+    () => initCommand(repositoryRoot),
+    /requires --providers in non-interactive mode/,
   );
 });
 
