@@ -43,21 +43,5 @@ export interface ArtifactEnvelope<TPayload = unknown> extends ArtifactSeed<TPayl
   timestamp: string;
 }
 
-export type FeedbackSeverity = "info" | "warning" | "error";
-export type FeedbackVerdict = "inform" | "proceed" | "block";
-
-export interface FeedbackNoticePayload {
-  severity: FeedbackSeverity;
-  summary: string;
-  details?: string;
-  counts?: Record<string, number>;
-}
-
-export interface FeedbackVerdictPayload {
-  verdict: FeedbackVerdict;
-  summary: string;
-  counts?: Record<string, number>;
-}
-
 export { collectScopedPaths, normalisePaths } from "./internal/path-utils.js";
 export { satisfiesSelector, selectArtifactsByType } from "./internal/selectors.js";

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -13,45 +13,55 @@ test("loadSkillCatalog reads the bundled chat complexity gate template", async (
   assert.match(catalog[0]?.body ?? "", /Chat Complexity Gate/);
 });
 
-test("syncSkills renders the bundled chat complexity gate for selected providers", async () => {
+test("syncSkills deploys all bundled skills into selected native agent folders", async () => {
   const repositoryRoot = await mkdtemp(join(tmpdir(), "direc-skills-sync-"));
+
+  const result = await syncSkills({
+    repositoryRoot,
+    config: {
+      agents: ["codex", "claude", "antigravity"],
+    },
+  });
+
+  const codexSkillDir = join(repositoryRoot, ".codex", "skills", "chat-complexity-gate");
+  const claudeSkillDir = join(repositoryRoot, ".claude", "skills", "chat-complexity-gate");
+  const antigravitySkillDir = join(repositoryRoot, ".agent", "skills", "chat-complexity-gate");
+  const codex = await readFile(join(codexSkillDir, "SKILL.md"), "utf8");
+  const claude = await readFile(join(claudeSkillDir, "SKILL.md"), "utf8");
+  const antigravity = await readFile(join(antigravitySkillDir, "SKILL.md"), "utf8");
+
+  assert.equal(result.deployments.length, 3);
+  assert.match(codex, /\.direc\/latest\/diff-quality\/deliveries\/agent-feedback\.json/);
+  assert.equal(codex, claude);
+  assert.equal(claude, antigravity);
+  assert.deepEqual(await readdir(codexSkillDir), ["SKILL.md"]);
+  assert.deepEqual(await readdir(claudeSkillDir), ["SKILL.md"]);
+  await assert.rejects(() => stat(join(repositoryRoot, ".direc", "skills")));
+});
+
+test("syncSkills prunes bundled skills without touching unrelated skill folders", async () => {
+  const repositoryRoot = await mkdtemp(join(tmpdir(), "direc-skills-prune-"));
+  const customSkillPath = join(repositoryRoot, ".codex", "skills", "custom-user-skill", "SKILL.md");
+
+  await mkdir(join(repositoryRoot, ".codex", "skills", "custom-user-skill"), { recursive: true });
+  await writeFile(customSkillPath, "# custom\n", "utf8");
 
   await syncSkills({
     repositoryRoot,
     config: {
-      providers: [
-        {
-          id: "codex",
-          bundleDir: ".direc/skills/codex",
-          installTarget: ".codex/skills",
-          installMode: "installed",
-        },
-        {
-          id: "claude",
-          bundleDir: ".direc/skills/claude",
-          installMode: "bundle-only",
-        },
-      ],
+      agents: ["codex"],
     },
-    now: () => new Date("2026-03-31T00:00:00.000Z"),
   });
 
-  const codex = await readFile(
-    join(repositoryRoot, ".direc", "skills", "codex", "chat-complexity-gate", "SKILL.md"),
-    "utf8",
-  );
-  const installed = await readFile(
-    join(repositoryRoot, ".codex", "skills", "chat-complexity-gate", "SKILL.md"),
-    "utf8",
-  );
-  const claudeManifest = JSON.parse(
-    await readFile(
-      join(repositoryRoot, ".direc", "skills", "claude", "chat-complexity-gate", "manifest.json"),
-      "utf8",
-    ),
-  ) as { provider: string };
+  await syncSkills({
+    repositoryRoot,
+    config: {
+      agents: [],
+    },
+  });
 
-  assert.match(codex, /Do not finish while `js-complexity` is blocking\./);
-  assert.equal(codex, installed);
-  assert.equal(claudeManifest.provider, "claude");
+  await assert.rejects(() =>
+    readFile(join(repositoryRoot, ".codex", "skills", "chat-complexity-gate", "SKILL.md"), "utf8"),
+  );
+  assert.equal(await readFile(customSkillPath, "utf8"), "# custom\n");
 });

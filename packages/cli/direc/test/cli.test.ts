@@ -1,11 +1,15 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
 import test from "node:test";
 import { DEFAULT_REPOSITORY_SOURCE_EXCLUDE_PATHS } from "@spectotal/direc-source-repository";
+import type { SkillAgentId, SkillsPromptSession } from "../src/internal/types.js";
+import { parseInitArgs } from "../src/internal/init-args.js";
 import { initCommand, runCommand } from "../src/index.js";
+
+const CODEX_AGENT: SkillAgentId[] = ["codex"];
 
 test("initCommand detects facets and materialises facet and agnostic sources, tools, sinks, and pipelines", async () => {
   const repositoryRoot = await mkdtemp(join(tmpdir(), "direc-cli-init-"));
@@ -19,27 +23,22 @@ test("initCommand detects facets and materialises facet and agnostic sources, to
   await writeFile(join(repositoryRoot, "openspec", "specs", "demo", "spec.md"), "# Demo\n");
 
   const result = await initCommand(repositoryRoot, {
-    providers: ["codex"],
+    agents: [...CODEX_AGENT],
   });
   assert.ok(result.config.sources.repository);
   assert.ok(result.config.sources.openspecTasks);
   assert.ok(result.config.sources.openspecSpecs);
   assert.ok(result.config.sources.diff === undefined);
-  assert.deepEqual(result.config.skills?.providers, [
-    {
-      id: "codex",
-      bundleDir: ".direc/skills/codex",
-      installTarget: ".codex/skills",
-      installMode: "installed",
-    },
-  ]);
+  assert.deepEqual(result.config.skills?.agents, CODEX_AGENT);
   assert.deepEqual(result.config.sources.repository.options?.excludePaths, [
     ...DEFAULT_REPOSITORY_SOURCE_EXCLUDE_PATHS,
   ]);
   assert.ok(result.config.tools.jsComplexity);
+  assert.ok(result.config.tools.complexityFindings);
   assert.ok(result.config.tools.specDocuments);
   assert.ok(result.config.tools.specConflict);
   assert.ok(result.config.sinks.console);
+  assert.ok(result.config.sinks["agent-feedback"]);
   assert.deepEqual(
     result.config.pipelines.map((pipeline) => pipeline.id),
     ["repository-quality", "openspec-task-feedback", "openspec-spec-conflicts"],
@@ -48,11 +47,24 @@ test("initCommand detects facets and materialises facet and agnostic sources, to
     (pipeline) => pipeline.id === "repository-quality",
   );
   assert.deepEqual(repositoryPipeline?.analysis.facet, ["jsComplexity", "graph"]);
-  assert.deepEqual(repositoryPipeline?.analysis.agnostic, ["cluster", "bounds"]);
+  assert.deepEqual(repositoryPipeline?.analysis.agnostic, [
+    "cluster",
+    "bounds",
+    "complexityFindings",
+  ]);
+  assert.deepEqual(repositoryPipeline?.feedback.sinks, ["console", "agent-feedback"]);
+  assert.deepEqual(result.skills.deployments, [
+    {
+      agent: "codex",
+      skillId: "chat-complexity-gate",
+      deployedPath: join(repositoryRoot, ".codex", "skills", "chat-complexity-gate"),
+    },
+  ]);
 
   const configOnDisk = JSON.parse(
     await readFile(join(repositoryRoot, ".direc", "config.json"), "utf8"),
   ) as {
+    skills?: { agents: string[] };
     sources: {
       repository: {
         options: {
@@ -63,6 +75,7 @@ test("initCommand detects facets and materialises facet and agnostic sources, to
     pipelines: Array<{ id: string; analysis: { facet: string[]; agnostic: string[] } }>;
   };
   assert.equal(configOnDisk.pipelines.length, 3);
+  assert.deepEqual(configOnDisk.skills?.agents, CODEX_AGENT);
   assert.deepEqual(configOnDisk.sources.repository.options.excludePaths, [
     ...DEFAULT_REPOSITORY_SOURCE_EXCLUDE_PATHS,
   ]);
@@ -74,13 +87,14 @@ test("initCommand detects facets and materialises facet and agnostic sources, to
   assert.deepEqual(
     configOnDisk.pipelines.find((pipeline) => pipeline.id === "repository-quality")?.analysis
       .agnostic,
-    ["cluster", "bounds"],
+    ["cluster", "bounds", "complexityFindings"],
   );
   const codexSkill = await readFile(
     join(repositoryRoot, ".codex", "skills", "chat-complexity-gate", "SKILL.md"),
     "utf8",
   );
   assert.match(codexSkill, /Chat Complexity Gate/);
+  await assert.rejects(() => stat(join(repositoryRoot, ".direc", "skills")));
 });
 
 test("runCommand loads config and executes the facet and agnostic diff pipeline end to end", async () => {
@@ -105,7 +119,7 @@ test("runCommand loads config and executes the facet and agnostic diff pipeline 
   );
 
   const initResult = await initCommand(repositoryRoot, {
-    providers: ["codex"],
+    agents: [...CODEX_AGENT],
   });
   assert.ok(initResult.config.sources.repository);
   assert.ok(initResult.config.sources.diff);
@@ -117,18 +131,32 @@ test("runCommand loads config and executes the facet and agnostic diff pipeline 
   assert.deepEqual(
     initResult.config.pipelines.find((pipeline) => pipeline.id === "diff-quality")?.analysis
       .agnostic,
-    ["cluster", "bounds"],
+    ["cluster", "bounds", "complexityFindings"],
   );
 
   const results = await runCommand(repositoryRoot, "diff-quality");
   assert.equal(results.length, 1);
-  assert.ok(results[0]?.artifacts.some((artifact) => artifact.type === "feedback.verdict"));
+  assert.ok(
+    results[0]?.artifacts.some((artifact) => artifact.type === "evaluation.complexity-findings"),
+  );
   assert.ok(
     results[0]?.artifacts.some((artifact) => artifact.type === "evaluation.bounds-distance"),
   );
+  const agentDelivery = JSON.parse(
+    await readFile(
+      join(repositoryRoot, ".direc", "latest", "diff-quality", "deliveries", "agent-feedback.json"),
+      "utf8",
+    ),
+  ) as {
+    artifacts: Array<{ type: string }>;
+  };
+  assert.deepEqual(
+    agentDelivery.artifacts.map((artifact) => artifact.type),
+    ["evaluation.complexity-findings"],
+  );
 });
 
-test("initCommand prompts for providers and supports bundle-only non-codex installs", async () => {
+test("initCommand prompts for agents and installs all bundled skills", async () => {
   const repositoryRoot = await mkdtemp(join(tmpdir(), "direc-cli-init-prompt-"));
   await mkdir(join(repositoryRoot, "src"), { recursive: true });
   await writeFile(
@@ -137,35 +165,29 @@ test("initCommand prompts for providers and supports bundle-only non-codex insta
   );
   await writeFile(join(repositoryRoot, "src", "index.ts"), "export const value = 1;\n");
 
-  const answers = ["claude,antigravity", "", "/tmp/antigravity-prompts"];
+  const promptSession: SkillsPromptSession = {
+    selectAgents: async () => ["claude", "antigravity"],
+    close: () => {},
+  };
   const result = await initCommand(repositoryRoot, {
-    interactive: true,
-    prompt: async () => answers.shift() ?? "",
+    promptSession,
   });
 
-  assert.deepEqual(result.config.skills?.providers, [
-    {
-      id: "claude",
-      bundleDir: ".direc/skills/claude",
-      installTarget: undefined,
-      installMode: "bundle-only",
-    },
-    {
-      id: "antigravity",
-      bundleDir: ".direc/skills/antigravity",
-      installTarget: "/tmp/antigravity-prompts",
-      installMode: "installed",
-    },
-  ]);
+  assert.deepEqual(result.config.skills?.agents, ["claude", "antigravity"]);
 
-  const claudeInstructions = await readFile(
-    join(repositoryRoot, ".direc", "skills", "claude", "chat-complexity-gate", "INSTRUCTIONS.md"),
+  const claudeSkill = await readFile(
+    join(repositoryRoot, ".claude", "skills", "chat-complexity-gate", "SKILL.md"),
     "utf8",
   );
-  assert.match(claudeInstructions, /js-complexity/);
+  const antigravitySkill = await readFile(
+    join(repositoryRoot, ".agent", "skills", "chat-complexity-gate", "SKILL.md"),
+    "utf8",
+  );
+  assert.match(claudeSkill, /\.direc\/latest\/diff-quality\/deliveries\/agent-feedback\.json/);
+  assert.equal(claudeSkill, antigravitySkill);
 });
 
-test("initCommand requires providers in non-interactive mode", async () => {
+test("initCommand requires --agent in non-interactive mode", async () => {
   const repositoryRoot = await mkdtemp(join(tmpdir(), "direc-cli-init-noninteractive-"));
   await mkdir(join(repositoryRoot, "src"), { recursive: true });
   await writeFile(
@@ -176,7 +198,14 @@ test("initCommand requires providers in non-interactive mode", async () => {
 
   await assert.rejects(
     () => initCommand(repositoryRoot),
-    /requires --providers in non-interactive mode/,
+    /requires --agent in non-interactive mode/,
+  );
+});
+
+test("parseInitArgs rejects duplicate --agent entries", () => {
+  assert.throws(
+    () => parseInitArgs(["--agent", "codex", "--agent", "codex"]),
+    /Duplicate --agent entry for codex/,
   );
 });
 

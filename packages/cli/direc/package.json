@@ -37,9 +37,11 @@
   },
   "license": "MIT",
   "dependencies": {
+    "@inquirer/prompts": "^8.3.2",
     "@spectotal/direc-artifact-contracts": "workspace:*",
     "@spectotal/direc-feedback-contracts": "workspace:*",
     "@spectotal/direc-pipeline-manager": "workspace:*",
+    "@spectotal/direc-sink-agent-feedback": "workspace:*",
     "@spectotal/direc-sink-console": "workspace:*",
     "@spectotal/direc-skills-manager": "workspace:*",
     "@spectotal/direc-source-git-diff": "workspace:*",
@@ -47,9 +49,10 @@
     "@spectotal/direc-source-repository": "workspace:*",
     "@spectotal/direc-tool-bounds-evaluator": "workspace:*",
     "@spectotal/direc-tool-cluster-builder": "workspace:*",
-    "@spectotal/direc-tool-js-complexity": "workspace:*",
+    "@spectotal/direc-tool-complexity-findings": "workspace:*",
     "@spectotal/direc-tool-graph-maker": "workspace:*",
-    "@spectotal/direc-tool-spec-documents": "workspace:*",
-    "@spectotal/direc-tool-spec-conflict": "workspace:*"
+    "@spectotal/direc-tool-js-complexity": "workspace:*",
+    "@spectotal/direc-tool-spec-conflict": "workspace:*",
+    "@spectotal/direc-tool-spec-documents": "workspace:*"
   }
 }

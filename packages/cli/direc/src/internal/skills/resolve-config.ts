@@ -1,58 +1,49 @@
-import type {
-  SkillsProviderWorkspaceConfig,
-  SkillsWorkspaceConfig,
-} from "@spectotal/direc-pipeline-manager";
-import type { InitCommandOptions } from "../types.js";
-import { promptForProviderConfig, promptForProviders } from "./prompt-session.js";
-import { buildProviderConfig } from "./providers.js";
+import type { InitCommandOptions, SkillAgentId, SkillsWorkspaceConfig } from "../types.js";
+import { SUPPORTED_SKILL_AGENTS } from "../types.js";
 
 export async function resolveSkillsConfig(
   options: InitCommandOptions,
 ): Promise<SkillsWorkspaceConfig> {
-  const providers = await resolveSelectedProviders(options);
-  if (providers.length === 0) {
-    throw new Error("direc init requires --providers in non-interactive mode.");
+  const agents = await resolveSelectedAgents(options);
+  if (agents.length === 0) {
+    throw new Error("direc init requires --agent in non-interactive mode.");
   }
 
   return {
-    providers: await resolveProviderConfigs(providers, options),
+    agents: validateAgentSelections(agents),
   };
 }
 
-async function resolveSelectedProviders(
+async function resolveSelectedAgents(
   options: InitCommandOptions,
-): Promise<NonNullable<InitCommandOptions["providers"]>> {
-  if (options.providers && options.providers.length > 0) {
-    return [...new Set(options.providers)];
+): Promise<NonNullable<InitCommandOptions["agents"]>> {
+  if (options.agents && options.agents.length > 0) {
+    return [...options.agents];
   }
 
-  if (options.interactive && options.prompt) {
-    return promptForProviders(options.prompt);
+  if (options.promptSession) {
+    return selectAgentsInteractively(options.promptSession, SUPPORTED_SKILL_AGENTS);
   }
 
   return [];
 }
 
-async function resolveProviderConfigs(
-  providers: NonNullable<InitCommandOptions["providers"]>,
-  options: InitCommandOptions,
-): Promise<SkillsProviderWorkspaceConfig[]> {
-  const providerConfigs: SkillsProviderWorkspaceConfig[] = [];
-
-  for (const provider of providers) {
-    providerConfigs.push(await resolveProviderConfig(provider, options));
-  }
-
-  return providerConfigs;
+async function selectAgentsInteractively(
+  promptSession: NonNullable<InitCommandOptions["promptSession"]>,
+  supportedAgents: SkillAgentId[],
+): Promise<SkillAgentId[]> {
+  return promptSession.selectAgents({ agents: supportedAgents });
 }
 
-async function resolveProviderConfig(
-  provider: NonNullable<InitCommandOptions["providers"]>[number],
-  options: InitCommandOptions,
-): Promise<SkillsProviderWorkspaceConfig> {
-  if (options.interactive && options.prompt) {
-    return promptForProviderConfig(provider, options.prompt);
-  }
+function validateAgentSelections(agents: SkillAgentId[]): SkillAgentId[] {
+  const seenAgents = new Set<SkillAgentId>();
 
-  return buildProviderConfig(provider, options.installTargets ?? {});
+  return agents.map((agent) => {
+    if (seenAgents.has(agent)) {
+      throw new Error(`Duplicate agent: ${agent}`);
+    }
+
+    seenAgents.add(agent);
+    return agent;
+  });
 }

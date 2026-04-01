@@ -1,10 +1,9 @@
-import type { SkillProviderId } from "@spectotal/direc-pipeline-manager";
 import type { InitArgOptions } from "./types.js";
-import { normalizeProviderId, parseProviderList } from "./skills/providers.js";
+import { parseAgentSelection } from "./skills/agents.js";
 
 export function parseInitArgs(args: string[]): InitArgOptions {
-  let providers: SkillProviderId[] | undefined;
-  const installTargets: Partial<Record<SkillProviderId, string>> = {};
+  let agents: NonNullable<InitArgOptions["agents"]> | undefined;
+  const seenAgents = new Set<NonNullable<InitArgOptions["agents"]>[number]>();
 
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
@@ -19,17 +18,17 @@ export function parseInitArgs(args: string[]): InitArgOptions {
     }
 
     switch (flag) {
-      case "--providers":
+      case "--agent":
         if (!value) {
-          throw new Error("--providers requires a comma-separated value.");
+          throw new Error("--agent requires an agent id.");
         }
-        providers = parseProviderList(value);
-        break;
-      case "--install-target":
-        if (!value) {
-          throw new Error("--install-target requires provider=path.");
+        const agent = parseAgentSelection(value);
+        if (seenAgents.has(agent)) {
+          throw new Error(`Duplicate --agent entry for ${agent}.`);
         }
-        assignInstallTarget(installTargets, value);
+        seenAgents.add(agent);
+        agents ??= [];
+        agents.push(agent);
         break;
       default:
         throw new Error(`Unknown init option: ${argument}`);
@@ -37,8 +36,7 @@ export function parseInitArgs(args: string[]): InitArgOptions {
   }
 
   return {
-    providers,
-    installTargets,
+    agents,
   };
 }
 
@@ -48,17 +46,4 @@ function readFlagValue(
   inlineValue: string | undefined,
 ): string | undefined {
   return inlineValue ?? args[index + 1];
-}
-
-function assignInstallTarget(
-  installTargets: Partial<Record<SkillProviderId, string>>,
-  value: string,
-): void {
-  const separator = value.indexOf("=");
-  if (separator <= 0 || separator === value.length - 1) {
-    throw new Error("--install-target requires provider=path.");
-  }
-
-  const provider = normalizeProviderId(value.slice(0, separator));
-  installTargets[provider] = value.slice(separator + 1);
 }

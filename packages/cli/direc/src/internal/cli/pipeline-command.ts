@@ -1,16 +1,11 @@
-import { readWorkspaceConfig, runPipeline, watchPipeline } from "@spectotal/direc-pipeline-manager";
-import { detectProjectContext } from "../project-context.js";
-import { createBuiltinRegistry } from "../registry.js";
-
-interface PipelineHandle {
-  close: () => void;
-}
-
-interface PipelineRuntime {
-  config: Awaited<ReturnType<typeof readWorkspaceConfig>>;
-  projectContext: Awaited<ReturnType<typeof detectProjectContext>>;
-  registry: ReturnType<typeof createBuiltinRegistry>;
-}
+import { runPipeline, watchPipeline } from "@spectotal/direc-pipeline-manager";
+import {
+  closeHandles,
+  countBlockingArtifacts,
+  countDeliveredArtifacts,
+  loadPipelineRuntime,
+  selectPipelineIds,
+} from "./pipeline-runtime.js";
 
 export async function runCommand(
   repositoryRoot: string,
@@ -68,32 +63,7 @@ export async function watchCommand(
 }
 
 export function formatPipelineSummary(result: Awaited<ReturnType<typeof runPipeline>>): string {
-  const noticeCount = result.artifacts.filter(
-    (artifact) => artifact.type === "feedback.notice",
-  ).length;
-  const verdictCount = result.artifacts.filter(
-    (artifact) => artifact.type === "feedback.verdict",
-  ).length;
-  return `${result.manifest.pipelineId}: ${result.artifacts.length} artifact(s), ${noticeCount} notice(s), ${verdictCount} verdict(s)\n`;
-}
-
-async function loadPipelineRuntime(repositoryRoot: string): Promise<PipelineRuntime> {
-  const config = await readWorkspaceConfig(repositoryRoot);
-  const projectContext = await detectProjectContext(repositoryRoot);
-
-  return {
-    config,
-    projectContext,
-    registry: createBuiltinRegistry(),
-  };
-}
-
-function selectPipelineIds(allPipelineIds: string[], pipelineId: string | undefined): string[] {
-  return pipelineId ? [pipelineId] : allPipelineIds;
-}
-
-function closeHandles(handles: PipelineHandle[]): void {
-  for (const handle of handles) {
-    handle.close();
-  }
+  const deliveredArtifactCount = countDeliveredArtifacts(result.deliveries);
+  const blockingArtifactCount = countBlockingArtifacts(result.artifacts);
+  return `${result.manifest.pipelineId}: ${result.artifacts.length} artifact(s), ${deliveredArtifactCount} delivered artifact(s), ${blockingArtifactCount} blocking artifact(s)\n`;
 }

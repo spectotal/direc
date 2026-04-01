@@ -20,13 +20,15 @@ export async function initCommand(
     now: options.now,
     skills: skillsConfig,
   });
-  const configPath = await writeWorkspaceConfig(repositoryRoot, config);
+  const configPath = await writeWorkspaceConfig(
+    repositoryRoot,
+    config as Parameters<typeof writeWorkspaceConfig>[1],
+  );
   const skills = await syncSkills({
     repositoryRoot,
     config: {
-      providers: skillsConfig.providers,
+      agents: skillsConfig.agents,
     },
-    now: options.now,
   });
 
   return {
@@ -45,11 +47,5 @@ export function writeInitSummary(result: InitCommandResult): void {
   process.stdout.write(
     `pipelines: ${result.config.pipelines.map((pipeline) => pipeline.id).join(", ") || "none"}\n`,
   );
-  process.stdout.write(
-    `skills: ${
-      result.config.skills?.providers
-        .map((provider) => `${provider.id}:${provider.installMode}`)
-        .join(", ") || "none"
-    }\n`,
-  );
+  process.stdout.write(`skills: ${result.config.skills?.agents.join(", ") || "none"}\n`);
 }

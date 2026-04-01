@@ -5,12 +5,8 @@ import { join } from "node:path";
 import { spawn } from "node:child_process";
 import test from "node:test";
 import type { AnalysisNode } from "@spectotal/direc-analysis-contracts";
-import type {
-  FeedbackNoticePayload,
-  FeedbackVerdictPayload,
-  ProjectContext,
-} from "@spectotal/direc-artifact-contracts";
-import type { FeedbackRule, FeedbackSink } from "@spectotal/direc-feedback-contracts";
+import type { ProjectContext } from "@spectotal/direc-artifact-contracts";
+import type { FeedbackSink } from "@spectotal/direc-feedback-contracts";
 import type { SourcePlugin } from "@spectotal/direc-source-contracts";
 import { gitDiffSource } from "@spectotal/direc-source-git-diff";
 import { openSpecSource } from "@spectotal/direc-source-openspec";
@@ -20,6 +16,7 @@ import {
 } from "@spectotal/direc-source-repository";
 import { boundsEvaluatorNode } from "@spectotal/direc-tool-bounds-evaluator";
 import { clusterBuilderNode } from "@spectotal/direc-tool-cluster-builder";
+import { complexityFindingsNode } from "@spectotal/direc-tool-complexity-findings";
 import { jsComplexityNode } from "@spectotal/direc-tool-js-complexity";
 import { graphMakerNode } from "@spectotal/direc-tool-graph-maker";
 import { specDocumentsNode } from "@spectotal/direc-tool-spec-documents";
@@ -28,66 +25,11 @@ import {
   createCommandAnalysisNode,
   planPipelineExecution,
   readLatestRunRecord,
+  readLatestSinkDelivery,
   runPipeline,
   watchPipeline,
   type WorkspaceConfig,
 } from "../src/index.js";
-
-const analysisThresholdRule: FeedbackRule<{ blockOnError?: boolean }> = {
-  id: "analysis-thresholds",
-  displayName: "Analysis Thresholds",
-  defaultSelector: {
-    anyOf: ["metric.complexity", "evaluation.bounds-distance", "evaluation.spec-conflict"],
-  },
-  async run(context) {
-    let errorCount = 0;
-    let warningCount = 0;
-
-    for (const artifact of context.inputArtifacts) {
-      const payload = artifact.payload as {
-        errorCount?: number;
-        warningCount?: number;
-        conflictCount?: number;
-      };
-      errorCount += payload.errorCount ?? 0;
-      warningCount += payload.warningCount ?? payload.conflictCount ?? 0;
-    }
-
-    const notice: FeedbackNoticePayload = {
-      severity: errorCount > 0 ? "error" : warningCount > 0 ? "warning" : "info",
-      summary: `errors=${errorCount}, warnings=${warningCount}`,
-      counts: {
-        errorCount,
-        warningCount,
-      },
-    };
-    const verdict: FeedbackVerdictPayload = {
-      verdict: errorCount > 0 && (context.options.blockOnError ?? true) ? "block" : "proceed",
-      summary: errorCount > 0 ? "blocking findings present" : "pipeline clear",
-      counts: {
-        errorCount,
-        warningCount,
-      },
-    };
-
-    return [
-      {
-        type: "feedback.notice",
-        scope: {
-          kind: "feedback",
-        },
-        payload: notice,
-      },
-      {
-        type: "feedback.verdict",
-        scope: {
-          kind: "feedback",
-        },
-        payload: verdict,
-      },
-    ];
-  },
-};
 
 test("runPipeline persists run and latest manifests, mirrored artifacts, and sink deliveries with facet and agnostic plugins", async () => {
   const repositoryRoot = await mkdtemp(join(tmpdir(), "direc-pipeline-fake-"));
@@ -156,10 +98,47 @@ test("runPipeline persists run and latest manifests, mirrored artifacts, and sin
       ];
     },
   };
+  const fakeFindingsNode: AnalysisNode = {
+    id: "fake-findings",
+    displayName: "Fake Findings",
+    binding: "agnostic",
+    requires: {
+      allOf: ["metric.complexity"],
+    },
+    produces: ["evaluation.complexity-findings"],
+    detect: () => true,
+    async run(context) {
+      return [
+        {
+          type: "evaluation.complexity-findings",
+          scope: {
+            kind: "paths",
+            paths: context.inputArtifacts.flatMap((artifact) => artifact.scope.paths ?? []),
+          },
+          payload: {
+            warningThreshold: 10,
+            errorThreshold: 20,
+            warningFiles: [],
+            errorFiles: [
+              {
+                path: join(repositoryRoot, "src", "feature.ts"),
+                cyclomatic: 21,
+                logicalSloc: 10,
+                maintainability: 90,
+              },
+            ],
+            skippedFiles: [],
+            warningCount: 0,
+            errorCount: 1,
+          },
+        },
+      ];
+    },
+  };
   const fakeSink: FeedbackSink = {
     id: "recording-sink",
     displayName: "Recording Sink",
-    subscribedArtifactTypes: ["feedback.notice", "feedback.verdict"],
+    subscribedArtifactTypes: ["evaluation.complexity-findings"],
     detect: () => true,
     async deliver(context) {
       results.push(...context.artifacts.map((artifact) => artifact.type));
@@ -183,6 +162,12 @@ test("runPipeline persists run and latest manifests, mirrored artifacts, and sin
         kind: "builtin",
         enabled: true,
       },
+      fakeFindings: {
+        id: "fakeFindings",
+        plugin: "fake-findings",
+        kind: "builtin",
+        enabled: true,
+      },
     },
     sinks: {
       record: {
@@ -197,10 +182,9 @@ test("runPipeline persists run and latest manifests, mirrored artifacts, and sin
         source: "fake",
         analysis: {
           facet: ["fake"],
-          agnostic: [],
+          agnostic: ["fakeFindings"],
         },
         feedback: {
-          rules: [{ id: "thresholds", plugin: "analysis-thresholds" }],
           sinks: ["record"],
         },
       },
@@ -212,8 +196,7 @@ test("runPipeline persists run and latest manifests, mirrored artifacts, and sin
     config,
     registry: {
       sources: [fakeSource],
-      analysisNodes: [fakeNode],
-      feedbackRules: [analysisThresholdRule],
+      analysisNodes: [fakeNode, fakeFindingsNode],
       sinks: [fakeSink],
     },
     projectContext,
@@ -223,18 +206,24 @@ test("runPipeline persists run and latest manifests, mirrored artifacts, and sin
   assert.equal(result.manifest.pipelineId, "fake-pipeline");
   assert.deepEqual(
     result.artifacts.map((artifact) => artifact.type),
-    ["source.fake", "metric.complexity", "feedback.notice", "feedback.verdict"],
+    ["source.fake", "metric.complexity", "evaluation.complexity-findings"],
   );
-  assert.deepEqual(results, ["feedback.notice", "feedback.verdict"]);
+  assert.deepEqual(results, ["evaluation.complexity-findings"]);
   const latest = await readLatestRunRecord(repositoryRoot, "fake-pipeline");
+  const latestDelivery = await readLatestSinkDelivery(repositoryRoot, "fake-pipeline", "record");
   assert.ok(latest);
-  assert.equal(latest?.artifactCount, 4);
+  assert.ok(latestDelivery);
+  assert.equal(latest?.artifactCount, 3);
   assert.equal(latest?.runId, result.manifest.runId);
+  assert.deepEqual(
+    latestDelivery?.artifacts.map((artifact) => artifact.type),
+    ["evaluation.complexity-findings"],
+  );
 
   const manifestDisk = JSON.parse(await readFile(result.manifestPath, "utf8")) as {
     artifactCount: number;
   };
-  assert.equal(manifestDisk.artifactCount, 4);
+  assert.equal(manifestDisk.artifactCount, 3);
 
   const latestManifestDisk = JSON.parse(await readFile(result.latestPath, "utf8")) as {
     artifactCount: number;
@@ -247,7 +236,7 @@ test("runPipeline persists run and latest manifests, mirrored artifacts, and sin
     }>;
   };
   assert.equal(latestManifestDisk.pipelineId, "fake-pipeline");
-  assert.equal(latestManifestDisk.artifactCount, 4);
+  assert.equal(latestManifestDisk.artifactCount, 3);
 
   const latestSourceArtifact = latest?.artifacts.find(
     (artifact) => artifact.type === "source.fake",
@@ -274,8 +263,7 @@ test("runPipeline persists run and latest manifests, mirrored artifacts, and sin
       config,
       registry: {
         sources: [fakeSource],
-        analysisNodes: [fakeNode],
-        feedbackRules: [analysisThresholdRule],
+        analysisNodes: [fakeNode, fakeFindingsNode],
         sinks: [fakeSink],
       },
       projectContext,
@@ -360,7 +348,6 @@ test("planPipelineExecution rejects cyclic agnostic graphs", async () => {
                 agnostic: ["a", "b"],
               },
               feedback: {
-                rules: [],
                 sinks: [],
               },
             },
@@ -379,7 +366,6 @@ test("planPipelineExecution rejects cyclic agnostic graphs", async () => {
             },
           ],
           analysisNodes: [cycleA, cycleB],
-          feedbackRules: [],
           sinks: [],
         },
         projectContext: {
@@ -465,7 +451,6 @@ test("planPipelineExecution rejects invalid facet and agnostic tool contracts", 
       },
     ],
     analysisNodes: [] as AnalysisNode[],
-    feedbackRules: [],
     sinks: [],
   };
   const projectContext: ProjectContext = {
@@ -498,7 +483,6 @@ test("planPipelineExecution rejects invalid facet and agnostic tool contracts", 
                 agnostic: ["bad"],
               },
               feedback: {
-                rules: [],
                 sinks: [],
               },
             },
@@ -536,7 +520,6 @@ test("planPipelineExecution rejects invalid facet and agnostic tool contracts", 
                 agnostic: [],
               },
               feedback: {
-                rules: [],
                 sinks: [],
               },
             },
@@ -574,7 +557,6 @@ test("planPipelineExecution rejects invalid facet and agnostic tool contracts", 
                 agnostic: ["bad"],
               },
               feedback: {
-                rules: [],
                 sinks: [],
               },
             },
@@ -612,7 +594,6 @@ test("planPipelineExecution rejects invalid facet and agnostic tool contracts", 
                 agnostic: [],
               },
               feedback: {
-                rules: [],
                 sinks: [],
               },
             },
@@ -650,7 +631,6 @@ test("planPipelineExecution rejects invalid facet and agnostic tool contracts", 
                 agnostic: [],
               },
               feedback: {
-                rules: [],
                 sinks: [],
               },
             },
@@ -688,7 +668,6 @@ test("planPipelineExecution rejects invalid facet and agnostic tool contracts", 
                 agnostic: ["bad"],
               },
               feedback: {
-                rules: [],
                 sinks: [],
               },
             },
@@ -738,7 +717,6 @@ test("planPipelineExecution rejects missing upstream artifact producers", async 
                 agnostic: ["bounds"],
               },
               feedback: {
-                rules: [],
                 sinks: [],
               },
             },
@@ -757,7 +735,6 @@ test("planPipelineExecution rejects missing upstream artifact producers", async 
             },
           ],
           analysisNodes: [boundsEvaluatorNode],
-          feedbackRules: [],
           sinks: [],
         },
         projectContext: {
@@ -868,7 +845,7 @@ test("runPipeline executes the diff slice end to end with facet and agnostic ana
   const recordingSink: FeedbackSink = {
     id: "recording-sink",
     displayName: "Recording Sink",
-    subscribedArtifactTypes: ["feedback.notice", "feedback.verdict"],
+    subscribedArtifactTypes: ["evaluation.complexity-findings"],
     detect: () => true,
     async deliver(context) {
       delivered.push(...context.artifacts.map((artifact) => artifact.type));
@@ -910,6 +887,12 @@ test("runPipeline executes the diff slice end to end with facet and agnostic ana
         plugin: "bounds-evaluator",
         enabled: true,
       },
+      complexityFindings: {
+        id: "complexityFindings",
+        kind: "builtin",
+        plugin: "complexity-findings",
+        enabled: true,
+      },
     },
     sinks: {
       record: {
@@ -924,10 +907,9 @@ test("runPipeline executes the diff slice end to end with facet and agnostic ana
         source: "diff",
         analysis: {
           facet: ["jsComplexity", "graph"],
-          agnostic: ["cluster", "bounds"],
+          agnostic: ["cluster", "bounds", "complexityFindings"],
         },
         feedback: {
-          rules: [{ id: "thresholds", plugin: "analysis-thresholds" }],
           sinks: ["record"],
         },
       },
@@ -939,8 +921,13 @@ test("runPipeline executes the diff slice end to end with facet and agnostic ana
     config,
     registry: {
       sources: [gitDiffSource],
-      analysisNodes: [jsComplexityNode, graphMakerNode, clusterBuilderNode, boundsEvaluatorNode],
-      feedbackRules: [analysisThresholdRule],
+      analysisNodes: [
+        jsComplexityNode,
+        graphMakerNode,
+        clusterBuilderNode,
+        boundsEvaluatorNode,
+        complexityFindingsNode,
+      ],
       sinks: [recordingSink],
     },
     projectContext: {
@@ -964,8 +951,8 @@ test("runPipeline executes the diff slice end to end with facet and agnostic ana
   assert.ok(types.includes("structural.roles"));
   assert.ok(types.includes("structural.boundaries"));
   assert.ok(types.includes("evaluation.bounds-distance"));
-  assert.ok(types.includes("feedback.verdict"));
-  assert.deepEqual(delivered, ["feedback.notice", "feedback.verdict"]);
+  assert.ok(types.includes("evaluation.complexity-findings"));
+  assert.deepEqual(delivered, ["evaluation.complexity-findings"]);
 });
 
 test("runPipeline executes the repository slice end to end with source-level exclusions", async () => {
@@ -1024,6 +1011,12 @@ test("runPipeline executes the repository slice end to end with source-level exc
         plugin: "bounds-evaluator",
         enabled: true,
       },
+      complexityFindings: {
+        id: "complexityFindings",
+        kind: "builtin",
+        plugin: "complexity-findings",
+        enabled: true,
+      },
     },
     sinks: {},
     pipelines: [
@@ -1032,10 +1025,9 @@ test("runPipeline executes the repository slice end to end with source-level exc
         source: "repository",
         analysis: {
           facet: ["jsComplexity", "graph"],
-          agnostic: ["cluster", "bounds"],
+          agnostic: ["cluster", "bounds", "complexityFindings"],
         },
         feedback: {
-          rules: [{ id: "thresholds", plugin: "analysis-thresholds" }],
           sinks: [],
         },
       },
@@ -1047,8 +1039,13 @@ test("runPipeline executes the repository slice end to end with source-level exc
     config,
     registry: {
       sources: [repositorySource],
-      analysisNodes: [jsComplexityNode, graphMakerNode, clusterBuilderNode, boundsEvaluatorNode],
-      feedbackRules: [analysisThresholdRule],
+      analysisNodes: [
+        jsComplexityNode,
+        graphMakerNode,
+        clusterBuilderNode,
+        boundsEvaluatorNode,
+        complexityFindingsNode,
+      ],
       sinks: [],
     },
     projectContext: {
@@ -1074,9 +1071,11 @@ test("runPipeline executes the repository slice end to end with source-level exc
     join(repositoryRoot, "src", "index.ts"),
   ]);
   assert.ok(result.artifacts.some((artifact) => artifact.type === "metric.complexity"));
+  assert.ok(
+    result.artifacts.some((artifact) => artifact.type === "evaluation.complexity-findings"),
+  );
   assert.ok(result.artifacts.some((artifact) => artifact.type === "structural.graph"));
   assert.ok(result.artifacts.some((artifact) => artifact.type === "evaluation.bounds-distance"));
-  assert.ok(result.artifacts.some((artifact) => artifact.type === "feedback.verdict"));
 });
 
 test("runPipeline executes openspec task and spec pipelines against the same manager", async () => {
@@ -1150,6 +1149,12 @@ test("runPipeline executes openspec task and spec pipelines against the same man
         plugin: "bounds-evaluator",
         enabled: true,
       },
+      complexityFindings: {
+        id: "complexityFindings",
+        kind: "builtin",
+        plugin: "complexity-findings",
+        enabled: true,
+      },
       specDocuments: {
         id: "specDocuments",
         kind: "builtin",
@@ -1170,10 +1175,9 @@ test("runPipeline executes openspec task and spec pipelines against the same man
         source: "openspecTasks",
         analysis: {
           facet: ["jsComplexity", "graph"],
-          agnostic: ["cluster", "bounds"],
+          agnostic: ["cluster", "bounds", "complexityFindings"],
         },
         feedback: {
-          rules: [{ id: "thresholds", plugin: "analysis-thresholds" }],
           sinks: [],
         },
       },
@@ -1185,7 +1189,6 @@ test("runPipeline executes openspec task and spec pipelines against the same man
           agnostic: ["specConflict"],
         },
         feedback: {
-          rules: [{ id: "thresholds", plugin: "analysis-thresholds" }],
           sinks: [],
         },
       },
@@ -1198,10 +1201,10 @@ test("runPipeline executes openspec task and spec pipelines against the same man
       graphMakerNode,
       clusterBuilderNode,
       boundsEvaluatorNode,
+      complexityFindingsNode,
       specDocumentsNode,
       specConflictNode,
     ],
-    feedbackRules: [analysisThresholdRule],
     sinks: [],
   };
   const projectContext: ProjectContext = {
@@ -1231,6 +1234,9 @@ test("runPipeline executes openspec task and spec pipelines against the same man
   });
 
   assert.ok(taskResult.artifacts.some((artifact) => artifact.type === "source.openspec.task"));
+  assert.ok(
+    taskResult.artifacts.some((artifact) => artifact.type === "evaluation.complexity-findings"),
+  );
   assert.ok(
     taskResult.artifacts.some((artifact) => artifact.type === "evaluation.bounds-distance"),
   );

@@ -1,32 +1,35 @@
 declare module "@spectotal/direc-skills-manager" {
-  export type SkillProviderId = "codex" | "claude" | "antigravity";
-  export type SkillsInstallMode = "installed" | "bundle-only";
-
-  export interface SkillsProviderConfig {
-    id: SkillProviderId;
-    bundleDir: string;
-    installTarget?: string;
-    installMode: SkillsInstallMode;
-  }
+  export type SkillAgentId = "codex" | "claude" | "antigravity";
 
   export interface SkillsConfig {
-    providers: SkillsProviderConfig[];
+    agents: SkillAgentId[];
   }
 
   export interface SkillBundleRecord {
-    provider: SkillProviderId;
+    agent: SkillAgentId;
     skillId: string;
-    bundlePath: string;
-    installedPath?: string;
+    deployedPath: string;
   }
 
   export interface SyncSkillsResult {
-    bundles: SkillBundleRecord[];
+    deployments: SkillBundleRecord[];
   }
+
+  export interface SkillDefinition {
+    id: string;
+    description: string;
+    sourcePath: string;
+    content: string;
+    body: string;
+    resourcesPath?: string;
+  }
+
+  export function loadSkillCatalog(): Promise<SkillDefinition[]>;
+
+  export function validateSkillCatalog(catalog: SkillDefinition[]): void;
 
   export function syncSkills(options: {
     repositoryRoot: string;
     config: SkillsConfig;
-    now?: () => Date;
   }): Promise<SyncSkillsResult>;
 }

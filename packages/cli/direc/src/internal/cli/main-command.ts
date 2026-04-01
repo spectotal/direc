@@ -28,7 +28,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
 async function runInitMain(repositoryRoot: string, args: string[]): Promise<void> {
   const initOptions = parseInitArgs(args);
   const promptSession =
-    initOptions.providers === undefined && process.stdin.isTTY && process.stdout.isTTY
+    initOptions.agents === undefined && process.stdin.isTTY && process.stdout.isTTY
       ? createPromptSession()
       : undefined;
   let result: InitCommandResult;
@@ -36,8 +36,7 @@ async function runInitMain(repositoryRoot: string, args: string[]): Promise<void
   try {
     result = await initCommand(repositoryRoot, {
       ...initOptions,
-      interactive: promptSession !== undefined,
-      prompt: promptSession?.prompt,
+      promptSession,
     });
   } finally {
     promptSession?.close();
@@ -66,7 +65,7 @@ async function runWatchMain(repositoryRoot: string, args: string[]): Promise<voi
 }
 
 function writeUsage(): void {
-  process.stdout.write("usage: direc init [--providers list] [--install-target provider=path]\n");
+  process.stdout.write("usage: direc init [--agent agent]\n");
   process.stdout.write("       direc run [pipeline-id]\n");
   process.stdout.write("       direc watch [pipeline-id]\n");
 }
