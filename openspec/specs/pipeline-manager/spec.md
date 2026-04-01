@@ -1,22 +1,22 @@
 ## Purpose
 
-Define how Direc composes sources, `facet` and `agnostic` analysis nodes, feedback rules, and sinks into persisted pipeline runs.
+Define how Direc composes sources, `facet` and `agnostic` analysis nodes, and sinks into persisted pipeline runs.
 
 ## Requirements
 
 ### Requirement: Pipeline manager executes pipelines in fixed analysis order
 
-The system SHALL execute pipelines as source, then `facet`, then `agnostic`, then feedback.
+The system SHALL execute pipelines as source, then `facet`, then `agnostic`, then sink delivery.
 
 #### Scenario: Eligible two-bucket pipeline run
 
-- **GIVEN** an enabled pipeline with a detected source, `facet` and `agnostic` analysis tools, a feedback rule, and a sink
+- **GIVEN** an enabled pipeline with a detected source, `facet` and `agnostic` analysis tools, and a sink
 - **WHEN** the pipeline manager runs that pipeline
 - **THEN** it SHALL run the source first and persist its seed artifacts
-- **AND** it SHALL run `facet` before `agnostic`, and feedback after `agnostic`
+- **AND** it SHALL run `facet` before `agnostic`, and sink delivery after `agnostic`
 - **AND** it SHALL run `facet` tools in declaration order
 - **AND** it SHALL topologically order tools only within the `agnostic` bucket by produced and required artifact types
-- **AND** it SHALL deliver only subscribed feedback artifact types to each sink
+- **AND** it SHALL deliver only subscribed artifact types to each sink
 
 ### Requirement: Pipeline manager validates analysis bucket contracts
 
@@ -38,12 +38,13 @@ The system SHALL reject pipelines that violate the `facet` or `agnostic` input r
 
 The system SHALL persist both run-scoped history and direct-access latest snapshots for every successful pipeline run.
 
-#### Scenario: Successful run writes manifest and payloads
+#### Scenario: Successful run writes manifest and sink deliveries
 
 - **GIVEN** a successful pipeline run
 - **WHEN** the run finishes
 - **THEN** it SHALL write `.direc/runs/<runId>/manifest.json`
 - **AND** it SHALL write `.direc/latest/<pipelineId>/manifest.json`
+- **AND** it SHALL write one delivery file per sink under each run and latest delivery directory
 - **AND** both manifests SHALL contain full persisted artifact data inline
 - **AND** each persisted artifact envelope SHALL include `id`, `type`, `producerId`, `runId`, `pipelineId`, `sourceId`, `scope`, `inputArtifactIds`, `timestamp`, and `payload`
 

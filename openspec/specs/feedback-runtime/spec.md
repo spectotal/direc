@@ -1,29 +1,29 @@
 ## Purpose
 
-Define how Direc turns analysis outputs into feedback artifacts and delivers them through sinks.
+Define how Direc serializes selected analysis artifacts and delivers them through sinks.
 
 ## Requirements
 
-### Requirement: Threshold feedback derives notice and verdict artifacts
+### Requirement: Sink delivery serializes subscribed analysis artifacts
 
-The built-in threshold rule SHALL aggregate selected analysis outputs into `feedback.notice` and `feedback.verdict`.
+The runtime SHALL serialize subscribed analysis artifacts into per-sink delivery files.
 
-#### Scenario: Analysis outputs produce feedback artifacts
+#### Scenario: Selected analysis artifacts are written for sink delivery
 
-- **GIVEN** selected analysis artifacts of type `metric.complexity`, `evaluation.bounds-distance`, or `evaluation.spec-conflict`
-- **WHEN** the threshold feedback rule runs
-- **THEN** it SHALL emit one `feedback.notice` artifact with severity `info`, `warning`, or `error` based on aggregated counts
-- **AND** it SHALL emit one `feedback.verdict` artifact with verdict `block` when `errorCount > 0` and `blockOnError` is not disabled
-- **AND** it SHALL emit verdict `proceed` when no blocking errors are present
+- **GIVEN** a sink subscribed to one or more analysis artifact types
+- **WHEN** a pipeline run reaches sink delivery
+- **THEN** the runtime SHALL write `.direc/runs/<runId>/deliveries/<sinkId>.json`
+- **AND** it SHALL mirror the same serialized bundle to `.direc/latest/<pipelineId>/deliveries/<sinkId>.json`
+- **AND** the serialized bundle SHALL contain `runId`, `pipelineId`, `sinkId`, and `artifacts`
 
-### Requirement: Console sink delivers feedback artifacts to standard output
+### Requirement: Console sink renders actionable analysis artifacts to standard output
 
-The built-in `console` sink SHALL render subscribed feedback artifacts as plain-text output.
+The built-in `console` sink SHALL render subscribed analysis artifacts as plain-text output.
 
-#### Scenario: Notice and verdict artifacts are delivered
+#### Scenario: Complexity findings are delivered to the console
 
-- **GIVEN** `feedback.notice` and `feedback.verdict` artifacts
+- **GIVEN** an `evaluation.complexity-findings` artifact with warning, error, or skipped files
 - **WHEN** the `console` sink delivers them
-- **THEN** it SHALL print notices as `[notice:<severity>] <summary>`
-- **AND** it SHALL print verdicts as `[verdict:<verdict>] <summary>`
-- **AND** it SHALL ignore artifact types outside its subscribed feedback types
+- **THEN** it SHALL print one line per relevant file
+- **AND** it SHALL label warning and error findings distinctly
+- **AND** it SHALL ignore artifact types outside its subscribed analysis types

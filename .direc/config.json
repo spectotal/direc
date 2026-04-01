@@ -1,28 +1,15 @@
 {
   "version": 1,
-  "generatedAt": "2026-03-31T16:44:28.834Z",
+  "generatedAt": "2026-04-01T13:05:06.511Z",
   "facets": [
     "js",
     "openspec"
   ],
   "skills": {
-    "providers": [
-      {
-        "id": "codex",
-        "bundleDir": ".direc/skills/codex",
-        "installTarget": ".codex/skills",
-        "installMode": "installed"
-      },
-      {
-        "id": "claude",
-        "bundleDir": ".direc/skills/claude",
-        "installMode": "bundle-only"
-      },
-      {
-        "id": "antigravity",
-        "bundleDir": ".direc/skills/antigravity",
-        "installMode": "bundle-only"
-      }
+    "agents": [
+      "codex",
+      "claude",
+      "antigravity"
     ]
   },
   "sources": {
@@ -96,6 +83,12 @@
       "plugin": "bounds-evaluator",
       "enabled": true
     },
+    "complexityFindings": {
+      "id": "complexityFindings",
+      "kind": "builtin",
+      "plugin": "complexity-findings",
+      "enabled": true
+    },
     "specDocuments": {
       "id": "specDocuments",
       "kind": "builtin",
@@ -114,6 +107,11 @@
       "id": "console",
       "plugin": "console",
       "enabled": true
+    },
+    "agent-feedback": {
+      "id": "agent-feedback",
+      "plugin": "agent-feedback",
+      "enabled": true
     }
   },
   "pipelines": [
@@ -128,18 +126,14 @@
         ],
         "agnostic": [
           "cluster",
-          "bounds"
+          "bounds",
+          "complexityFindings"
         ]
       },
       "feedback": {
-        "rules": [
-          {
-            "id": "thresholds",
-            "plugin": "analysis-thresholds"
-          }
-        ],
         "sinks": [
-          "console"
+          "console",
+          "agent-feedback"
         ]
       }
     },
@@ -154,18 +148,14 @@
         ],
         "agnostic": [
           "cluster",
-          "bounds"
+          "bounds",
+          "complexityFindings"
         ]
       },
       "feedback": {
-        "rules": [
-          {
-            "id": "thresholds",
-            "plugin": "analysis-thresholds"
-          }
-        ],
         "sinks": [
-          "console"
+          "console",
+          "agent-feedback"
         ]
       }
     },
@@ -180,18 +170,14 @@
         ],
         "agnostic": [
           "cluster",
-          "bounds"
+          "bounds",
+          "complexityFindings"
         ]
       },
       "feedback": {
-        "rules": [
-          {
-            "id": "thresholds",
-            "plugin": "analysis-thresholds"
-          }
-        ],
         "sinks": [
-          "console"
+          "console",
+          "agent-feedback"
         ]
       }
     },
@@ -208,12 +194,6 @@
         ]
       },
       "feedback": {
-        "rules": [
-          {
-            "id": "thresholds",
-            "plugin": "analysis-thresholds"
-          }
-        ],
         "sinks": [
           "console"
         ]

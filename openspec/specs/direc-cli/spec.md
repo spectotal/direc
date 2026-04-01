@@ -14,31 +14,38 @@ The CLI SHALL detect repository context and write a concrete two-bucket pipeline
 - **WHEN** `direc init` runs
 - **THEN** it SHALL detect facets from repository evidence and detect whether Git and OpenSpec are present
 - **AND** it SHALL write `.direc/config.json` with explicit `sources`, `tools`, `sinks`, and `pipelines`
-- **AND** each pipeline SHALL declare `analysis.facet`, `analysis.agnostic`, `feedback.rules`, and `feedback.sinks`
+- **AND** each pipeline SHALL declare `analysis.facet`, `analysis.agnostic`, and `feedback.sinks`
 - **AND** JavaScript repositories SHALL enable the `facet` and `agnostic` architecture stack
+- **AND** JavaScript repositories SHALL enable the `complexity-findings` agnostic analyzer
 - **AND** JavaScript repositories SHALL enable the `repository` source and the `repository-quality` pipeline for whole-repo analysis
 - **AND** repositories with OpenSpec SHALL enable the spec document facet tool and spec conflict agnostic pipeline
 - **AND** repositories with Git SHALL enable the `diff` source and `diff-quality` pipeline
+- **AND** repositories configured with agents SHALL enable the `agent-feedback` sink on quality pipelines
 
-### Requirement: `direc init` bootstraps provider skill bundles
+### Requirement: `direc init` bootstraps agent-native bundled skill deployment
 
-The CLI SHALL bootstrap provider skill bundles as part of workspace initialization.
+The CLI SHALL collect an explicit list of agents and deploy every bundled skill into each selected agent's native skill folder.
 
-#### Scenario: Interactive init selects provider bundles
+#### Scenario: Interactive init selects agents and bundled skills
 
-- **GIVEN** `direc init` runs in an interactive terminal without a provider flag
-- **WHEN** the bootstrap prompts for agent providers
-- **THEN** it SHALL accept one or more of `codex`, `claude`, and `antigravity`
-- **AND** it SHALL write the selected provider bundle configuration into `.direc/config.json`
-- **AND** it SHALL render skill bundles under `.direc/skills/<provider>/`
-- **AND** it SHALL install Codex bundles to `.codex/skills` unless the user overrides the target
-- **AND** it SHALL allow Claude or Antigravity bundles to remain bundle-only when no install target is provided
+- **GIVEN** `direc init` runs in an interactive terminal without an `--agent` flag
+- **WHEN** the bootstrap prompts for skills configuration
+- **THEN** it SHALL show a multiselect for one or more of `codex`, `claude`, and `antigravity`
+- **AND** it SHALL write the selected agent list into `.direc/config.json`
+- **AND** it SHALL deploy `SKILL.md` into each agent's native skill folder
+- **AND** it SHALL deploy every bundled skill for each selected agent
 
-#### Scenario: Non-interactive init requires explicit providers
+#### Scenario: Non-interactive init requires explicit agent mappings
 
 - **GIVEN** `direc init` runs without interactive terminal input
-- **WHEN** no provider flag is provided
-- **THEN** it SHALL fail with a clear error requesting explicit providers
+- **WHEN** no `--agent` flag is provided
+- **THEN** it SHALL fail with a clear error requesting `--agent`
+
+#### Scenario: Duplicate or invalid agent mappings are rejected
+
+- **GIVEN** repeated `--agent` flags or configured agent entries
+- **WHEN** the same agent is declared more than once
+- **THEN** it SHALL fail with a clear validation error
 
 ### Requirement: `direc run` executes one or more configured pipelines
 
@@ -49,7 +56,7 @@ The CLI SHALL execute the selected pipeline or all configured pipelines from the
 - **GIVEN** a valid `.direc/config.json`
 - **WHEN** `direc run <pipeline-id>` runs
 - **THEN** it SHALL execute only the selected pipeline
-- **AND** it SHALL print artifact, notice, and verdict counts for that pipeline
+- **AND** it SHALL print artifact, delivered-artifact, and blocking-artifact counts for that pipeline
 
 #### Scenario: Run all configured pipelines
 
