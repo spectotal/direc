@@ -5,5 +5,4 @@ export const agentFeedbackSink: FeedbackSink = {
   displayName: "Agent Feedback",
   subscribedArtifactTypes: ["evaluation.complexity-findings"],
   detect: () => true,
-  async deliver() {},
 };

@@ -23,5 +23,5 @@ export interface FeedbackSink<TOptions = Record<string, unknown>> {
   displayName: string;
   subscribedArtifactTypes: string[];
   detect(context: ProjectContext): boolean;
-  deliver(context: FeedbackSinkContext<TOptions>): Promise<void>;
+  deliver?(context: FeedbackSinkContext<TOptions>): Promise<void>;
 }

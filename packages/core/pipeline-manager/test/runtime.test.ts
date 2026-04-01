@@ -144,6 +144,12 @@ test("runPipeline persists run and latest manifests, mirrored artifacts, and sin
       results.push(...context.artifacts.map((artifact) => artifact.type));
     },
   };
+  const passiveSink: FeedbackSink = {
+    id: "passive-sink",
+    displayName: "Passive Sink",
+    subscribedArtifactTypes: ["evaluation.complexity-findings"],
+    detect: () => true,
+  };
   const config: WorkspaceConfig = {
     version: 1,
     generatedAt: new Date().toISOString(),
@@ -175,6 +181,11 @@ test("runPipeline persists run and latest manifests, mirrored artifacts, and sin
         plugin: "recording-sink",
         enabled: true,
       },
+      persist: {
+        id: "persist",
+        plugin: "passive-sink",
+        enabled: true,
+      },
     },
     pipelines: [
       {
@@ -185,7 +196,7 @@ test("runPipeline persists run and latest manifests, mirrored artifacts, and sin
           agnostic: ["fakeFindings"],
         },
         feedback: {
-          sinks: ["record"],
+          sinks: ["record", "persist"],
         },
       },
     ],
@@ -197,7 +208,7 @@ test("runPipeline persists run and latest manifests, mirrored artifacts, and sin
     registry: {
       sources: [fakeSource],
       analysisNodes: [fakeNode, fakeFindingsNode],
-      sinks: [fakeSink],
+      sinks: [fakeSink, passiveSink],
     },
     projectContext,
     pipelineId: "fake-pipeline",
@@ -211,12 +222,18 @@ test("runPipeline persists run and latest manifests, mirrored artifacts, and sin
   assert.deepEqual(results, ["evaluation.complexity-findings"]);
   const latest = await readLatestRunRecord(repositoryRoot, "fake-pipeline");
   const latestDelivery = await readLatestSinkDelivery(repositoryRoot, "fake-pipeline", "record");
+  const passiveDelivery = await readLatestSinkDelivery(repositoryRoot, "fake-pipeline", "persist");
   assert.ok(latest);
   assert.ok(latestDelivery);
+  assert.ok(passiveDelivery);
   assert.equal(latest?.artifactCount, 3);
   assert.equal(latest?.runId, result.manifest.runId);
   assert.deepEqual(
     latestDelivery?.artifacts.map((artifact) => artifact.type),
+    ["evaluation.complexity-findings"],
+  );
+  assert.deepEqual(
+    passiveDelivery?.artifacts.map((artifact) => artifact.type),
     ["evaluation.complexity-findings"],
   );
 
@@ -264,7 +281,7 @@ test("runPipeline persists run and latest manifests, mirrored artifacts, and sin
       registry: {
         sources: [fakeSource],
         analysisNodes: [fakeNode, fakeFindingsNode],
-        sinks: [fakeSink],
+        sinks: [fakeSink, passiveSink],
       },
       projectContext,
       pipelineId: "fake-pipeline",

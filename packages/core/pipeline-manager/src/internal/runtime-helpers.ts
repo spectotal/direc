@@ -51,7 +51,7 @@ export async function deliverArtifacts(
       continue;
     }
 
-    await entry.sink.deliver({
+    await entry.sink.deliver?.({
       repositoryRoot: options.repositoryRoot,
       runId,
       pipelineId: plan.pipeline.id,
