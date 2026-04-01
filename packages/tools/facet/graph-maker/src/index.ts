@@ -1,16 +1,10 @@
-import { access, readFile } from "node:fs/promises";
-import { dirname, extname, resolve } from "node:path";
 import type { AnalysisNode } from "@spectotal/direc-analysis-contracts";
-import {
-  collectScopedPaths,
-  normalisePaths,
-  type ArtifactEnvelope,
-} from "@spectotal/direc-artifact-contracts";
+import { normalisePaths } from "@spectotal/direc-artifact-contracts";
 import type { GraphArtifactPayload } from "./contracts.js";
+import { collectGraphEdges } from "./import-resolution.js";
+import { isJsPath, resolveJsSourcePaths } from "./source-paths.js";
 
 export type { GraphArtifactPayload, GraphEdge } from "./contracts.js";
-
-const JS_EXTENSIONS = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"];
 
 export const graphMakerNode: AnalysisNode = {
   id: "graph-maker",
@@ -30,32 +24,7 @@ export const graphMakerNode: AnalysisNode = {
       context.projectContext.sourceFiles.filter(isJsPath),
     );
     const nodes = normalisePaths(sourcePaths);
-    const nodeSet = new Set(nodes);
-    const edges: GraphArtifactPayload["edges"] = [];
-
-    for (const path of nodes) {
-      const contents = await readFile(path, "utf8");
-      const specifiers = [
-        ...contents.matchAll(/(?:import|export)\s.+?from\s+["'](?<specifier>[^"']+)["']/gu),
-        ...contents.matchAll(/require\(\s*["'](?<specifier>[^"']+)["']\s*\)/gu),
-      ]
-        .map((match) => match.groups?.specifier)
-        .filter((value): value is string => Boolean(value));
-
-      for (const specifier of specifiers) {
-        if (!specifier.startsWith(".")) {
-          continue;
-        }
-
-        const resolvedImport = await resolveImportPath(dirname(path), specifier);
-        if (resolvedImport && nodeSet.has(resolvedImport)) {
-          edges.push({
-            from: path,
-            to: resolvedImport,
-          });
-        }
-      }
-    }
+    const edges = await collectGraphEdges(nodes);
 
     return [
       {
@@ -72,43 +41,3 @@ export const graphMakerNode: AnalysisNode = {
     ];
   },
 };
-
-function resolveJsSourcePaths(
-  inputArtifacts: ArtifactEnvelope[],
-  fallbackSourcePaths: string[],
-): string[] {
-  const scopedPaths = collectScopedPaths(inputArtifacts).filter(isJsPath);
-  const hasExplicitPathScope = inputArtifacts.some(
-    (artifact) => artifact.scope.paths !== undefined,
-  );
-
-  if (hasExplicitPathScope) {
-    return normalisePaths(scopedPaths);
-  }
-
-  return normalisePaths(fallbackSourcePaths.filter(isJsPath));
-}
-
-function isJsPath(path: string): boolean {
-  return JS_EXTENSIONS.includes(extname(path));
-}
-
-async function resolveImportPath(fromDirectory: string, specifier: string): Promise<string | null> {
-  const basePath = resolve(fromDirectory, specifier);
-  const candidates = [
-    basePath,
-    ...JS_EXTENSIONS.map((extension) => `${basePath}${extension}`),
-    ...JS_EXTENSIONS.map((extension) => resolve(basePath, `index${extension}`)),
-  ];
-
-  for (const candidate of candidates) {
-    try {
-      await access(candidate);
-      return candidate;
-    } catch {
-      continue;
-    }
-  }
-
-  return null;
-}
