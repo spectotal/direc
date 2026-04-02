@@ -80,6 +80,7 @@ test("complexityFindingsNode emits only warning, error, and skipped files", asyn
 
   assert.ok(artifact);
   assert.equal(artifact.type, "evaluation.complexity-findings");
+  assert.equal((artifact.payload as { status: string }).status, "block");
   assert.deepEqual(artifact.scope.paths, [
     "/repo/src/error.ts",
     "/repo/src/generated.ts",

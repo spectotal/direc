@@ -7,6 +7,8 @@ description: Guide chat-driven implementation through a final Direc complexity g
 
 {{> complexity-loop-guardrails}}
 
+If your agent provides a native wrapper around this workflow, you may use it as long as it still runs `direc run <pipeline-id>` under the hood.
+
 When implementing code in this repository:
 
 1. Complete the requested implementation work first.

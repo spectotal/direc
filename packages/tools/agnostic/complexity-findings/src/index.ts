@@ -4,9 +4,11 @@ import type {
   ComplexityArtifactPayload,
   ComplexityFileMetric,
 } from "@spectotal/direc-tool-js-complexity";
-import type { ComplexityFindingsArtifactPayload } from "./contracts.js";
+import type { ComplexityFindingsArtifactPayload, ComplexityGateStatus } from "./contracts.js";
 
-export type { ComplexityFindingsArtifactPayload } from "./contracts.js";
+export type { ComplexityFindingsArtifactPayload, ComplexityGateStatus } from "./contracts.js";
+export type ComplexityGateResult = ComplexityFindingsArtifactPayload;
+export type ComplexityGateInput = Omit<ComplexityFindingsArtifactPayload, "status">;
 
 export const complexityFindingsNode: AnalysisNode = {
   id: "complexity-findings",
@@ -46,7 +48,7 @@ export const complexityFindingsNode: AnalysisNode = {
           kind: "paths",
           paths: scopedPaths,
         },
-        payload: {
+        payload: createComplexityGateResult({
           warningThreshold: complexity.warningThreshold,
           errorThreshold: complexity.errorThreshold,
           warningFiles,
@@ -54,7 +56,7 @@ export const complexityFindingsNode: AnalysisNode = {
           skippedFiles,
           warningCount: warningFiles.length + skippedFiles.length,
           errorCount: errorFiles.length,
-        } satisfies ComplexityFindingsArtifactPayload,
+        } satisfies Omit<ComplexityFindingsArtifactPayload, "status">),
       },
     ];
   },
@@ -75,4 +77,26 @@ function selectErrorFiles(
   errorThreshold: number,
 ): ComplexityFileMetric[] {
   return files.filter((file) => file.cyclomatic >= errorThreshold);
+}
+
+export function deriveComplexityGateStatus(payload: ComplexityGateInput): ComplexityGateStatus {
+  if (payload.errorFiles.length > 0) {
+    return "block";
+  }
+
+  if (payload.warningFiles.length > 0 || payload.skippedFiles.length > 0) {
+    return "warn";
+  }
+
+  return "pass";
+}
+
+export function createComplexityGateResult(payload: ComplexityGateInput): ComplexityGateResult {
+  return {
+    ...payload,
+    warningFiles: [...payload.warningFiles],
+    errorFiles: [...payload.errorFiles],
+    skippedFiles: [...payload.skippedFiles],
+    status: deriveComplexityGateStatus(payload),
+  };
 }
