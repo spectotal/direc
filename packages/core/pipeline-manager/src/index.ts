@@ -67,7 +67,7 @@ export interface SinkDeliveryRecord {
   sinkId: string;
   artifactIds: string[];
   deliveredAt: string;
-  outputPath: string;
+  outputPath?: string;
 }
 
 export interface SinkDeliveryBundle {

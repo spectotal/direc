@@ -44,14 +44,16 @@ export async function readLatestSinkDelivery(
   pipelineId: string,
   sinkId: string,
 ): Promise<SinkDeliveryBundle | null> {
+  const latestRecord = await readLatestRunRecord(repositoryRoot, pipelineId);
+  const outputPath = latestRecord?.deliveries.find(
+    (delivery) => delivery.sinkId === sinkId,
+  )?.outputPath;
+
+  if (!outputPath) {
+    return null;
+  }
+
   return readJsonFileOrNull<SinkDeliveryBundle>(
-    join(
-      repositoryRoot,
-      DIREC_DIR,
-      "latest",
-      sanitiseSegment(pipelineId),
-      "deliveries",
-      `${sanitiseSegment(sinkId)}.json`,
-    ),
+    join(repositoryRoot, DIREC_DIR, "latest", sanitiseSegment(pipelineId), outputPath),
   );
 }

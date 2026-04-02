@@ -1,3 +1,4 @@
+import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import type { PipelineRunResult, RunPipelineOptions, WatchPipelineOptions } from "../index.js";
 import { planPipelineExecution } from "./planning.js";
@@ -18,11 +19,14 @@ export async function runPipeline(options: RunPipelineOptions): Promise<Pipeline
     "latest",
     sanitiseSegment(plan.pipeline.id),
   );
+  await rm(latestDirectory, { recursive: true, force: true });
   const artifacts = await collectArtifacts(options, plan, runId, now);
-  const { deliveries, deliveryBundles } = await deliverArtifacts(
+  const deliveries = await deliverArtifacts(
     options,
     plan,
     artifacts,
+    runDirectory,
+    latestDirectory,
     runId,
     now,
   );
@@ -40,13 +44,10 @@ export async function runPipeline(options: RunPipelineOptions): Promise<Pipeline
   await writePersistedSnapshot({
     directory: runDirectory,
     manifest,
-    deliveries: deliveryBundles,
   });
   await writePersistedSnapshot({
     directory: latestDirectory,
     manifest,
-    deliveries: deliveryBundles,
-    replaceDirectory: true,
   });
 
   return {

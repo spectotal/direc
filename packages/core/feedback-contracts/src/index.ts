@@ -12,10 +12,16 @@ export interface FeedbackSinkContext<TOptions = Record<string, unknown>> {
   runId: string;
   pipelineId: string;
   sourceId: string;
+  runDirectory: string;
+  latestDirectory: string;
   sinkConfig: SinkConfig<TOptions>;
   projectContext: ProjectContext;
   artifacts: ArtifactEnvelope[];
   now: () => Date;
+}
+
+export interface SinkDeliveryResult {
+  outputPath?: string;
 }
 
 export interface FeedbackSink<TOptions = Record<string, unknown>> {
@@ -23,5 +29,5 @@ export interface FeedbackSink<TOptions = Record<string, unknown>> {
   displayName: string;
   subscribedArtifactTypes: string[];
   detect(context: ProjectContext): boolean;
-  deliver?(context: FeedbackSinkContext<TOptions>): Promise<void>;
+  deliver?(context: FeedbackSinkContext<TOptions>): Promise<SinkDeliveryResult | void>;
 }

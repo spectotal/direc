@@ -1,8 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import type { ArtifactEnvelope, ArtifactSeed } from "@spectotal/direc-artifact-contracts";
-import type { RunManifest, SinkDeliveryBundle } from "../index.js";
+import type { RunManifest } from "../index.js";
 import { writeJsonFile } from "./json-io.js";
 
 export async function persistArtifactSeeds(options: {
@@ -38,21 +37,8 @@ export async function persistArtifactSeeds(options: {
 export async function writePersistedSnapshot(options: {
   directory: string;
   manifest: RunManifest;
-  deliveries: SinkDeliveryBundle[];
-  replaceDirectory?: boolean;
 }): Promise<void> {
-  if (options.replaceDirectory) {
-    await rm(options.directory, { recursive: true, force: true });
-  }
-
   await writeJsonFile(join(options.directory, "manifest.json"), options.manifest);
-
-  for (const delivery of options.deliveries) {
-    await writeJsonFile(
-      join(options.directory, "deliveries", `${sanitiseSegment(delivery.sinkId)}.json`),
-      delivery,
-    );
-  }
 }
 
 export function createRunId(now: () => Date): string {

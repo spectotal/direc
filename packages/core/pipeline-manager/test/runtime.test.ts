@@ -144,11 +144,31 @@ test("runPipeline persists run and latest manifests, mirrored artifacts, and sin
       results.push(...context.artifacts.map((artifact) => artifact.type));
     },
   };
-  const passiveSink: FeedbackSink = {
-    id: "passive-sink",
-    displayName: "Passive Sink",
+  const fileSink: FeedbackSink = {
+    id: "file-sink",
+    displayName: "File Sink",
     subscribedArtifactTypes: ["evaluation.complexity-findings"],
     detect: () => true,
+    async deliver(context) {
+      const outputPath = "deliveries/fake-findings.json";
+      const payload = {
+        runId: context.runId,
+        pipelineId: context.pipelineId,
+        sinkId: context.sinkConfig.id,
+        artifacts: context.artifacts,
+      };
+
+      await Promise.all([
+        mkdir(join(context.runDirectory, "deliveries"), { recursive: true }),
+        mkdir(join(context.latestDirectory, "deliveries"), { recursive: true }),
+      ]);
+      await Promise.all([
+        writeFile(join(context.runDirectory, outputPath), JSON.stringify(payload, null, 2)),
+        writeFile(join(context.latestDirectory, outputPath), JSON.stringify(payload, null, 2)),
+      ]);
+
+      return { outputPath };
+    },
   };
   const config: WorkspaceConfig = {
     version: 1,
@@ -183,7 +203,7 @@ test("runPipeline persists run and latest manifests, mirrored artifacts, and sin
       },
       persist: {
         id: "persist",
-        plugin: "passive-sink",
+        plugin: "file-sink",
         enabled: true,
       },
     },
@@ -208,7 +228,7 @@ test("runPipeline persists run and latest manifests, mirrored artifacts, and sin
     registry: {
       sources: [fakeSource],
       analysisNodes: [fakeNode, fakeFindingsNode],
-      sinks: [fakeSink, passiveSink],
+      sinks: [fakeSink, fileSink],
     },
     projectContext,
     pipelineId: "fake-pipeline",
@@ -222,18 +242,14 @@ test("runPipeline persists run and latest manifests, mirrored artifacts, and sin
   assert.deepEqual(results, ["evaluation.complexity-findings"]);
   const latest = await readLatestRunRecord(repositoryRoot, "fake-pipeline");
   const latestDelivery = await readLatestSinkDelivery(repositoryRoot, "fake-pipeline", "record");
-  const passiveDelivery = await readLatestSinkDelivery(repositoryRoot, "fake-pipeline", "persist");
+  const fileDelivery = await readLatestSinkDelivery(repositoryRoot, "fake-pipeline", "persist");
   assert.ok(latest);
-  assert.ok(latestDelivery);
-  assert.ok(passiveDelivery);
+  assert.equal(latestDelivery, null);
+  assert.ok(fileDelivery);
   assert.equal(latest?.artifactCount, 3);
   assert.equal(latest?.runId, result.manifest.runId);
   assert.deepEqual(
-    latestDelivery?.artifacts.map((artifact) => artifact.type),
-    ["evaluation.complexity-findings"],
-  );
-  assert.deepEqual(
-    passiveDelivery?.artifacts.map((artifact) => artifact.type),
+    fileDelivery?.artifacts.map((artifact) => artifact.type),
     ["evaluation.complexity-findings"],
   );
 
@@ -281,7 +297,7 @@ test("runPipeline persists run and latest manifests, mirrored artifacts, and sin
       registry: {
         sources: [fakeSource],
         analysisNodes: [fakeNode, fakeFindingsNode],
-        sinks: [fakeSink, passiveSink],
+        sinks: [fakeSink, fileSink],
       },
       projectContext,
       pipelineId: "fake-pipeline",

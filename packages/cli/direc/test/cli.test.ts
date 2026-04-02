@@ -154,6 +154,9 @@ test("runCommand loads config and executes the facet and agnostic diff pipeline 
     agentDelivery.artifacts.map((artifact) => artifact.type),
     ["evaluation.complexity-findings"],
   );
+  await assert.rejects(() =>
+    stat(join(repositoryRoot, ".direc", "latest", "diff-quality", "deliveries", "console.json")),
+  );
 });
 
 test("initCommand prompts for agents and installs all bundled skills", async () => {

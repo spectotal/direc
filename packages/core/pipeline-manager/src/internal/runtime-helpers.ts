@@ -5,11 +5,10 @@ import type {
   PipelinePlan,
   RunManifest,
   RunPipelineOptions,
-  SinkDeliveryBundle,
   SinkDeliveryRecord,
 } from "../index.js";
 import { extractOptions, filterArtifactsForAnalysisStep } from "./analysis-context.js";
-import { persistArtifactSeeds, sanitiseSegment } from "./persistence.js";
+import { persistArtifactSeeds } from "./persistence.js";
 
 const ANALYSIS_BINDINGS: AnalysisBinding[] = ["facet", "agnostic"];
 
@@ -32,14 +31,12 @@ export async function deliverArtifacts(
   options: RunPipelineOptions,
   plan: PipelinePlan,
   artifacts: ArtifactEnvelope[],
+  runDirectory: string,
+  latestDirectory: string,
   runId: string,
   now: () => Date,
-): Promise<{
-  deliveries: SinkDeliveryRecord[];
-  deliveryBundles: SinkDeliveryBundle[];
-}> {
+): Promise<SinkDeliveryRecord[]> {
   const deliveries: SinkDeliveryRecord[] = [];
-  const deliveryBundles: SinkDeliveryBundle[] = [];
 
   for (const entry of plan.sinks) {
     const subscribedArtifacts = selectArtifactsByType(
@@ -51,36 +48,30 @@ export async function deliverArtifacts(
       continue;
     }
 
-    await entry.sink.deliver?.({
+    const delivery = await entry.sink.deliver?.({
       repositoryRoot: options.repositoryRoot,
       runId,
       pipelineId: plan.pipeline.id,
       sourceId: plan.sourceConfig.id,
+      runDirectory,
+      latestDirectory,
       sinkConfig: entry.config,
       projectContext: options.projectContext,
       artifacts: subscribedArtifacts,
       now,
     });
 
-    const outputPath = joinDeliveryPath(entry.config.id);
+    const outputPath = delivery && typeof delivery === "object" ? delivery.outputPath : undefined;
+
     deliveries.push({
       sinkId: entry.config.id,
       artifactIds: subscribedArtifacts.map((artifact) => artifact.id),
       deliveredAt: now().toISOString(),
       outputPath,
     });
-    deliveryBundles.push({
-      runId,
-      pipelineId: plan.pipeline.id,
-      sinkId: entry.config.id,
-      artifacts: subscribedArtifacts,
-    });
   }
 
-  return {
-    deliveries,
-    deliveryBundles,
-  };
+  return deliveries;
 }
 
 export function createManifest(
@@ -182,8 +173,4 @@ function createAnalysisContext(
     options: extractOptions(toolConfig),
     now,
   };
-}
-
-function joinDeliveryPath(sinkId: string): string {
-  return `deliveries/${sanitiseSegment(sinkId)}.json`;
 }
